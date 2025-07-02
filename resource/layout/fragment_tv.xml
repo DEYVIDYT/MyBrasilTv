@@ -134,55 +134,10 @@
 
     </FrameLayout>
 
-    <!-- Player Controls -->
-    <LinearLayout
-        android:id="@+id/player_controls_layout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical"
-        android:background="@color/md_sys_color_surface"
-        app:layout_constraintTop_toBottomOf="@id/player_container"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <ImageView
-            android:id="@+id/volume_icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_volume_up"
-            app:tint="@color/md_sys_color_on_surface"
-            android:padding="8dp"/>
-
-        <TextView
-            android:id="@+id/quality_indicator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="480P"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/md_sys_color_on_tertiary_container"
-            android:background="@drawable/quality_indicator_background"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
-            android:layout_marginStart="16dp"/>
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1"/>
-
-        <ImageView
-            android:id="@+id/fullscreen_icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_fullscreen"
-            app:tint="@color/md_sys_color_on_surface"
-            android:padding="8dp"/>
-    </LinearLayout>
+    <!-- Player Controls Layout Removido -->
+    <!-- O StandardVideoController do DoikkiPlayer (com VodControlView/LiveControlView) -->
+    <!-- já fornece controles de play/pause e tela cheia. -->
+    <!-- O controle de volume é geralmente por gestos no GestureVideoController. -->
 
     <!-- Tabs -->
     <LinearLayout
@@ -192,7 +147,7 @@
         android:orientation="horizontal"
         android:background="@color/md_sys_color_surface"
         android:elevation="1dp"
-        app:layout_constraintTop_toBottomOf="@id/player_controls_layout"
+        app:layout_constraintTop_toBottomOf="@id/player_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
