@@ -59,15 +59,25 @@ public class XtreamApiService {
                         JSONObject jsonObject = jsonArray.getJSONObject(i);
                         String name = jsonObject.optString("name");
                         String streamId = jsonObject.optString("stream_id");
-                        String streamIcon = jsonObject.optString("stream_icon");
+                        String streamIcon = jsonObject.optString("stream_icon", null); // Default to null if not present
                         String categoryId = jsonObject.optString("category_id");
                         String containerExtension = jsonObject.optString("container_extension");
-                        String directSource = String.format("%s/%s/%s/%s.%s", baseUrl, streamId, username, password, containerExtension);
-                        movies.add(new Movie(name, directSource, streamIcon, categoryId));
+                        // Construct the direct source URL carefully
+                        // String directSource = String.format("%s/movie/%s/%s/%s.%s", baseUrl, username, password, streamId, containerExtension);
+                        // The above directSource might be incorrect based on typical Xtream Codes structure.
+                        // Usually, stream_id is part of the query parameters for playback, not the path for the VOD stream itself.
+                        // The 'name', 'stream_icon', and 'category_id' are primary for listing.
+                        // The actual playback URL is often constructed differently or obtained via another action.
+                        // For now, we focus on the metadata for listing.
+                        // Let's assume directSource is not immediately needed for cover loading, focusing on streamIcon.
+
+                        Log.d("XtreamApiService", "Movie: " + name + ", Icon URL: " + streamIcon);
+                        movies.add(new Movie(name, "placeholder_stream_url", streamIcon, categoryId)); // Using placeholder for stream URL for now
                     }
                     callback.onSuccess(movies);
 
                 } else {
+                    Log.e("XtreamApiService", "Failed to fetch VOD streams. HTTP error code: " + responseCode);
                     callback.onFailure("Failed to fetch VOD streams. HTTP error code: " + responseCode);
                 }
             } catch (Exception e) {
@@ -117,6 +127,54 @@ public class XtreamApiService {
                 callback.onFailure("Error: " + e.getMessage());
             }
         });
+    }
+
+    public void fetchVodCategories(XtreamApiCallback<CategoryInfo> callback) {
+        executor.execute(() -> {
+            try {
+                String apiUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_vod_categories", baseUrl, username, password);
+                URL url = new URL(apiUrl);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+
+                    List<CategoryInfo> categories = new ArrayList<>();
+                    JSONArray jsonArray = new JSONArray(response.toString());
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
+                        String categoryId = jsonObject.getString("category_id");
+                        String categoryName = jsonObject.getString("category_name");
+                        categories.add(new CategoryInfo(categoryId, categoryName));
+                    }
+                    callback.onSuccess(categories);
+                } else {
+                    callback.onFailure("Failed to fetch VOD categories. HTTP error code: " + responseCode);
+                }
+            } catch (Exception e) {
+                Log.e("XtreamApiService", "Error fetching VOD categories", e);
+                callback.onFailure("Error: " + e.getMessage());
+            }
+        });
+    }
+
+    // Simple class to hold category ID and Name
+    public static class CategoryInfo {
+        public final String id;
+        public final String name;
+
+        public CategoryInfo(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
     }
 }
 

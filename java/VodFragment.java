@@ -47,13 +47,14 @@ public class VodFragment extends Fragment {
     private ProgressBar progressBar;
     private ChipGroup chipGroupCategories;
     private List<Movie> allMovies = new ArrayList<>();
+    private java.util.Map<String, String> categoryIdToNameMap = new java.util.HashMap<>();
     private DownloadReceiver downloadReceiver;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private static final String VOD_URL = ""; // URL para conteúdo VOD, se aplicável. Deixe vazio se o conteúdo VOD for local ou gerenciado de outra forma.
+    // private static final String VOD_URL = ""; // No longer needed for M3U
 
-    private final ActivityResultLauncher<String> requestPermissionLauncher = 
-        registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
             if (isGranted) {
                 startDownload();
             } else {
@@ -80,137 +81,247 @@ public class VodFragment extends Fragment {
             requireActivity().registerReceiver(downloadReceiver, filter);
         }
 
-        checkNotificationPermissionAndStartDownload();
+        // checkNotificationPermissionAndStartDownload();
+        loadMovies(); // Unified loading logic
         return root;
     }
 
-    private void checkNotificationPermissionAndStartDownload() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                startDownload();
-            } else {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+    private void loadMovies() {
+        showLoading(true);
+        List<Movie> cachedMovies = MovieCacheManager.loadMoviesFromCache(requireContext());
+
+        if (!cachedMovies.isEmpty()) {
+            Log.i("VodFragment", "Loaded " + cachedMovies.size() + " movies from cache.");
+            allMovies = cachedMovies;
+            setupAndDisplayMovies();
+            // Optionally, you can still trigger a background refresh if cache is old but not fully expired
+            // For now, if cache is valid and not empty, we use it.
+             // Check if the cache is considered "globally" expired to force API refresh
+            if (!MovieCacheManager.isCacheValid(requireContext())) {
+                 Log.i("VodFragment", "Cache is old, scheduling a background refresh.");
+                 fetchMoviesFromApi(false); // Fetch but don't show loading indicator if displaying cache
             }
         } else {
-            startDownload();
+            Log.i("VodFragment", "Cache is empty or expired, fetching from API.");
+            fetchMoviesFromApi(true); // Fetch and show loading indicator
         }
     }
 
-    private void startDownload() {
-        showLoading(true);
-        // Para fins de demonstração, vamos simular o carregamento de um arquivo local
-        // Em um aplicativo real, você carregaria o conteúdo VOD de uma API ou de um arquivo local específico para VOD.
-        // Por enquanto, vamos criar um arquivo M3U de exemplo para VOD.
-        executor.execute(() -> {
-            try {
-                // Simular um arquivo M3U de VOD usando StringBuilder para evitar problemas de sintaxe
-                StringBuilder vodContentBuilder = new StringBuilder();
-                vodContentBuilder.append("#EXTM3U\n");
-                vodContentBuilder.append("#EXTINF:-1 tvg-id=\"Movie1\" tvg-name=\"O Castelo do Lobisomem\" ");
-                vodContentBuilder.append("tvg-logo=\"https://image.tmdb.org/t/p/w500/example1.jpg\" ");
-                vodContentBuilder.append("group-title=\"FILMES DIVERSOS\",O Castelo do Lobisomem (2022)\n");
-                vodContentBuilder.append("http://example.com/movie1.mp4\n");
-                
-                vodContentBuilder.append("#EXTINF:-1 tvg-id=\"Movie2\" tvg-name=\"Divida de Honra\" ");
-                vodContentBuilder.append("tvg-logo=\"https://image.tmdb.org/t/p/w500/example2.jpg\" ");
-                vodContentBuilder.append("group-title=\"FILMES DIVERSOS\",Divida de Honra (2023)\n");
-                vodContentBuilder.append("http://example.com/movie2.mp4\n");
-                
-                vodContentBuilder.append("#EXTINF:-1 tvg-id=\"Movie3\" tvg-name=\"O Comando\" ");
-                vodContentBuilder.append("tvg-logo=\"https://image.tmdb.org/t/p/w500/example3.jpg\" ");
-                vodContentBuilder.append("group-title=\"FILMES DIVERSOS\",O Comando (2022)\n");
-                vodContentBuilder.append("http://example.com/movie3.mp4\n");
-                
-                vodContentBuilder.append("#EXTINF:-1 tvg-id=\"Movie4\" tvg-name=\"Como Treinar o Seu Dragao\" ");
-                vodContentBuilder.append("tvg-logo=\"https://image.tmdb.org/t/p/w500/example4.jpg\" ");
-                vodContentBuilder.append("group-title=\"FILMES: [Qualidade Cinema]\",Como Treinar o Seu Dragao (2020)\n");
-                vodContentBuilder.append("http://example.com/movie4.mp4\n");
-                
-                vodContentBuilder.append("#EXTINF:-1 tvg-id=\"Movie5\" tvg-name=\"Confinado\" ");
-                vodContentBuilder.append("tvg-logo=\"https://image.tmdb.org/t/p/w500/example5.jpg\" ");
-                vodContentBuilder.append("group-title=\"FILMES: [Qualidade Cinema]\",Confinado (2020)\n");
-                vodContentBuilder.append("http://example.com/movie5.mp4\n");
-                
-                vodContentBuilder.append("#EXTINF:-1 tvg-id=\"Movie6\" tvg-name=\"Bailarina\" ");
-                vodContentBuilder.append("tvg-logo=\"https://image.tmdb.org/t/p/w500/example6.jpg\" ");
-                vodContentBuilder.append("group-title=\"FILMES: [Qualidade Cinema]\",Bailarina (2022)\n");
-                vodContentBuilder.append("http://example.com/movie6.mp4\n");
-                
-                String vodContent = vodContentBuilder.toString();
+    private void fetchMoviesFromApi(boolean showInitialLoading) {
+        if (showInitialLoading) {
+            showLoading(true);
+        }
 
-                File tempFile = new File(requireContext().getCacheDir(), "vod_example.m3u");
-                try (java.io.FileWriter writer = new java.io.FileWriter(tempFile)) {
-                    writer.write(vodContent);
-                }
-                processM3uFile(tempFile.getAbsolutePath());
-            } catch (IOException e) {
-                e.printStackTrace();
+        // Step 1: Fetch credentials from GetLoguin.php
+        fetchXtreamCredentials(new CredentialsCallback() {
+            @Override
+            public void onCredentialsReceived(String baseUrl, String username, String password) {
+                // Step 2: Use credentials to fetch VOD streams
+                XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+                apiService.fetchVodStreams(new XtreamApiService.XtreamApiCallback<Movie>() {
+                    @Override
+                    public void onSuccess(List<Movie> movies) {
+                        MovieCacheManager.saveMoviesToCache(requireContext(), movies);
+                        allMovies = movies;
+                        // Before displaying, fetch category names
+                        fetchCategoryNames(baseUrl, username, password, () -> {
+                            if (getActivity() != null) {
+                                getActivity().runOnUiThread(() -> {
+                                    Log.i("VodFragment", "Successfully fetched " + movies.size() + " movies from API.");
+                                    setupAndDisplayMovies();
+                                    if (showInitialLoading) showLoading(false);
+                                });
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                if (showInitialLoading) showLoading(false);
+                                Toast.makeText(getContext(), "Failed to load VOD streams: " + error, Toast.LENGTH_LONG).show();
+                                Log.e("VodFragment", "VOD API Error: " + error);
+                            });
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onCredentialsFailure(String error) {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        showLoading(false);
-                        Toast.makeText(getContext(), "Failed to create example VOD file.", Toast.LENGTH_SHORT).show();
+                        if (showInitialLoading) showLoading(false);
+                        Toast.makeText(getContext(), "Failed to get Xtream credentials: " + error, Toast.LENGTH_LONG).show();
+                        Log.e("VodFragment", "Credentials Error: " + error);
                     });
                 }
             }
         });
     }
 
-    private void processM3uFile(String filePath) {
+    private interface CredentialsCallback {
+        void onCredentialsReceived(String baseUrl, String username, String password);
+        void onCredentialsFailure(String error);
+    }
+
+    private void fetchXtreamCredentials(CredentialsCallback callback) {
         executor.execute(() -> {
             try {
-                File file = new File(filePath);
-                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                    allMovies = M3uParser.parseMovies(br);
-                }
+                URL url = new URL("http://mybrasiltv.x10.mx/GetLoguin.php"); // TODO: Make this configurable if needed
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
 
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        setupCategoryChips(allMovies);
-                        movieAdapter = new MovieAdapter(allMovies);
-                        recyclerView.setAdapter(movieAdapter);
-                        showLoading(false);
-                    });
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+
+                    JSONObject jsonObject = new JSONObject(response.toString());
+                    String server = jsonObject.getString("server");
+                    String user = jsonObject.getString("username");
+                    String pass = jsonObject.getString("password");
+
+                    // Ensure http/https is present, default to http if not
+                    if (!server.toLowerCase().startsWith("http://") && !server.toLowerCase().startsWith("https://")) {
+                        server = "http://" + server;
+                    }
+
+                    Log.i("VodFragment", "Credentials received: Server=" + server + ", User=" + user);
+                    callback.onCredentialsReceived(server, user, pass);
+
+                } else {
+                    callback.onCredentialsFailure("HTTP error code: " + responseCode);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        showLoading(false);
-                        Toast.makeText(getContext(), "Failed to process list", Toast.LENGTH_SHORT).show();
-                    });
-                }
+            } catch (Exception e) {
+                Log.e("VodFragment", "Error fetching Xtream credentials", e);
+                callback.onCredentialsFailure(e.getMessage());
             }
         });
     }
+
+    private void setupAndDisplayMovies() {
+        if (allMovies == null || allMovies.isEmpty()) {
+            Log.w("VodFragment", "No movies to display.");
+            if (movieAdapter != null) movieAdapter.updateData(new ArrayList<>()); // Clear adapter
+            showLoading(false); // Ensure loading is hidden if nothing to show
+            // Optionally show a "No movies found" message
+            return;
+        }
+        setupCategoryChips(allMovies);
+        if (movieAdapter == null) {
+            movieAdapter = new MovieAdapter(allMovies);
+            recyclerView.setAdapter(movieAdapter);
+        } else {
+            movieAdapter.updateData(allMovies);
+        }
+        showLoading(false);
+    }
+
+
+    // private void checkNotificationPermissionAndStartDownload() {
+    //     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    //         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+    //             // startDownload(); // Original call
+    //         } else {
+    //             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+    //         }
+    //     } else {
+    //         // startDownload(); // Original call
+    //     }
+    // }
+
+    // Removed startDownload() and processM3uFile() as they load local/demo data.
+    // The DownloadReceiver might still be relevant if you intend to download actual VOD files for offline viewing later.
+    // For now, its primary function of loading the M3U list is replaced by API loading.
 
     private void setupCategoryChips(List<Movie> movies) {
-        Set<String> categories = new LinkedHashSet<>();
-        categories.add("All");
+        Set<String> categoryNames = new LinkedHashSet<>();
+        categoryNames.add("All"); // "All" category first
+
         for (Movie movie : movies) {
-            if (movie.getCategory() != null && !movie.getCategory().isEmpty()) {
-                categories.add(movie.getCategory());
+            String categoryId = movie.getCategory();
+            if (categoryId != null && !categoryId.isEmpty()) {
+                String categoryName = categoryIdToNameMap.getOrDefault(categoryId, categoryId); // Use ID if name not found
+                categoryNames.add(categoryName);
             }
         }
 
         chipGroupCategories.removeAllViews();
-        for (String category : categories) {
+        boolean firstChip = true;
+        for (String name : categoryNames) {
             Chip chip = new Chip(getContext());
-            chip.setText(category);
+            chip.setText(name);
             chip.setCheckable(true);
+            // Store the original category ID or "All" in the tag if needed for filtering
+            if (name.equals("All")) {
+                chip.setTag("All");
+            } else {
+                // Find the ID for this name (this is a bit inefficient, could optimize)
+                for (java.util.Map.Entry<String, String> entry : categoryIdToNameMap.entrySet()) {
+                    if (entry.getValue().equals(name)) {
+                        chip.setTag(entry.getKey());
+                        break;
+                    }
+                }
+                if (chip.getTag() == null) chip.setTag(name); // Fallback if ID not found (e.g. was an ID already)
+            }
             chipGroupCategories.addView(chip);
-        }
-
-        if (chipGroupCategories.getChildCount() > 0) {
-            ((Chip) chipGroupCategories.getChildAt(0)).setChecked(true);
+            if (firstChip) {
+                chip.setChecked(true);
+                firstChip = false;
+            }
         }
 
         chipGroupCategories.setOnCheckedChangeListener((group, checkedId) -> {
             Chip selectedChip = group.findViewById(checkedId);
             if (movieAdapter != null && selectedChip != null) {
-                movieAdapter.filterByCategory(selectedChip.getText().toString());
+                // We need to filter by the original category ID, not the displayed name,
+                // unless it's "All". The Movie objects store category IDs.
+                String filterKey = (String) selectedChip.getTag();
+                 if ("All".equals(filterKey)) {
+                    movieAdapter.filterByCategory("All");
+                } else {
+                    // If the tag is a name (fallback), try to get ID again or use name itself
+                    // This part assumes movie.getCategory() returns ID
+                    movieAdapter.filterByCategory(filterKey);
+                }
             }
         });
     }
+
+    private void fetchCategoryNames(String baseUrl, String username, String password, Runnable onComplete) {
+        XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+        apiService.fetchVodCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
+            @Override
+            public void onSuccess(List<XtreamApiService.CategoryInfo> categoryInfos) {
+                categoryIdToNameMap.clear();
+                for (XtreamApiService.CategoryInfo catInfo : categoryInfos) {
+                    categoryIdToNameMap.put(catInfo.id, catInfo.name);
+                    Log.d("VodFragment", "Fetched category: ID=" + catInfo.id + ", Name=" + catInfo.name);
+                }
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(onComplete);
+                }
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Log.e("VodFragment", "Failed to fetch category names: " + error);
+                // Proceed without category names, IDs will be shown
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(onComplete);
+                }
+            }
+        });
+    }
+
 
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);

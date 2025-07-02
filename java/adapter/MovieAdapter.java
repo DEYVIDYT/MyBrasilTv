@@ -43,10 +43,13 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     public void onBindViewHolder(@NonNull MovieViewHolder holder, int position) {
         Movie movie = movieListDisplayed.get(position);
         holder.movieTitle.setText(movie.getTitle());
+        // Store the URL in the tag for logging purposes in onPostExecute
+        holder.moviePoster.setTag(movie.getPosterUrl());
         if (movie.getPosterUrl() != null && !movie.getPosterUrl().isEmpty()) {
             new DownloadImageTask(holder.moviePoster).execute(movie.getPosterUrl());
         } else {
-            holder.moviePoster.setImageResource(android.R.color.darker_gray);
+            Log.w("MovieAdapter", "Poster URL is null or empty for movie: " + movie.getTitle());
+            holder.moviePoster.setImageResource(android.R.color.darker_gray); // Default placeholder
         }
     }
 
@@ -88,10 +91,16 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
             String urldisplay = urls[0];
             Bitmap mIcon11 = null;
             try {
+                Log.d("DownloadImageTask", "Attempting to download image from: " + urldisplay);
                 java.io.InputStream in = new java.net.URL(urldisplay).openStream();
                 mIcon11 = BitmapFactory.decodeStream(in);
+                if (mIcon11 == null) {
+                    Log.e("DownloadImageTask", "Failed to decode bitmap from stream: " + urldisplay);
+                }
+            } catch (IOException e) {
+                Log.e("DownloadImageTask", "IOException while downloading image: " + urldisplay, e);
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("DownloadImageTask", "General exception while downloading image: " + urldisplay, e);
             }
             return mIcon11;
         }
@@ -99,6 +108,11 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         protected void onPostExecute(Bitmap result) {
             if (result != null) {
                 bmImage.setImageBitmap(result);
+                Log.d("DownloadImageTask", "Image successfully loaded and set for: " + bmImage.getTag());
+            } else {
+                Log.e("DownloadImageTask", "Bitmap result is null after download attempt for: " + bmImage.getTag());
+                // Optionally set a placeholder if download fails
+                // bmImage.setImageResource(R.drawable.placeholder_image_error);
             }
         }
     }
