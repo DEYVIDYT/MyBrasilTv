@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.iptvplayer.R;
 import com.example.iptvplayer.data.Channel;
 import com.squareup.picasso.Picasso;
+import android.util.Log; // Import Log
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,18 +49,29 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
 
         holder.channelProgram.setText("Recebendo a programação...");
 
-        try {
-            if (channel.getLogoUrl() != null && !channel.getLogoUrl().isEmpty()) {
-                Picasso.get()
-                        .load(channel.getLogoUrl())
-                        .placeholder(R.drawable.ic_home_black_24dp)
-                        .error(R.drawable.ic_home_black_24dp)
-                        .into(holder.channelLogo);
-            } else {
-                holder.channelLogo.setImageResource(R.drawable.ic_home_black_24dp);
-            }
-        } catch (Exception e) {
-            holder.channelLogo.setImageResource(R.drawable.ic_home_black_24dp);
+        String logoUrl = channel.getLogoUrl();
+        Log.d("ChannelAdapter", "Channel: " + channel.getName() + ", Logo URL: " + logoUrl);
+
+        if (logoUrl != null && !logoUrl.isEmpty()) {
+            Picasso.get()
+                    .load(logoUrl)
+                    .placeholder(R.drawable.rounded_corner_image_placeholder) // Usando o placeholder novo
+                    .error(R.drawable.rounded_corner_image_placeholder) // Usando o placeholder novo como erro também
+                    .into(holder.channelLogo, new com.squareup.picasso.Callback() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d("ChannelAdapter", "Picasso onSuccess: " + logoUrl);
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            Log.e("ChannelAdapter", "Picasso onError: " + logoUrl, e);
+                            // Fallback em caso de erro do Picasso, já definido pelo .error()
+                        }
+                    });
+        } else {
+            Log.d("ChannelAdapter", "Logo URL is null or empty for " + channel.getName());
+            holder.channelLogo.setImageResource(R.drawable.rounded_corner_image_placeholder); // Define um placeholder
         }
 
         holder.itemView.setOnClickListener(v -> {
