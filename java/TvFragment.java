@@ -19,7 +19,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.TrackSelectionParameters; // Import necessário
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector; // Import necessário
 import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -77,7 +79,15 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
         // Initialize ExoPlayer
         if (getContext() != null) {
-            player = new ExoPlayer.Builder(getContext()).build();
+            // Configurar DefaultTrackSelector para desabilitar áudio espacializado
+            DefaultTrackSelector.ParametersBuilder parametersBuilder =
+                    new DefaultTrackSelector.ParametersBuilder(getContext());
+            parametersBuilder.setSpatializationBehavior(TrackSelectionParameters.SPATIALIZATION_BEHAVIOR_NEVER);
+            DefaultTrackSelector trackSelector = new DefaultTrackSelector(getContext(), parametersBuilder.build());
+
+            player = new ExoPlayer.Builder(getContext())
+                    .setTrackSelector(trackSelector)
+                    .build();
             playerView.setPlayer(player);
         }
 
