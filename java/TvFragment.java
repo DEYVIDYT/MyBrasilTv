@@ -74,18 +74,13 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private List<Channel> allChannels = new ArrayList<>();
     private DownloadReceiver downloadReceiver;
 
-    private ProgressBar playerProgressBar; // Conectado ao XML
-    private TextView playerLoadingTextView; // Para a mensagem "Carregando"
+    private ProgressBar playerProgressBar;
 
     private VideoView mVideoView;
     private StandardVideoController mController;
-    private TitleView mTitleViewComponent; // Referência ao componente TitleView
     private int mWidthPixels;
     private PictureInPictureParams.Builder mPictureInPictureParamsBuilder;
     private BroadcastReceiver mReceiver;
-
-    // Sinalizador para controle do PiP durante a troca de canais
-    private boolean mIsSwitchingChannels = false;
 
     private static final String ACTION_MEDIA_CONTROL = "media_control";
     private static final String EXTRA_CONTROL_TYPE = "control_type";
@@ -109,8 +104,6 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         recyclerViewChannels = root.findViewById(R.id.recycler_view_channels);
         recyclerViewCategories = root.findViewById(R.id.recycler_view_categories);
         searchEditText = root.findViewById(R.id.search_edit_text);
-        playerProgressBar = root.findViewById(R.id.player_progress_bar); // Conectar ProgressBar
-        playerLoadingTextView = root.findViewById(R.id.player_loading_text); // Conectar TextView de Loading
 
         recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerViewCategories.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -119,16 +112,13 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
 
         mVideoView = new xyz.doikki.videoplayer.player.VideoView(getContext());
-        FrameLayout playerContainer = root.findViewById(R.id.player_container);
-        if (playerContainer != null) {
-            // Fazer o VideoView preencher o player_container
-            FrameLayout.LayoutParams videoViewParams = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT);
-            mVideoView.setLayoutParams(videoViewParams);
-            playerContainer.addView(mVideoView); // Adicionar ao FrameLayout
+        FrameLayout linear1 = root.findViewById(R.id.player_container); // Assuming player_container is where the video view should be added
+        if (linear1 != null) {
+            FrameLayout.LayoutParams lplinear1 = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,600);
+            mVideoView.setLayoutParams(lplinear1);
+            linear1.addView(mVideoView);
         } else {
-            Log.e("TvFragment", "player_container FrameLayout not found in fragment_tv.xml");
+            Log.e("TvFragment", "player_container LinearLayout not found in fragment_tv.xml");
             Toast.makeText(getContext(), "Erro: Container do player não encontrado.", Toast.LENGTH_LONG).show();
         }
         mWidthPixels = getResources().getDisplayMetrics().widthPixels;
@@ -159,81 +149,38 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             }
         });
         mController.addControlComponent(vodControlView);
-
-        // Criar e configurar o TitleView, depois armazenar a referência
-        mTitleViewComponent = new TitleView(getContext());
-        mTitleViewComponent.findViewById(R.id.pip).setOnClickListener(new View.OnClickListener() {
+        TitleView titleView = new TitleView(getContext());
+        titleView.findViewById(R.id.pip).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Rational aspectRatio = new Rational(16, 9);
-                mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio); // Corrigido: .build() removido daqui
+                mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio).build();
                 if (getActivity() != null) {
                     getActivity().enterPictureInPictureMode(mPictureInPictureParamsBuilder.build());
                 }
             }
         });
-        mTitleViewComponent.setTitle(title); // Define um título inicial
-        mController.addControlComponent(mTitleViewComponent);
+
+        titleView.setTitle(title);
+        mController.addControlComponent(titleView);
 
         mVideoView.setVideoController(mController);
         mVideoView.addOnStateChangeListener(new VideoView.SimpleOnStateChangeListener() {
             @Override
             public void onPlayStateChanged(int playState) {
-                Log.d("VideoPlayerState", "Current Play State: " + playStateToString(playState) + ", SwitchingChannels: " + mIsSwitchingChannels);
-
-                // Se um novo vídeo começou a tocar ou está pronto (ou erro), a troca terminou.
-                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PREPARED || playState == VideoView.STATE_ERROR) {
-                    if(mIsSwitchingChannels) {
-                        Log.d("VideoPlayerState", "Transition to PLAYING/PREPARED/ERROR, resetting mIsSwitchingChannels for new stream.");
-                    }
-                    mIsSwitchingChannels = false;
-                }
-
-                // Não atualize as ações PiP se for um evento de pausa do vídeo antigo durante uma troca de canal.
-                if (mIsSwitchingChannels && playState == VideoView.STATE_PAUSED) {
-                    Log.d("VideoPlayerState", "PAUSED state during channel switch, likely old stream. PiP actions update SKIPPED.");
-                    return;
-                }
-                 if (mIsSwitchingChannels && (playState == VideoView.STATE_IDLE || playState == VideoView.STATE_PREPARING)) {
-                    Log.d("VideoPlayerState", "IDLE/PREPARING state during channel switch. PiP actions update SKIPPED.");
-                    // Não faz sentido atualizar PiP se o player está idle ou preparando DURANTE uma troca.
-                    // Isso pode acontecer se release() for chamado, e o player passar por IDLE.
-                    return;
-                }
-
-
                 switch (playState) {
                     case VideoView.STATE_PAUSED:
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_play_arrow, "Play", CONTROL_TYPE_PLAY, REQUEST_PLAY);
+                                R.drawable.dkplayer_ic_action_play_arrow, "播放", CONTROL_TYPE_PLAY, REQUEST_PLAY);
                         break;
                     case VideoView.STATE_PLAYING:
-                        // Quando estiver tocando, e não trocando de canal, reseta o flag (segurança extra).
-                        // mIsSwitchingChannels = false; // Já tratado acima, mas pode ser uma garantia.
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_pause, "Pause", CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
+                                R.drawable.dkplayer_ic_action_pause, "暂停", CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
                         break;
                     case VideoView.STATE_PLAYBACK_COMPLETED:
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_replay, "Replay", CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
+                                R.drawable.dkplayer_ic_action_replay, "重新播放", CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
                         break;
-                    // Outros estados como STATE_PREPARING, STATE_BUFFERING podem ser usados para mostrar/esconder o ProgressBar
-                    case VideoView.STATE_PREPARING:
-                    case VideoView.STATE_BUFFERING:
-                        showLoading(true);
-                        break;
-                    case VideoView.STATE_PREPARED: // Vídeo preparado, mas ainda não necessariamente tocando
-                    case VideoView.STATE_BUFFERED: // Buffering completo
-                        // showLoading(false); // Ocultar loading apenas quando PLAYING ou se o player não for iniciar automaticamente
-                        break;
-                    case VideoView.STATE_ERROR:
-                        showLoading(false); // Esconder loading em caso de erro
-                        // ErrorView já deve estar sendo exibido pelo controller
-                        break;
-                }
-                // Assegurar que o loading seja escondido se o vídeo estiver tocando ou pausado (após preparo/buffering)
-                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED) {
-                    showLoading(false);
                 }
             }
         });
@@ -242,12 +189,11 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         downloadReceiver = new DownloadReceiver(this);
         IntentFilter filter = new IntentFilter(DownloadService.ACTION_DOWNLOAD_COMPLETE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Ensure getContext() is not null and activity is available
-            if (getContext() != null && getActivity() != null) {
+            if (getContext() != null && getActivity() != null) { // Null check
                 requireActivity().registerReceiver(downloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
             }
         } else {
-            if (getContext() != null && getActivity() != null) {
+            if (getContext() != null && getActivity() != null) { // Null check
                 requireActivity().registerReceiver(downloadReceiver, filter);
             }
         }
@@ -280,59 +226,57 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             return;
         }
         if (channel.getStreamUrl() != null && !channel.getStreamUrl().isEmpty()) {
-            mIsSwitchingChannels = true; // Sinaliza o início da troca de canal
-            showLoading(true); // Mostrar loading imediatamente ao clicar
-
-            // Parar e liberar o player anterior completamente para evitar problemas de estado.
-            // O release() limpa o player interno. Listeners no VideoView (Java object) devem permanecer.
-            mVideoView.release();
-
-            // Definir nova URL e iniciar.
-            // O controller já está definido no mVideoView desde o onCreateView.
-            // Se release() limpasse o controller do objeto VideoView, precisaríamos de mVideoView.setVideoController(mController);
+            if (mVideoView.isPlaying() || mVideoView.getCurrentPlayState() == VideoView.STATE_PAUSED) {
+                mVideoView.pause(); // Pause current playback
+            }
             mVideoView.setUrl(channel.getStreamUrl());
             mVideoView.start();
 
-            // Atualizar título no controller usando a referência mTitleViewComponent
-            if (mTitleViewComponent != null) {
-                mTitleViewComponent.setTitle(channel.getName());
-            } else {
-                // Fallback muito improvável: se mTitleViewComponent for nulo, logar erro.
-                // Isso não deveria acontecer se onCreateView foi chamado corretamente.
-                Log.e("TvFragment", "mTitleViewComponent is null in onChannelClick. Title not updated.");
-            }
-
             Toast.makeText(getContext(), "Iniciando: " + channel.getName(), Toast.LENGTH_SHORT).show();
-            Log.d("TvFragment", "Playback initiated for: " + channel.getName() + " URL: " + channel.getStreamUrl());
+            Log.d("TvFragment", "Playback started for: " + channel.getName());
         } else {
             Log.e("TvFragment", "Channel stream URL is null or empty");
-            showLoading(false); // Esconder loading se a URL for inválida
             Toast.makeText(getContext(), "URL do canal inválida", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void loadInitialData() {
-        showLoading(true);
+        Log.d("TvFragmentLogic", "loadInitialData called.");
+        // Limpar dados anteriores antes de carregar novos
+        if (allChannels != null) {
+            allChannels.clear();
+            Log.d("TvFragmentLogic", "Cleared allChannels list.");
+        }
+        if (channelAdapter != null) {
+            channelAdapter.updateData(new ArrayList<>());
+            Log.d("TvFragmentLogic", "Cleared channelAdapter data.");
+        }
+        // Se houver um adapter de categorias como membro da classe e ele precisar ser limpo:
+        // Ex: if (mLiveCategoryAdapter != null) { mLiveCategoryAdapter.updateData(new ArrayList<>()); }
+
+
+        showLoading(true); // Mostrar loading para toda a operação de carregamento inicial
         fetchXtreamCredentials(new CredentialsCallback() {
             @Override
             public void onCredentialsReceived(String baseUrl, String username, String password) {
+                Log.d("TvFragmentLogic", "Credentials received in loadInitialData. Fetching categories.");
                 fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
                     @Override
                     public void onCategoriesReceived(Map<String, String> categoryMap) {
-                        // Carrega todos os canais inicialmente (ou a primeira categoria, se preferir)
-                        // Para carregar "Todos", passamos null ou um ID específico como "0"
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0"); //  Ou null se a API tratar null como "todos"
+                        Log.d("TvFragmentLogic", "Categories received in loadInitialData. Fetching initial set of channels.");
+                        fetchLiveChannelsFromApi(baseUrl, username, password, "0");
                     }
 
                     @Override
                     public void onCategoryFailure(String error) {
+                        Log.e("TvFragmentLogic", "Category failure in loadInitialData: " + error);
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 Toast.makeText(getContext(), "Falha ao carregar categorias: " + error, Toast.LENGTH_LONG).show();
-                                showLoading(false);
+                                // Não esconder loading aqui, pois ainda tentaremos carregar canais
                             });
                         }
-                        // Tenta carregar canais mesmo se as categorias falharem, talvez com categoryId nulo (todos)
+                        Log.d("TvFragmentLogic", "Category fetch failed, attempting to fetch all channels anyway.");
                         fetchLiveChannelsFromApi(baseUrl, username, password, "0");
                     }
                 });
@@ -340,6 +284,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
             @Override
             public void onCredentialsFailure(String error) {
+                Log.e("TvFragmentLogic", "Credentials failure in loadInitialData: " + error);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         Toast.makeText(getContext(), "Falha ao obter credenciais: " + error, Toast.LENGTH_LONG).show();
@@ -353,28 +298,6 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private void showLoading(boolean isLoading) {
         if (playerProgressBar != null) {
             playerProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        }
-        if (playerLoadingTextView != null) {
-            // Opcional: mostrar/esconder texto de loading junto com a barra
-            // playerLoadingTextView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        }
-        Log.d("TvFragmentLoading", "showLoading called with: " + isLoading);
-    }
-
-    // Helper para converter estado do player em string para logs
-    private String playStateToString(int playState) {
-        switch (playState) {
-            case VideoView.STATE_ERROR: return "STATE_ERROR";
-            case VideoView.STATE_IDLE: return "STATE_IDLE";
-            case VideoView.STATE_PREPARING: return "STATE_PREPARING";
-            case VideoView.STATE_PREPARED: return "STATE_PREPARED";
-            case VideoView.STATE_PLAYING: return "STATE_PLAYING";
-            case VideoView.STATE_PAUSED: return "STATE_PAUSED";
-            case VideoView.STATE_PLAYBACK_COMPLETED: return "STATE_PLAYBACK_COMPLETED";
-            case VideoView.STATE_BUFFERING: return "STATE_BUFFERING";
-            case VideoView.STATE_BUFFERED: return "STATE_BUFFERED";
-            case VideoView.STATE_START_ABORT: return "STATE_START_ABORT";
-            default: return "STATE_UNKNOWN (" + playState + ")";
         }
     }
 
@@ -448,6 +371,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     private void fetchLiveCategoriesFromApi(String baseUrl, String username, String password, CategoryCallback callback) {
+        Log.d("TvFragmentLogic", "fetchLiveCategoriesFromApi called.");
         executor.execute(() -> {
             XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
             apiService.fetchLiveStreamCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
@@ -455,19 +379,24 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 public void onSuccess(List<XtreamApiService.CategoryInfo> data) {
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
+                            Log.d("TvFragmentLogic", "Successfully fetched " + data.size() + " live categories.");
                             Map<String, String> categoryMap = new java.util.HashMap<>();
                             for (XtreamApiService.CategoryInfo categoryInfo : data) {
                                 categoryMap.put(categoryInfo.id, categoryInfo.name);
                             }
                             callback.onCategoriesReceived(categoryMap);
-                            LiveCategoryAdapter categoryAdapter = new LiveCategoryAdapter(getContext(), data, categoryId -> fetchLiveChannelsFromApi(baseUrl, username, password, categoryId));
-                            recyclerViewCategories.setAdapter(categoryAdapter);
+                            LiveCategoryAdapter liveCategoryAdapter = new LiveCategoryAdapter(getContext(), data, categoryId -> {
+                                Log.d("TvFragmentLogic", "Category clicked: " + categoryId + ". Fetching channels for this category.");
+                                fetchLiveChannelsFromApi(baseUrl, username, password, categoryId);
+                            });
+                            recyclerViewCategories.setAdapter(liveCategoryAdapter);
                         });
                     }
                 }
 
                 @Override
                 public void onFailure(String error) {
+                    Log.e("TvFragmentLogic", "Failed to fetch live categories: " + error);
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> callback.onCategoryFailure(error));
                     }
@@ -477,7 +406,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     private void fetchLiveChannelsFromApi(String baseUrl, String username, String password, @Nullable String categoryId) {
-        showLoading(true);
+        Log.d("TvFragmentLogic", "fetchLiveChannelsFromApi called for categoryId: " + (categoryId == null ? "all" : categoryId));
+        showLoading(true); // Mostrar loading sempre que buscar canais
         executor.execute(() -> {
             XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
             apiService.fetchLiveStreams(new XtreamApiService.XtreamApiCallback<Channel>() {
@@ -485,27 +415,36 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 public void onSuccess(List<Channel> data) {
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
+                            Log.d("TvFragmentLogic", "Successfully fetched " + data.size() + " channels for categoryId: " + categoryId);
                             allChannels.clear();
-                            allChannels.addAll(data); // Armazena todos os canais recebidos
+                            allChannels.addAll(data);
+                            Log.d("TvFragmentLogic", "allChannels list updated with " + allChannels.size() + " channels.");
 
                             List<Channel> filteredChannels = new ArrayList<>();
-                            if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) { // "0" ou nulo pode ser "Todos os canais"
+                            if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) {
                                 filteredChannels.addAll(allChannels);
+                                Log.d("TvFragmentLogic", "Displaying all " + filteredChannels.size() + " channels.");
                             } else {
                                 for (Channel channel : allChannels) {
                                     if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
                                         filteredChannels.add(channel);
                                     }
                                 }
+                                Log.d("TvFragmentLogic", "Displaying " + filteredChannels.size() + " channels for category " + categoryId);
                             }
 
                             if (channelAdapter == null) {
+                                Log.d("TvFragmentLogic", "ChannelAdapter is null, creating new instance.");
                                 channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
                                 recyclerViewChannels.setAdapter(channelAdapter);
                             } else {
+                                Log.d("TvFragmentLogic", "ChannelAdapter exists, updating data.");
                                 channelAdapter.updateData(filteredChannels);
                             }
-                            channelAdapter.filterList(searchEditText.getText().toString()); // Reaplicar filtro de busca
+
+                            if (searchEditText != null && searchEditText.getText() != null) {
+                                channelAdapter.filterList(searchEditText.getText().toString());
+                            }
                             showLoading(false);
                         });
                     }
@@ -513,11 +452,12 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
                 @Override
                 public void onFailure(String error) {
+                    Log.e("TvFragmentLogic", "Failed to fetch channels for categoryId: " + categoryId + ". Error: " + error);
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
                             Toast.makeText(getContext(), "Falha ao carregar canais: " + error, Toast.LENGTH_LONG).show();
                             if (channelAdapter != null) {
-                                channelAdapter.updateData(new ArrayList<>()); // Limpa canais em caso de falha
+                                channelAdapter.updateData(new ArrayList<>());
                             }
                             showLoading(false);
                         });
@@ -530,12 +470,36 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        Log.d("TvFragmentLifecycle", "onDestroyView called.");
         if (mVideoView != null) {
             mVideoView.release();
+            mVideoView = null;
         }
         if (downloadReceiver != null) {
-            requireActivity().unregisterReceiver(downloadReceiver);
+            if (getContext() != null && getActivity() != null) {
+                try {
+                    requireActivity().unregisterReceiver(downloadReceiver);
+                } catch (IllegalArgumentException e) {
+                    Log.w("TvFragmentLifecycle", "DownloadReceiver was not registered or already unregistered.", e);
+                }
+            }
+            downloadReceiver = null;
         }
+
+        if (allChannels != null) {
+            allChannels.clear();
+            Log.d("TvFragmentLifecycle", "allChannels cleared in onDestroyView.");
+        }
+        if (channelAdapter != null) {
+            channelAdapter.updateData(new ArrayList<>());
+            channelAdapter = null;
+            Log.d("TvFragmentLifecycle", "channelAdapter cleared and nulled in onDestroyView.");
+        }
+        // if (recyclerViewCategories.getAdapter() != null) {
+        //     // recyclerViewCategories.setAdapter(null); // Clear category adapter too if it's a class member
+        //     Log.d("TvFragmentLifecycle", "Category adapter cleared.");
+        // }
+        Log.d("TvFragmentLifecycle", "TvFragment resources cleaned up in onDestroyView.");
     }
 
     void updatePictureInPictureActions(
@@ -797,207 +761,23 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     public void onResume() {
         super.onResume();
         Log.d("TvFragmentLifecycle", "onResume called.");
-        if (mVideoView != null && !mVideoView.isFullScreen()) { // Só resume se não estiver em tela cheia, pois a tela cheia gerencia seu próprio estado
+        if (mVideoView != null && !mVideoView.isFullScreen()) { // Só resume se não estiver em tela cheia
             mVideoView.resume();
         }
-        // Recarregar dados iniciais (categorias e canais da primeira categoria/todos)
-        // para garantir que o estado esteja fresco ao voltar para o fragmento.
         Log.d("TvFragmentLifecycle", "Calling loadInitialData() from onResume.");
-        loadInitialData();
+        loadInitialData(); // Recarrega os dados ao se tornar visível
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d("TvFragmentLifecycle", "onViewCreated called.");
-        // loadInitialData() é chamado em onCreateView ou onResume.
+        // loadInitialData() é agora chamado em onResume para garantir que os dados sejam frescos
+        // e também em onCreateView. A lógica em loadInitialData deve lidar com múltiplas chamadas.
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        Log.d("TvFragmentLifecycle", "onDestroyView called.");
-        if (mVideoView != null) {
-            mVideoView.release(); // Liberar player
-            mVideoView = null; // Limpar referência
-        }
-        if (downloadReceiver != null) {
-            if (getContext() != null && getActivity() != null) {
-                try {
-                    requireActivity().unregisterReceiver(downloadReceiver);
-                } catch (IllegalArgumentException e) {
-                    Log.w("TvFragmentLifecycle", "DownloadReceiver was not registered or already unregistered.", e);
-                }
-            }
-            downloadReceiver = null;
-        }
-        // Limpar listas e adapters para evitar dados obsoletos na próxima criação da view
-        if (allChannels != null) {
-            allChannels.clear();
-        }
-        if (channelAdapter != null) {
-            channelAdapter.updateData(new ArrayList<>()); // Limpa o adapter
-            channelAdapter = null;
-        }
-        // recyclerViewCategories.setAdapter(null); // Opcional: desvincular adapter de categorias também se ele existir como membro
-        Log.d("TvFragmentLifecycle", "TvFragment resources cleaned up in onDestroyView.");
-    }
-
-
-    private void loadInitialData() {
-        Log.d("TvFragmentLogic", "loadInitialData called.");
-        // Limpar dados anteriores antes de carregar novos
-        if (allChannels != null) {
-            allChannels.clear();
-        }
-        if (channelAdapter != null) {
-            // Limpar o adapter de canais. Se o adapter de categorias também for membro, limpá-lo.
-            channelAdapter.updateData(new ArrayList<>());
-            Log.d("TvFragmentLogic", "Cleared channelAdapter in loadInitialData.");
-        }
-        // Se houver um adapter de categorias como membro da classe e ele precisar ser limpo:
-        // if (liveCategoryAdapter != null) { liveCategoryAdapter.updateData(new ArrayList<>()); }
-
-
-        showLoading(true); // Mostrar loading para toda a operação de carregamento inicial
-        fetchXtreamCredentials(new CredentialsCallback() {
-            @Override
-            public void onCredentialsReceived(String baseUrl, String username, String password) {
-                Log.d("TvFragmentLogic", "Credentials received in loadInitialData. Fetching categories.");
-                fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
-                    @Override
-                    public void onCategoriesReceived(Map<String, String> categoryMap) {
-                        Log.d("TvFragmentLogic", "Categories received in loadInitialData. Fetching initial set of channels.");
-                        // Carrega todos os canais inicialmente (ou a primeira categoria, se preferir)
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0"); //  Ou null se a API tratar null como "todos"
-                    }
-
-                    @Override
-                    public void onCategoryFailure(String error) {
-                        if (getActivity() != null) {
-                            getActivity().runOnUiThread(() -> {
-                                Toast.makeText(getContext(), "Falha ao carregar categorias: " + error, Toast.LENGTH_LONG).show();
-                                // showLoading(false); // Não esconder loading aqui, pois ainda tentaremos carregar canais
-                                Log.e("TvFragmentLogic", "Category failure in loadInitialData: " + error);
-                            });
-                        }
-                        Log.d("TvFragmentLogic", "Category fetch failed, attempting to fetch all channels anyway.");
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0"); // Tenta carregar canais mesmo se as categorias falharem
-                    }
-                });
-            }
-
-            @Override
-            public void onCredentialsFailure(String error) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Falha ao obter credenciais: " + error, Toast.LENGTH_LONG).show();
-                        showLoading(false); // Esconder loading se as credenciais falharem
-                        Log.e("TvFragmentLogic", "Credentials failure in loadInitialData: " + error);
-                    });
-                }
-            }
-        });
-    }
-
-
-    private void fetchLiveCategoriesFromApi(String baseUrl, String username, String password, CategoryCallback callback) {
-        Log.d("TvFragmentLogic", "fetchLiveCategoriesFromApi called.");
-        executor.execute(() -> {
-            XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
-            apiService.fetchLiveStreamCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
-                @Override
-                public void onSuccess(List<XtreamApiService.CategoryInfo> data) {
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            Log.d("TvFragmentLogic", "Successfully fetched " + data.size() + " live categories.");
-                            Map<String, String> categoryMap = new java.util.HashMap<>();
-                            for (XtreamApiService.CategoryInfo categoryInfo : data) {
-                                categoryMap.put(categoryInfo.id, categoryInfo.name);
-                            }
-                            callback.onCategoriesReceived(categoryMap);
-                            // Considerar se o adapter de categorias deve ser membro da classe para ser limpo/atualizado
-                            LiveCategoryAdapter liveCategoryAdapter = new LiveCategoryAdapter(getContext(), data, categoryId -> {
-                                Log.d("TvFragmentLogic", "Category clicked: " + categoryId + ". Fetching channels for this category.");
-                                fetchLiveChannelsFromApi(baseUrl, username, password, categoryId);
-                            });
-                            recyclerViewCategories.setAdapter(liveCategoryAdapter);
-                        });
-                    }
-                }
-
-                @Override
-                public void onFailure(String error) {
-                    Log.e("TvFragmentLogic", "Failed to fetch live categories: " + error);
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> callback.onCategoryFailure(error));
-                    }
-                }
-            });
-        });
-    }
-
-    private void fetchLiveChannelsFromApi(String baseUrl, String username, String password, @Nullable String categoryId) {
-        Log.d("TvFragmentLogic", "fetchLiveChannelsFromApi called for categoryId: " + (categoryId == null ? "all" : categoryId));
-        showLoading(true); // Mostrar loading sempre que buscar canais
-        executor.execute(() -> {
-            XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
-            apiService.fetchLiveStreams(new XtreamApiService.XtreamApiCallback<Channel>() {
-                @Override
-                public void onSuccess(List<Channel> data) {
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            Log.d("TvFragmentLogic", "Successfully fetched " + data.size() + " channels for categoryId: " + categoryId);
-                            allChannels.clear(); // Limpar a lista global de canais antes de adicionar novos
-                            allChannels.addAll(data);
-
-                            List<Channel> filteredChannels = new ArrayList<>();
-                            if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) {
-                                filteredChannels.addAll(allChannels);
-                                Log.d("TvFragmentLogic", "Displaying all " + filteredChannels.size() + " channels.");
-                            } else {
-                                for (Channel channel : allChannels) {
-                                    if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
-                                        filteredChannels.add(channel);
-                                    }
-                                }
-                                Log.d("TvFragmentLogic", "Displaying " + filteredChannels.size() + " channels for category " + categoryId);
-                            }
-
-                            if (channelAdapter == null) {
-                                Log.d("TvFragmentLogic", "ChannelAdapter is null, creating new instance.");
-                                channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
-                                recyclerViewChannels.setAdapter(channelAdapter);
-                            } else {
-                                Log.d("TvFragmentLogic", "ChannelAdapter exists, updating data.");
-                                channelAdapter.updateData(filteredChannels);
-                            }
-                            // Reaplicar filtro de busca se houver texto no searchEditText
-                            if (searchEditText != null && searchEditText.getText() != null) {
-                                channelAdapter.filterList(searchEditText.getText().toString());
-                            }
-                            showLoading(false); // Esconder loading após carregar canais
-                        });
-                    }
-                }
-
-                @Override
-                public void onFailure(String error) {
-                    Log.e("TvFragmentLogic", "Failed to fetch channels for categoryId: " + categoryId + ". Error: " + error);
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            Toast.makeText(getContext(), "Falha ao carregar canais: " + error, Toast.LENGTH_LONG).show();
-                            if (channelAdapter != null) {
-                                channelAdapter.updateData(new ArrayList<>()); // Limpa canais em caso de falha
-                            }
-                            showLoading(false); // Esconder loading em caso de falha
-                        });
-                    }
-                }
-            });
-        });
-    }
-
+    // O método onDestroyView já foi modificado para limpar recursos,
+    // incluindo adapters e listas, na alteração anterior.
 
     public interface CredentialsCallback {
         void onCredentialsReceived(String baseUrl, String username, String password);
