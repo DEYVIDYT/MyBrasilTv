@@ -1,6 +1,14 @@
 package com.example.iptvplayer;
 
 import android.Manifest;
+import android.util.Log;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import org.json.JSONObject;
+// JSONArray might be needed if GetLoguin.php returns an array, but based on example, it's an object.
+// import org.json.JSONArray;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -56,11 +64,14 @@ public class VodFragment extends Fragment {
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
             if (isGranted) {
-                startDownload();
+                // startDownload(); // Commented out as startDownload is removed
+                Log.d("VodFragment", "Notification permission granted.");
+                // If there's a relevant action to take after permission, add it here.
+                // For now, just logging.
             } else {
                 Toast.makeText(getContext(), "Permission for notifications is required to see download progress.", Toast.LENGTH_LONG).show();
-                // You could also start the download here, but the user won't see the notification
-                 startDownload(); 
+                // startDownload();  // Commented out
+                Log.w("VodFragment", "Notification permission denied.");
             }
         });
 
@@ -342,7 +353,11 @@ public class VodFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             String filePath = intent.getStringExtra(DownloadService.EXTRA_FILE_PATH);
             if (filePath != null) {
-                processM3uFile(filePath);
+                // processM3uFile(filePath); // Commented out as processM3uFile is removed
+                Log.d("VodFragment", "DownloadReceiver received file: " + filePath + " but processM3uFile is no longer in use.");
+                // If DownloadService is still used for other VOD downloads (not M3U lists),
+                // different logic would be needed here.
+                Toast.makeText(getContext(), "File download complete (manual processing needed).", Toast.LENGTH_LONG).show();
             } else {
                 showLoading(false);
                 Toast.makeText(getContext(), "Download failed.", Toast.LENGTH_SHORT).show();

@@ -2,6 +2,7 @@ package com.example.iptvplayer;
 
 import android.content.Context;
 import android.util.Log;
+import android.util.Log;
 import com.example.iptvplayer.data.Movie;
 import org.json.JSONArray;
 import org.json.JSONException;
