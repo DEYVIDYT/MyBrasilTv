@@ -74,13 +74,17 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private List<Channel> allChannels = new ArrayList<>();
     private DownloadReceiver downloadReceiver;
 
-    private ProgressBar playerProgressBar;
+    private ProgressBar playerProgressBar; // Conectado ao XML
+    private TextView playerLoadingTextView; // Para a mensagem "Carregando"
 
     private VideoView mVideoView;
     private StandardVideoController mController;
     private int mWidthPixels;
     private PictureInPictureParams.Builder mPictureInPictureParamsBuilder;
     private BroadcastReceiver mReceiver;
+
+    // Sinalizador para controle do PiP durante a troca de canais
+    private boolean mIsSwitchingChannels = false;
 
     private static final String ACTION_MEDIA_CONTROL = "media_control";
     private static final String EXTRA_CONTROL_TYPE = "control_type";
@@ -104,6 +108,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         recyclerViewChannels = root.findViewById(R.id.recycler_view_channels);
         recyclerViewCategories = root.findViewById(R.id.recycler_view_categories);
         searchEditText = root.findViewById(R.id.search_edit_text);
+        playerProgressBar = root.findViewById(R.id.player_progress_bar); // Conectar ProgressBar
+        playerLoadingTextView = root.findViewById(R.id.player_loading_text); // Conectar TextView de Loading
 
         recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerViewCategories.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -112,13 +118,16 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
 
         mVideoView = new xyz.doikki.videoplayer.player.VideoView(getContext());
-        FrameLayout linear1 = root.findViewById(R.id.player_container); // Assuming player_container is where the video view should be added
-        if (linear1 != null) {
-            FrameLayout.LayoutParams lplinear1 = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,600);
-            mVideoView.setLayoutParams(lplinear1);
-            linear1.addView(mVideoView);
+        FrameLayout playerContainer = root.findViewById(R.id.player_container);
+        if (playerContainer != null) {
+            // Fazer o VideoView preencher o player_container
+            FrameLayout.LayoutParams videoViewParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT);
+            mVideoView.setLayoutParams(videoViewParams);
+            playerContainer.addView(mVideoView); // Adicionar ao FrameLayout
         } else {
-            Log.e("TvFragment", "player_container LinearLayout not found in fragment_tv.xml");
+            Log.e("TvFragment", "player_container FrameLayout not found in fragment_tv.xml");
             Toast.makeText(getContext(), "Erro: Container do player não encontrado.", Toast.LENGTH_LONG).show();
         }
         mWidthPixels = getResources().getDisplayMetrics().widthPixels;
@@ -168,19 +177,61 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         mVideoView.addOnStateChangeListener(new VideoView.SimpleOnStateChangeListener() {
             @Override
             public void onPlayStateChanged(int playState) {
+                Log.d("VideoPlayerState", "Current Play State: " + playStateToString(playState) + ", SwitchingChannels: " + mIsSwitchingChannels);
+
+                // Se um novo vídeo começou a tocar ou está pronto (ou erro), a troca terminou.
+                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PREPARED || playState == VideoView.STATE_ERROR) {
+                    if(mIsSwitchingChannels) {
+                        Log.d("VideoPlayerState", "Transition to PLAYING/PREPARED/ERROR, resetting mIsSwitchingChannels for new stream.");
+                    }
+                    mIsSwitchingChannels = false;
+                }
+
+                // Não atualize as ações PiP se for um evento de pausa do vídeo antigo durante uma troca de canal.
+                if (mIsSwitchingChannels && playState == VideoView.STATE_PAUSED) {
+                    Log.d("VideoPlayerState", "PAUSED state during channel switch, likely old stream. PiP actions update SKIPPED.");
+                    return;
+                }
+                 if (mIsSwitchingChannels && (playState == VideoView.STATE_IDLE || playState == VideoView.STATE_PREPARING)) {
+                    Log.d("VideoPlayerState", "IDLE/PREPARING state during channel switch. PiP actions update SKIPPED.");
+                    // Não faz sentido atualizar PiP se o player está idle ou preparando DURANTE uma troca.
+                    // Isso pode acontecer se release() for chamado, e o player passar por IDLE.
+                    return;
+                }
+
+
                 switch (playState) {
                     case VideoView.STATE_PAUSED:
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_play_arrow, "播放", CONTROL_TYPE_PLAY, REQUEST_PLAY);
+                                R.drawable.dkplayer_ic_action_play_arrow, "Play", CONTROL_TYPE_PLAY, REQUEST_PLAY);
                         break;
                     case VideoView.STATE_PLAYING:
+                        // Quando estiver tocando, e não trocando de canal, reseta o flag (segurança extra).
+                        // mIsSwitchingChannels = false; // Já tratado acima, mas pode ser uma garantia.
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_pause, "暂停", CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
+                                R.drawable.dkplayer_ic_action_pause, "Pause", CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
                         break;
                     case VideoView.STATE_PLAYBACK_COMPLETED:
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_replay, "重新播放", CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
+                                R.drawable.dkplayer_ic_action_replay, "Replay", CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
                         break;
+                    // Outros estados como STATE_PREPARING, STATE_BUFFERING podem ser usados para mostrar/esconder o ProgressBar
+                    case VideoView.STATE_PREPARING:
+                    case VideoView.STATE_BUFFERING:
+                        showLoading(true);
+                        break;
+                    case VideoView.STATE_PREPARED: // Vídeo preparado, mas ainda não necessariamente tocando
+                    case VideoView.STATE_BUFFERED: // Buffering completo
+                        // showLoading(false); // Ocultar loading apenas quando PLAYING ou se o player não for iniciar automaticamente
+                        break;
+                    case VideoView.STATE_ERROR:
+                        showLoading(false); // Esconder loading em caso de erro
+                        // ErrorView já deve estar sendo exibido pelo controller
+                        break;
+                }
+                // Assegurar que o loading seja escondido se o vídeo estiver tocando ou pausado (após preparo/buffering)
+                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED) {
+                    showLoading(false);
                 }
             }
         });
@@ -222,16 +273,45 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             return;
         }
         if (channel.getStreamUrl() != null && !channel.getStreamUrl().isEmpty()) {
-            if (mVideoView.isPlaying() || mVideoView.getCurrentPlayState() == VideoView.STATE_PAUSED) {
-                mVideoView.pause(); // Pause current playback
-            }
+            mIsSwitchingChannels = true; // Sinaliza o início da troca de canal
+            showLoading(true); // Mostrar loading imediatamente ao clicar
+
+            // Parar e liberar o player anterior completamente para evitar problemas de estado.
+            // O release() limpa o player interno. Listeners no VideoView (Java object) devem permanecer.
+            mVideoView.release();
+
+            // Definir nova URL e iniciar.
+            // O controller já está definido no mVideoView desde o onCreateView.
+            // Se release() limpasse o controller do objeto VideoView, precisaríamos de mVideoView.setVideoController(mController);
             mVideoView.setUrl(channel.getStreamUrl());
             mVideoView.start();
 
+            // Atualizar título no controller
+            if (mController != null) {
+                TitleView titleView = mController.getControlComponent(TitleView.class);
+                if (titleView != null) {
+                    titleView.setTitle(channel.getName());
+                } else {
+                     // Se o TitleView foi perdido (improvável com o release padrão), recriar/adicionar
+                    TitleView newTitleView = new TitleView(getContext());
+                    newTitleView.setTitle(channel.getName());
+                    newTitleView.findViewById(R.id.pip).setOnClickListener(v -> {
+                        Rational aspectRatio = new Rational(16, 9);
+                        mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio);
+                        if (getActivity() != null) {
+                            getActivity().enterPictureInPictureMode(mPictureInPictureParamsBuilder.build());
+                        }
+                    });
+                    mController.addControlComponent(newTitleView); // Adiciona se não existir
+                }
+            }
+
+
             Toast.makeText(getContext(), "Iniciando: " + channel.getName(), Toast.LENGTH_SHORT).show();
-            Log.d("TvFragment", "Playback started for: " + channel.getName());
+            Log.d("TvFragment", "Playback initiated for: " + channel.getName() + " URL: " + channel.getStreamUrl());
         } else {
             Log.e("TvFragment", "Channel stream URL is null or empty");
+            showLoading(false); // Esconder loading se a URL for inválida
             Toast.makeText(getContext(), "URL do canal inválida", Toast.LENGTH_SHORT).show();
         }
     }
@@ -278,6 +358,28 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private void showLoading(boolean isLoading) {
         if (playerProgressBar != null) {
             playerProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        }
+        if (playerLoadingTextView != null) {
+            // Opcional: mostrar/esconder texto de loading junto com a barra
+            // playerLoadingTextView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        }
+        Log.d("TvFragmentLoading", "showLoading called with: " + isLoading);
+    }
+
+    // Helper para converter estado do player em string para logs
+    private String playStateToString(int playState) {
+        switch (playState) {
+            case VideoView.STATE_ERROR: return "STATE_ERROR";
+            case VideoView.STATE_IDLE: return "STATE_IDLE";
+            case VideoView.STATE_PREPARING: return "STATE_PREPARING";
+            case VideoView.STATE_PREPARED: return "STATE_PREPARED";
+            case VideoView.STATE_PLAYING: return "STATE_PLAYING";
+            case VideoView.STATE_PAUSED: return "STATE_PAUSED";
+            case VideoView.STATE_PLAYBACK_COMPLETED: return "STATE_PLAYBACK_COMPLETED";
+            case VideoView.STATE_BUFFERING: return "STATE_BUFFERING";
+            case VideoView.STATE_BUFFERED: return "STATE_BUFFERED";
+            case VideoView.STATE_START_ABORT: return "STATE_START_ABORT";
+            default: return "STATE_UNKNOWN (" + playState + ")";
         }
     }
 

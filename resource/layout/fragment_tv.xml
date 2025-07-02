@@ -112,10 +112,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/player_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+        <!-- androidx.media3.ui.PlayerView foi removido para evitar conflito com o VideoView do DoikkiPlayer adicionado programaticamente -->
 
         <ProgressBar
             android:id="@+id/player_progress_bar"
