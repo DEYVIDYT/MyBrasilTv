@@ -4,13 +4,13 @@ public class Channel {
     private String name;
     private String url;
     private String logoUrl;
-    private String groupTitle;
+    private String categoryId; // Renomeado de groupTitle
 
-    public Channel(String name, String url, String logoUrl, String groupTitle) {
+    public Channel(String name, String url, String logoUrl, String categoryId) {
         this.name = name;
         this.url = url;
         this.logoUrl = logoUrl;
-        this.groupTitle = groupTitle;
+        this.categoryId = categoryId; // Atribuído ao novo campo
     }
 
     public String getName() {
@@ -25,8 +25,8 @@ public class Channel {
         return logoUrl;
     }
 
-    public String getGroupTitle() {
-        return groupTitle;
+    public String getCategoryId() { // Renomeado de getGroupTitle
+        return categoryId;
     }
 
     public String getStreamUrl() {
