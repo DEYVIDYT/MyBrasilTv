@@ -1,0 +1,70 @@
+vamos utilizar um exoplayer diferente do que estamos utilizando agora
+
+vou te dar alguns exemplos de como utilizar:
+
+oncreat
+
+button1.setEnabled(false);
+try {
+		trackSelectionParameters =
+		TrackSelectionParameters.fromBundle(
+		myBundle.getBundle("track_selection_parameters"));
+		
+} catch (Exception e) {
+		trackSelectionParameters = new TrackSelectionParameters.Builder(/* context= */ this).build();
+}
+
+exoPlayer = new ExoPlayer.Builder(this).build();
+button2.setOnClickListener(new View.OnClickListener() {
+	@Override
+	public void onClick(View _view) {
+		try {
+			videoURL = edittext1.getText().toString();
+			subtitleURL = edittext2.getText().toString();
+			playerView.setPlayer(exoPlayer);
+			Uri assetSrtUri = Uri.parse(subtitleURL);
+			MediaItem.SubtitleConfiguration subtitle = new MediaItem.SubtitleConfiguration.Builder(assetSrtUri)
+			                .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+			                .setLanguage("fa")
+			                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+			                .build();
+			List<MediaItem.SubtitleConfiguration> subtitleConfigurations = new ArrayList<>();
+			        subtitleConfigurations.add(subtitle);
+			Uri assetVideoUri = Uri.parse(videoURL);
+			MediaItem mediaItem = new MediaItem.Builder()
+			                .setUri(assetVideoUri)
+			                .setSubtitleConfigurations(subtitleConfigurations)
+			                .build();
+			exoPlayer.setTrackSelectionParameters(trackSelectionParameters);
+			exoPlayer.setMediaItem(mediaItem);
+			exoPlayer.prepare();
+			exoPlayer.play();
+			
+			button1.setEnabled(true);
+		} catch (Exception e) {
+			
+		}
+	}
+});
+
+
+import:
+
+import androidx.media3.common.C;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.ui.PlayerView;
+import androidx.media3.common.TrackSelectionParameters;
+import androidx.media3.common.Tracks;
+
+button
+
+isShowingTrackSelectionDialog = true;
+TrackSelectionDialog trackSelectionDialog =
+          TrackSelectionDialog.createForPlayer(
+              exoPlayer,
+              /* onDismissListener= */ dismissedDialog -> isShowingTrackSelectionDialog = false);
+trackSelectionDialog.show(getSupportFragmentManager(), /* tag= */ null);
+
