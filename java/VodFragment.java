@@ -248,31 +248,51 @@ public class VodFragment extends Fragment {
     }
 
     private void setupAndDisplayMovies() {
+        Log.d("VodFragmentLogic", "setupAndDisplayMovies called.");
         if (allMovies == null || allMovies.isEmpty()) {
-            Log.w("VodFragment", "No movies to display.");
-            if (categoryAdapter != null) categoryAdapter.updateData(new LinkedHashMap<>()); // Limpar o adapter
+            Log.w("VodFragmentLogic", "No movies to display. allMovies is null or empty.");
+            if (categoryAdapter != null) {
+                Log.d("VodFragmentLogic", "Clearing categoryAdapter as allMovies is empty.");
+                categoryAdapter.updateData(new LinkedHashMap<>()); // Limpar o adapter
+            }
             showLoading(false);
             return;
         }
 
-        // Agrupar filmes por categoria
+        Log.d("VodFragmentLogic", "Total movies to process: " + allMovies.size());
+        if (categoryIdToNameMap != null) {
+            Log.d("VodFragmentLogic", "Category ID to Name Map size: " + categoryIdToNameMap.size());
+        } else {
+            Log.w("VodFragmentLogic", "categoryIdToNameMap is null!");
+        }
+
+
         Map<String, List<Movie>> moviesByCategory = allMovies.stream()
                 .collect(Collectors.groupingBy(movie -> {
                     String categoryId = movie.getCategory();
-                    return categoryIdToNameMap.getOrDefault(categoryId, "Outros"); // Usar nome da categoria ou 'Outros'
-                }, LinkedHashMap::new, Collectors.toList())); // Manter a ordem de inserção
+                    // Adicionar verificação de nulo para categoryIdToNameMap
+                    return categoryIdToNameMap != null ? categoryIdToNameMap.getOrDefault(categoryId, "Outros") : "Outros";
+                }, LinkedHashMap::new, Collectors.toList()));
 
-        // Se 'All' for uma categoria, mover para o início ou tratar separadamente
-        // No novo layout, 'All' não faz sentido como uma categoria separada, mas sim como um filtro.
-        // Aqui, estamos exibindo todas as categorias disponíveis.
+        Log.d("VodFragmentLogic", "Number of categories with movies: " + moviesByCategory.size());
+        if (moviesByCategory.isEmpty() && !allMovies.isEmpty()){
+            Log.w("VodFragmentLogic", "moviesByCategory is empty, but allMovies is not. Check category mapping or categoryIdToNameMap.");
+        }
 
         if (categoryAdapter == null) {
-            categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory);
-            mainRecyclerView.setAdapter(categoryAdapter);
+            Log.d("VodFragmentLogic", "categoryAdapter is null, creating new instance.");
+            if (getContext() != null) { // Verificar contexto antes de criar adapter
+                categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory);
+                mainRecyclerView.setAdapter(categoryAdapter);
+            } else {
+                Log.e("VodFragmentLogic", "Context is null, cannot create CategoryAdapter.");
+            }
         } else {
+            Log.d("VodFragmentLogic", "categoryAdapter exists, calling updateData.");
             categoryAdapter.updateData(moviesByCategory);
         }
         showLoading(false);
+        Log.d("VodFragmentLogic", "setupAndDisplayMovies completed.");
     }
 
     // O método setupCategoryChips não é mais necessário com o novo layout
@@ -341,8 +361,6 @@ public class VodFragment extends Fragment {
     public void onResume() {
         super.onResume();
         Log.d("VodFragmentLifecycle", "onResume called. Calling loadMovies().");
-        // Força o recarregamento dos filmes sempre que o fragmento se torna visível novamente
-        // Isso garante que os dados sejam atualizados e exibidos corretamente.
         loadMovies();
     }
 
@@ -350,48 +368,6 @@ public class VodFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d("VodFragmentLifecycle", "onViewCreated called.");
-        // loadMovies() é chamado em onCreateView (que chama antes de onViewCreated)
-        // e também em onResume. A chamada em onResume é a principal para garantir
-        // que os dados estejam atualizados ao voltar para o fragmento.
-    }
-
-    private void setupAndDisplayMovies() {
-        Log.d("VodFragmentLogic", "setupAndDisplayMovies called.");
-        if (allMovies == null || allMovies.isEmpty()) {
-            Log.w("VodFragmentLogic", "No movies to display. allMovies is null or empty.");
-            if (categoryAdapter != null) {
-                Log.d("VodFragmentLogic", "Clearing categoryAdapter as allMovies is empty.");
-                categoryAdapter.updateData(new LinkedHashMap<>()); // Limpar o adapter
-            }
-            showLoading(false);
-            return;
-        }
-
-        Log.d("VodFragmentLogic", "Total movies to process: " + allMovies.size());
-        Log.d("VodFragmentLogic", "Category ID to Name Map size: " + categoryIdToNameMap.size());
-
-        Map<String, List<Movie>> moviesByCategory = allMovies.stream()
-                .collect(Collectors.groupingBy(movie -> {
-                    String categoryId = movie.getCategory();
-                    String categoryName = categoryIdToNameMap.getOrDefault(categoryId, "Outros");
-                    return categoryName;
-                }, LinkedHashMap::new, Collectors.toList()));
-
-        Log.d("VodFragmentLogic", "Number of categories with movies: " + moviesByCategory.size());
-        if (moviesByCategory.isEmpty() && !allMovies.isEmpty()){
-            Log.w("VodFragmentLogic", "moviesByCategory is empty, but allMovies is not. Check category mapping.");
-        }
-
-        if (categoryAdapter == null) {
-            Log.d("VodFragmentLogic", "categoryAdapter is null, creating new instance.");
-            categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory);
-            mainRecyclerView.setAdapter(categoryAdapter);
-        } else {
-            Log.d("VodFragmentLogic", "categoryAdapter exists, calling updateData.");
-            categoryAdapter.updateData(moviesByCategory);
-        }
-        showLoading(false);
-        Log.d("VodFragmentLogic", "setupAndDisplayMovies completed.");
     }
 }
 
