@@ -10,10 +10,18 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide; // Import Glide
+import com.bumptech.glide.request.RequestListener; // Para logs e tratamento de erro
+import com.bumptech.glide.load.engine.GlideException; // Para logs e tratamento de erro
+import com.bumptech.glide.request.target.Target; // Para logs e tratamento de erro
+import android.graphics.drawable.Drawable; // Para RequestListener
 import com.example.iptvplayer.R;
 import com.example.iptvplayer.data.Channel;
-import com.squareup.picasso.Picasso;
-import android.util.Log; // Import Log
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,25 +61,30 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
         Log.d("ChannelAdapter", "Channel: " + channel.getName() + ", Logo URL: " + logoUrl);
 
         if (logoUrl != null && !logoUrl.isEmpty()) {
-            Picasso.get()
+            Glide.with(holder.itemView.getContext())
                     .load(logoUrl)
-                    .placeholder(R.drawable.rounded_corner_image_placeholder) // Usando o placeholder novo
-                    .error(R.drawable.rounded_corner_image_placeholder) // Usando o placeholder novo como erro também
-                    .into(holder.channelLogo, new com.squareup.picasso.Callback() {
+                    .placeholder(R.drawable.rounded_corner_image_placeholder)
+                    .error(R.drawable.rounded_corner_image_placeholder) // Define um drawable de erro
+                    .listener(new RequestListener<Drawable>() {
                         @Override
-                        public void onSuccess() {
-                            Log.d("ChannelAdapter", "Picasso onSuccess: " + logoUrl);
+                        public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                            Log.e("ChannelAdapter", "Glide onLoadFailed for " + channel.getName() + ": " + logoUrl, e);
+                            return false; // Importante retornar false para que o error() drawable seja exibido.
                         }
 
                         @Override
-                        public void onError(Exception e) {
-                            Log.e("ChannelAdapter", "Picasso onError: " + logoUrl, e);
-                            // Fallback em caso de erro do Picasso, já definido pelo .error()
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            Log.d("ChannelAdapter", "Glide onResourceReady for " + channel.getName() + ": " + logoUrl);
+                            return false;
                         }
-                    });
+                    })
+                    .into(holder.channelLogo);
         } else {
             Log.d("ChannelAdapter", "Logo URL is null or empty for " + channel.getName());
-            holder.channelLogo.setImageResource(R.drawable.rounded_corner_image_placeholder); // Define um placeholder
+            // Define uma imagem padrão se a URL do logo for nula ou vazia
+            Glide.with(holder.itemView.getContext())
+                 .load(R.drawable.rounded_corner_image_placeholder)
+                 .into(holder.channelLogo);
         }
 
         holder.itemView.setOnClickListener(v -> {
