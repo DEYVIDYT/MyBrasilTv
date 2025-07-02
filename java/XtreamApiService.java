@@ -170,11 +170,56 @@ public class XtreamApiService {
     public static class CategoryInfo {
         public final String id;
         public final String name;
+        public final String parentId; // Not always used, but some APIs provide it
 
         public CategoryInfo(String id, String name) {
+            this(id, name, "0"); // Default parentId if not provided
+        }
+
+        public CategoryInfo(String id, String name, String parentId) {
             this.id = id;
             this.name = name;
+            this.parentId = parentId;
         }
+    }
+
+    public void fetchLiveStreamCategories(XtreamApiCallback<CategoryInfo> callback) {
+        executor.execute(() -> {
+            try {
+                String apiUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_live_categories", baseUrl, username, password);
+                URL url = new URL(apiUrl);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String inputLine;
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+
+                    List<CategoryInfo> categories = new ArrayList<>();
+                    JSONArray jsonArray = new JSONArray(response.toString());
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
+                        String categoryId = jsonObject.getString("category_id");
+                        String categoryName = jsonObject.getString("category_name");
+                        String parentId = jsonObject.optString("parent_id", "0");
+                        categories.add(new CategoryInfo(categoryId, categoryName, parentId));
+                    }
+                    callback.onSuccess(categories);
+                } else {
+                    Log.e("XtreamApiService", "Failed to fetch live categories. HTTP error: " + responseCode);
+                    callback.onFailure("Failed to fetch live categories. HTTP error: " + responseCode);
+                }
+            } catch (Exception e) {
+                Log.e("XtreamApiService", "Error fetching live categories", e);
+                callback.onFailure("Error: " + e.getMessage());
+            }
+        });
     }
 }
 

@@ -100,25 +100,25 @@ public class VodFragment extends Fragment {
     private void loadMovies() {
         showLoading(true);
         List<Movie> cachedMovies = MovieCacheManager.loadMoviesFromCache(requireContext());
+        java.util.Map<String, String> cachedCategoryMap = MovieCacheManager.loadCategoryMapFromCache(requireContext());
 
-        if (!cachedMovies.isEmpty()) {
-            Log.i("VodFragment", "Loaded " + cachedMovies.size() + " movies from cache.");
+        if (!cachedMovies.isEmpty() && !cachedCategoryMap.isEmpty()) {
+            Log.i("VodFragment", "Loaded " + cachedMovies.size() + " movies and category map from cache.");
             allMovies = cachedMovies;
+            categoryIdToNameMap = cachedCategoryMap;
             setupAndDisplayMovies();
-            // Optionally, you can still trigger a background refresh if cache is old but not fully expired
-            // For now, if cache is valid and not empty, we use it.
-             // Check if the cache is considered "globally" expired to force API refresh
+            // Check if the cache (either movies or categories) is considered "globally" expired to force API refresh
             if (!MovieCacheManager.isCacheValid(requireContext())) {
-                 Log.i("VodFragment", "Cache is old, scheduling a background refresh.");
-                 fetchMoviesFromApi(false); // Fetch but don't show loading indicator if displaying cache
+                 Log.i("VodFragment", "Cache is old or incomplete, scheduling a background refresh.");
+                 fetchMoviesAndCategoriesFromApi(false);
             }
         } else {
-            Log.i("VodFragment", "Cache is empty or expired, fetching from API.");
-            fetchMoviesFromApi(true); // Fetch and show loading indicator
+            Log.i("VodFragment", "Cache is empty or expired/incomplete, fetching from API.");
+            fetchMoviesAndCategoriesFromApi(true);
         }
     }
 
-    private void fetchMoviesFromApi(boolean showInitialLoading) {
+    private void fetchMoviesAndCategoriesFromApi(boolean showInitialLoading) {
         if (showInitialLoading) {
             showLoading(true);
         }
@@ -127,27 +127,62 @@ public class VodFragment extends Fragment {
         fetchXtreamCredentials(new CredentialsCallback() {
             @Override
             public void onCredentialsReceived(String baseUrl, String username, String password) {
-                // Step 2: Use credentials to fetch VOD streams
-                XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
-                apiService.fetchVodStreams(new XtreamApiService.XtreamApiCallback<Movie>() {
+                // Step 2: Fetch Category Names
+                fetchCategoryNames(baseUrl, username, password, new CategoryFetchCallback() {
                     @Override
-                    public void onSuccess(List<Movie> movies) {
-                        MovieCacheManager.saveMoviesToCache(requireContext(), movies);
-                        allMovies = movies;
-                        // Before displaying, fetch category names
-                        fetchCategoryNames(baseUrl, username, password, () -> {
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() -> {
-                                    Log.i("VodFragment", "Successfully fetched " + movies.size() + " movies from API.");
-                                    setupAndDisplayMovies();
-                                    if (showInitialLoading) showLoading(false);
-                                });
+                    public void onCategoriesReceived(java.util.Map<String, String> categoryMap) {
+                        categoryIdToNameMap = categoryMap;
+                        MovieCacheManager.saveCategoryMapToCache(requireContext(), categoryIdToNameMap);
+
+                        // Step 3: Use credentials to fetch VOD streams
+                        XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+                        apiService.fetchVodStreams(new XtreamApiService.XtreamApiCallback<Movie>() {
+                            @Override
+                            public void onSuccess(List<Movie> movies) {
+                                MovieCacheManager.saveMoviesToCache(requireContext(), movies);
+                                allMovies = movies;
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() -> {
+                                        Log.i("VodFragment", "Successfully fetched " + movies.size() + " movies from API.");
+                                        setupAndDisplayMovies();
+                                        if (showInitialLoading) showLoading(false);
+                                    });
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(String error) {
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() -> {
+                                        if (showInitialLoading) showLoading(false);
+                                        Toast.makeText(getContext(), "Failed to load VOD streams: " + error, Toast.LENGTH_LONG).show();
+                                        Log.e("VodFragment", "VOD API Error: " + error);
+                                    });
+                                }
                             }
                         });
                     }
 
                     @Override
-                    public void onFailure(String error) {
+                    public void onCategoryFetchFailure(String error) {
+                        // Still try to load movies, but categories will be IDs
+                        Log.w("VodFragment", "Failed to fetch category names ("+error+"), proceeding to fetch movies.");
+                        XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+                        apiService.fetchVodStreams(new XtreamApiService.XtreamApiCallback<Movie>() {
+                            @Override
+                            public void onSuccess(List<Movie> movies) {
+                                MovieCacheManager.saveMoviesToCache(requireContext(), movies); // Save movies even if categories failed
+                                allMovies = movies;
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() -> {
+                                        setupAndDisplayMovies(); // Will display category IDs
+                                        if (showInitialLoading) showLoading(false);
+                                        Toast.makeText(getContext(), "Movies loaded, but category names might be missing.", Toast.LENGTH_SHORT).show();
+                                    });
+                                }
+                            }
+                             @Override
+                            public void onFailure(String movieError) {
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
                                 if (showInitialLoading) showLoading(false);
@@ -307,27 +342,31 @@ public class VodFragment extends Fragment {
         });
     }
 
-    private void fetchCategoryNames(String baseUrl, String username, String password, Runnable onComplete) {
+    private interface CategoryFetchCallback {
+        void onCategoriesReceived(java.util.Map<String, String> categoryMap);
+        void onCategoryFetchFailure(String error);
+    }
+
+    private void fetchCategoryNames(String baseUrl, String username, String password, CategoryFetchCallback callback) {
         XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
         apiService.fetchVodCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
             @Override
             public void onSuccess(List<XtreamApiService.CategoryInfo> categoryInfos) {
-                categoryIdToNameMap.clear();
+                java.util.Map<String, String> tempMap = new java.util.HashMap<>();
                 for (XtreamApiService.CategoryInfo catInfo : categoryInfos) {
-                    categoryIdToNameMap.put(catInfo.id, catInfo.name);
+                    tempMap.put(catInfo.id, catInfo.name);
                     Log.d("VodFragment", "Fetched category: ID=" + catInfo.id + ", Name=" + catInfo.name);
                 }
                 if (getActivity() != null) {
-                    getActivity().runOnUiThread(onComplete);
+                    getActivity().runOnUiThread(() -> callback.onCategoriesReceived(tempMap));
                 }
             }
 
             @Override
             public void onFailure(String error) {
                 Log.e("VodFragment", "Failed to fetch category names: " + error);
-                // Proceed without category names, IDs will be shown
                 if (getActivity() != null) {
-                    getActivity().runOnUiThread(onComplete);
+                    getActivity().runOnUiThread(() -> callback.onCategoryFetchFailure(error));
                 }
             }
         });

@@ -80,101 +80,214 @@ public class TvFragment extends Fragment {
         });
 
         // Para fins de demonstração, vamos criar dados de exemplo para evitar problemas de download
-        createExampleChannels();
-
+        // createExampleChannels(); // REMOVED - Will fetch from API
+        loadInitialData();
         return root;
     }
 
-    private void createExampleChannels() {
-        executor.execute(() -> {
-            try {
-                // Criar dados de exemplo para canais IPTV
-                StringBuilder channelContentBuilder = new StringBuilder();
-                channelContentBuilder.append("#EXTM3U\n");
-                
-                // Canais Infantis
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"CartoonNetwork\" tvg-name=\"CARTOON NETWORK HD\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/cartoon.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",CARTOON NETWORK HD\n");
-                channelContentBuilder.append("http://example.com/cartoon.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"DiscoveryKids\" tvg-name=\"DISCOVERY KIDS\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/discovery.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",DISCOVERY KIDS\n");
-                channelContentBuilder.append("http://example.com/discovery.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"DragonBallSuper\" tvg-name=\"DRAGON BALL SUPER\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/dragonball.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",DRAGON BALL SUPER\n");
-                channelContentBuilder.append("http://example.com/dragonball.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"DragonBallZ\" tvg-name=\"DRAGON BALL Z\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/dragonballz.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",DRAGON BALL Z\n");
-                channelContentBuilder.append("http://example.com/dragonballz.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"GloobHD\" tvg-name=\"GLOOB HD\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/gloob.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",GLOOB HD\n");
-                channelContentBuilder.append("http://example.com/gloob.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"Gloobinho\" tvg-name=\"GLOOBINHO\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/gloobinho.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",GLOOBINHO\n");
-                channelContentBuilder.append("http://example.com/gloobinho.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"NickJr\" tvg-name=\"NICK JR HD\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/nickjr.png\" ");
-                channelContentBuilder.append("group-title=\"Infantis\",NICK JR HD\n");
-                channelContentBuilder.append("http://example.com/nickjr.m3u8\n");
-                
-                // Canais Abertos
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"Globo\" tvg-name=\"GLOBO HD\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/globo.png\" ");
-                channelContentBuilder.append("group-title=\"Abertos\",GLOBO HD\n");
-                channelContentBuilder.append("http://example.com/globo.m3u8\n");
-                
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"SBT\" tvg-name=\"SBT HD\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/sbt.png\" ");
-                channelContentBuilder.append("group-title=\"Abertos\",SBT HD\n");
-                channelContentBuilder.append("http://example.com/sbt.m3u8\n");
-                
-                // Canais de Notícias
-                channelContentBuilder.append("#EXTINF:-1 tvg-id=\"GloboNews\" tvg-name=\"GLOBO NEWS\" ");
-                channelContentBuilder.append("tvg-logo=\"https://example.com/globonews.png\" ");
-                channelContentBuilder.append("group-title=\"Notícias\",GLOBO NEWS\n");
-                channelContentBuilder.append("http://example.com/globonews.m3u8\n");
-                
-                String channelContent = channelContentBuilder.toString();
-                
-                try (BufferedReader br = new BufferedReader(new StringReader(channelContent))) {
-                    allChannels = M3uParser.parse(br);
-                }
+    private void loadInitialData() {
+        // This method will orchestrate fetching credentials, then categories, then channels.
+        // Similar to VodFragment.java
+        showLoading(true); // You'll need to implement showLoading if not already present
+        fetchXtreamCredentials(new CredentialsCallback() {
+            @Override
+            public void onCredentialsReceived(String baseUrl, String username, String password) {
+                // Credentials received, now fetch categories
+                fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
+                    @Override
+                    public void onCategoriesReceived(java.util.Map<String, String> categoryMap) {
+                        // Categories received, now fetch all live channels
+                        // Store categoryMap for later use (e.g., in liveCategoryIdToNameMap)
+                        // liveCategoryIdToNameMap.clear();
+                        // liveCategoryIdToNameMap.putAll(categoryMap);
+                        // updateCategoryRecyclerView(new ArrayList<>(categoryMap.values())); // Or however you structure it
 
+                        fetchLiveChannelsFromApi(baseUrl, username, password, null); // null for all channels initially
+                    }
+
+                    @Override
+                    public void onCategoryFailure(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "Failed to load TV categories: " + error, Toast.LENGTH_LONG).show();
+                                showLoading(false);
+                            });
+                        }
+                        // Optionally, still try to load channels without categories
+                         fetchLiveChannelsFromApi(baseUrl, username, password, null);
+                    }
+                });
+            }
+
+            @Override
+            public void onCredentialsFailure(String error) {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        channelAdapter = new ChannelAdapter(allChannels);
-                        recyclerViewChannels.setAdapter(channelAdapter);
-                        Toast.makeText(getContext(), "Canais carregados com sucesso!", Toast.LENGTH_SHORT).show();
-                    });
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Erro ao carregar canais de exemplo", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Failed to get Xtream credentials for TV: " + error, Toast.LENGTH_LONG).show();
+                        showLoading(false);
                     });
                 }
             }
         });
     }
 
-    private void startDownload() {
-        // Método mantido para compatibilidade, mas agora usa dados de exemplo
-        createExampleChannels();
+    // TODO: Implement showLoading(boolean) method, similar to VodFragment
+    private void showLoading(boolean isLoading){
+        // Example:
+        // progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        // recyclerViewChannels.setVisibility(isLoading ? View.GONE : View.VISIBLE);
+        // recyclerViewCategories.setVisibility(isLoading ? View.GONE : View.VISIBLE);
+        android.util.Log.d("TvFragment", "showLoading: " + isLoading); // Placeholder
     }
 
+
+    // Credentials fetching logic (similar to VodFragment)
+    private interface CredentialsCallback {
+        void onCredentialsReceived(String baseUrl, String username, String password);
+        void onCredentialsFailure(String error);
+    }
+
+    private void fetchXtreamCredentials(CredentialsCallback callback) {
+        executor.execute(() -> {
+            try {
+                java.net.URL url = new java.net.URL("http://mybrasiltv.x10.mx/GetLoguin.php");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                int responseCode = conn.getResponseCode();
+                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String inputLine;
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+                    org.json.JSONObject jsonObject = new org.json.JSONObject(response.toString());
+                    String server = jsonObject.getString("server");
+                    String user = jsonObject.getString("username");
+                    String pass = jsonObject.getString("password");
+                    if (!server.toLowerCase().startsWith("http://") && !server.toLowerCase().startsWith("https://")) {
+                        server = "http://" + server;
+                    }
+                    callback.onCredentialsReceived(server, user, pass);
+                } else {
+                    callback.onCredentialsFailure("HTTP error: " + responseCode);
+                }
+            } catch (Exception e) {
+                callback.onCredentialsFailure(e.getMessage());
+            }
+        });
+    }
+
+    // Category fetching logic
+    private interface CategoryCallback {
+        void onCategoriesReceived(java.util.Map<String, String> categoryMap);
+        void onCategoryFailure(String error);
+    }
+
+    private java.util.Map<String, String> liveCategoryIdToNameMap = new java.util.HashMap<>();
+    // TODO: Add an adapter for recyclerViewCategories (e.g., LiveCategoryAdapter)
+    // private LiveCategoryAdapter liveCategoryAdapter; // You will need to create this adapter
+    private com.example.iptvplayer.adapter.LiveCategoryAdapter liveCategoryAdapter;
+
+
+    private void fetchLiveCategoriesFromApi(String baseUrl, String username, String password, CategoryCallback callback) {
+        XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+        apiService.fetchLiveStreamCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
+            @Override
+            public void onSuccess(List<XtreamApiService.CategoryInfo> data) {
+                java.util.Map<String, String> categoryMap = new java.util.LinkedHashMap<>(); // Preserve order
+                categoryMap.put("All", "All"); // Special "All" category
+                liveCategoryIdToNameMap.clear();
+                liveCategoryIdToNameMap.put("All", "All");
+
+                for (XtreamApiService.CategoryInfo catInfo : data) {
+                    categoryMap.put(catInfo.id, catInfo.name);
+                    liveCategoryIdToNameMap.put(catInfo.id, catInfo.name);
+                }
+
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        if (liveCategoryAdapter == null) {
+                            // Pass the map itself or a list of CategoryInfo objects to adapter
+                            liveCategoryAdapter = new com.example.iptvplayer.adapter.LiveCategoryAdapter(
+                                    new ArrayList<>(liveCategoryIdToNameMap.entrySet()),
+                                    (catId) -> { // onItemClick lambda
+                                fetchLiveChannelsFromApi(baseUrl, username, password, catId.equals("All") ? null : catId);
+                            });
+                            recyclerViewCategories.setAdapter(liveCategoryAdapter);
+                        } else {
+                            liveCategoryAdapter.updateData(new ArrayList<>(liveCategoryIdToNameMap.entrySet()));
+                        }
+                        android.util.Log.d("TvFragment", "Live categories loaded and adapter updated: " + liveCategoryIdToNameMap.size());
+                        callback.onCategoriesReceived(liveCategoryIdToNameMap); // Pass the populated map
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(String error) {
+                android.util.Log.e("TvFragment", "Failed to fetch live categories: " + error);
+                if (getActivity() != null) {
+                     getActivity().runOnUiThread(() -> callback.onCategoryFailure(error));
+                }
+            }
+        });
+    }
+
+    // Channel fetching logic
+    private void fetchLiveChannelsFromApi(String baseUrl, String username, String password, @Nullable String categoryIdToFilter) {
+        XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+        apiService.fetchLiveStreams(new XtreamApiService.XtreamApiCallback<Channel>() {
+            @Override
+            public void onSuccess(List<Channel> channels) {
+                allChannels.clear();
+                allChannels.addAll(channels); // Store all fetched channels
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        List<Channel> channelsToDisplay = new ArrayList<>();
+                        if (categoryIdToFilter == null || categoryIdToFilter.equals("All")) {
+                            channelsToDisplay.addAll(allChannels);
+                        } else {
+                            for (Channel channel : allChannels) {
+                                if (categoryIdToFilter.equals(channel.getGroupTitle())) { // Assuming getGroupTitle() is category ID
+                                    channelsToDisplay.add(channel);
+                                }
+                            }
+                        }
+
+                        if (channelAdapter == null) {
+                            channelAdapter = new ChannelAdapter(channelsToDisplay);
+                            recyclerViewChannels.setAdapter(channelAdapter);
+                        } else {
+                            channelAdapter.updateData(channelsToDisplay);
+                        }
+                        showLoading(false);
+                        // Toast.makeText(getContext(), "TV Channels loaded!", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(String error) {
+                 if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        showLoading(false);
+                        Toast.makeText(getContext(), "Failed to load TV channels: " + error, Toast.LENGTH_LONG).show();
+                    });
+                }
+            }
+        });
+    }
+
+
+    // private void startDownload() {
+    //     // This method is likely obsolete if createExampleChannels is removed and API is used.
+    //     // createExampleChannels();
+    // }
+
     private void processM3uFile(String filePath) {
+        // This method is likely obsolete if M3U files are not the primary source.
         executor.execute(() -> {
             try {
                 File file = new File(filePath);

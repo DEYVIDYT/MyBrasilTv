@@ -19,7 +19,8 @@ import java.util.List;
 public class MovieCacheManager {
 
     private static final String TAG = "MovieCacheManager";
-    private static final String CACHE_FILE_NAME = "movie_cache.json";
+    private static final String MOVIE_CACHE_FILE_NAME = "movie_cache.json";
+    private static final String CATEGORY_MAP_CACHE_FILE_NAME = "category_map_cache.json";
     private static final long CACHE_EXPIRY_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
     public static void saveMoviesToCache(Context context, List<Movie> movies) {
@@ -39,7 +40,7 @@ public class MovieCacheManager {
             }
         }
 
-        try (FileOutputStream fos = context.openFileOutput(CACHE_FILE_NAME, Context.MODE_PRIVATE)) {
+        try (FileOutputStream fos = context.openFileOutput(MOVIE_CACHE_FILE_NAME, Context.MODE_PRIVATE)) {
             fos.write(jsonArray.toString().getBytes(StandardCharsets.UTF_8));
             Log.i(TAG, "Successfully saved " + movies.size() + " movies to cache.");
         } catch (IOException e) {
@@ -47,9 +48,22 @@ public class MovieCacheManager {
         }
     }
 
+    public static void saveCategoryMapToCache(Context context, java.util.Map<String, String> categoryMap) {
+        JSONObject jsonObject = new JSONObject(categoryMap);
+        try (FileOutputStream fos = context.openFileOutput(CATEGORY_MAP_CACHE_FILE_NAME, Context.MODE_PRIVATE)) {
+            fos.write(jsonObject.toString().getBytes(StandardCharsets.UTF_8));
+            // Also save a timestamp for the category map itself
+            fos.write(("\n" + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
+            Log.i(TAG, "Successfully saved category map to cache.");
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving category map to cache", e);
+        }
+    }
+
+
     public static List<Movie> loadMoviesFromCache(Context context) {
         List<Movie> cachedMovies = new ArrayList<>();
-        try (FileInputStream fis = context.openFileInput(CACHE_FILE_NAME);
+        try (FileInputStream fis = context.openFileInput(MOVIE_CACHE_FILE_NAME);
              InputStreamReader inputStreamReader = new InputStreamReader(fis, StandardCharsets.UTF_8);
              BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
 
@@ -72,47 +86,81 @@ public class MovieCacheManager {
                     cachedMovies.add(new Movie(title, posterUrl, videoUrl, category, lastRefreshedTimestamp));
                 } else {
                     Log.i(TAG, "Cached data for movie '" + title + "' is expired.");
-                    // Do not add expired data, it will be refreshed from API
                 }
             }
             Log.i(TAG, "Successfully loaded " + cachedMovies.size() + " non-expired movies from cache.");
 
         } catch (IOException e) {
-            Log.w(TAG, "Cache file not found or error reading cache: " + e.getMessage());
-            // This is normal if cache doesn't exist yet
+            Log.w(TAG, "Movie cache file not found or error reading cache: " + e.getMessage());
         } catch (JSONException e) {
-            Log.e(TAG, "Error parsing JSON from cache", e);
-            // Cache might be corrupted, consider deleting it
-            context.deleteFile(CACHE_FILE_NAME);
+            Log.e(TAG, "Error parsing JSON from movie cache", e);
+            context.deleteFile(MOVIE_CACHE_FILE_NAME);
         }
         return cachedMovies;
     }
 
-    public static boolean isCacheValid(Context context) {
-        List<Movie> movies = loadMoviesFromCache(context); // This already checks expiry for individual items
-        if (movies.isEmpty()) {
-            // If cache is empty, it might be because all items expired, or it never existed.
-            // To be more precise, we can check the file modification time or a global timestamp.
-            // For simplicity, if loadMoviesFromCache (which filters expired) returns empty,
-            // assume cache is not valid or needs refresh.
-            return false;
+    public static java.util.Map<String, String> loadCategoryMapFromCache(Context context) {
+        java.util.Map<String, String> categoryMap = new java.util.HashMap<>();
+        try (FileInputStream fis = context.openFileInput(CATEGORY_MAP_CACHE_FILE_NAME);
+             InputStreamReader inputStreamReader = new InputStreamReader(fis, StandardCharsets.UTF_8);
+             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            String firstLine = bufferedReader.readLine(); // JSON map
+            String secondLine = bufferedReader.readLine(); // Timestamp
+
+            if (firstLine == null || secondLine == null) {
+                 Log.w(TAG, "Category map cache file is incomplete.");
+                 context.deleteFile(CATEGORY_MAP_CACHE_FILE_NAME);
+                 return categoryMap; // Empty map
+            }
+
+            long cacheTimestamp = Long.parseLong(secondLine);
+            if (System.currentTimeMillis() - cacheTimestamp >= CACHE_EXPIRY_DURATION_MS) {
+                Log.i(TAG, "Category map cache is expired.");
+                context.deleteFile(CATEGORY_MAP_CACHE_FILE_NAME);
+                return categoryMap; // Return empty map, will be refreshed
+            }
+
+            JSONObject jsonObject = new JSONObject(firstLine);
+            java.util.Iterator<String> keys = jsonObject.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                categoryMap.put(key, jsonObject.getString(key));
+            }
+            Log.i(TAG, "Successfully loaded " + categoryMap.size() + " categories from cache.");
+
+        } catch (IOException e) {
+            Log.w(TAG, "Category map cache file not found or error reading: " + e.getMessage());
+        } catch (JSONException | NumberFormatException e) {
+            Log.e(TAG, "Error parsing JSON or timestamp from category map cache", e);
+            context.deleteFile(CATEGORY_MAP_CACHE_FILE_NAME);
         }
-        // If it returns any movie, it means at least one movie is not expired.
-        // A more robust check might involve checking if *all* desired categories are present and not expired.
-        // For this implementation, if we have any valid movies, we can consider the cache "partially valid".
-        // The VodFragment will decide if it needs a full refresh.
-        // A simpler check: is the file itself very old?
-        java.io.File cacheFile = new java.io.File(context.getFilesDir(), CACHE_FILE_NAME);
-        if (!cacheFile.exists()) return false;
-        // Check if the cache file itself (as a whole) is older than expiry.
-        // This is a simpler check than individual item expiry for a quick "is anything likely valid".
-        return (System.currentTimeMillis() - cacheFile.lastModified() < CACHE_EXPIRY_DURATION_MS);
+        return categoryMap;
     }
-     public static void clearCache(Context context) {
-        if (context.deleteFile(CACHE_FILE_NAME)) {
-            Log.i(TAG, "Movie cache cleared successfully.");
-        } else {
-            Log.w(TAG, "Failed to clear movie cache or cache file did not exist.");
+
+
+    public static boolean isCacheValid(Context context) {
+        // Check movie cache file
+        java.io.File movieCacheFile = new java.io.File(context.getFilesDir(), MOVIE_CACHE_FILE_NAME);
+        if (!movieCacheFile.exists() || (System.currentTimeMillis() - movieCacheFile.lastModified() >= CACHE_EXPIRY_DURATION_MS)) {
+            return false; // Movie cache is invalid or too old
         }
+
+        // Check category map cache file (using the stored timestamp method)
+        java.util.Map<String, String> categoryMap = loadCategoryMapFromCache(context); // This already checks its own expiry
+        return !categoryMap.isEmpty(); // If map is loaded and not empty, it's considered valid for this check
+    }
+
+     public static void clearCache(Context context) {
+        boolean moviesCleared = context.deleteFile(MOVIE_CACHE_FILE_NAME);
+        boolean categoriesCleared = context.deleteFile(CATEGORY_MAP_CACHE_FILE_NAME);
+
+        if (moviesCleared) Log.i(TAG, "Movie cache cleared successfully.");
+        else Log.w(TAG, "Failed to clear movie cache or cache file did not exist.");
+
+        if (categoriesCleared) Log.i(TAG, "Category map cache cleared successfully.");
+        else Log.w(TAG, "Failed to clear category map cache or cache file did not exist.");
     }
 }
