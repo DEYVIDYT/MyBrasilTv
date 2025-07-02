@@ -79,10 +79,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
         // Initialize ExoPlayer
         if (getContext() != null) {
-            // Configurar DefaultTrackSelector para desabilitar áudio espacializado
             DefaultTrackSelector.ParametersBuilder parametersBuilder =
-                    new DefaultTrackSelector.ParametersBuilder(getContext());
-            parametersBuilder.setSpatializationBehavior(TrackSelectionParameters.SPATIALIZATION_BEHAVIOR_NEVER);
+                    new DefaultTrackSelector.ParametersBuilder(getContext())
+                            .setMaxAudioChannelCount(2); // Força a seleção de áudio estéreo
+
             DefaultTrackSelector trackSelector = new DefaultTrackSelector(getContext(), parametersBuilder.build());
 
             player = new ExoPlayer.Builder(getContext())
