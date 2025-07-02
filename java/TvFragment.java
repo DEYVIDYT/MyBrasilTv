@@ -75,6 +75,12 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         playerView = root.findViewById(R.id.player_view); // Supondo que você tenha um PlayerView com este ID no seu XML
         playerProgressBar = root.findViewById(R.id.player_progress_bar); // Supondo um ID para a ProgressBar
 
+        // Initialize ExoPlayer
+        if (getContext() != null) {
+            player = new ExoPlayer.Builder(getContext()).build();
+            playerView.setPlayer(player);
+        }
+
         // Register receiver
         downloadReceiver = new DownloadReceiver(this);
         IntentFilter filter = new IntentFilter(DownloadService.ACTION_DOWNLOAD_COMPLETE);
@@ -105,7 +111,13 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
     @Override
     public void onChannelClick(Channel channel) {
-        if (player != null && channel.getStreamUrl() != null && !channel.getStreamUrl().isEmpty()) {
+        Log.d("TvFragment", "onChannelClick: " + channel.getName() + " URL: " + channel.getStreamUrl());
+        if (player == null) {
+            Log.e("TvFragment", "Player not initialized");
+            Toast.makeText(getContext(), "Player não inicializado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (channel.getStreamUrl() != null && !channel.getStreamUrl().isEmpty()) {
             // Cria o MediaItem usando o novo Builder do Media3
             Uri videoUri = Uri.parse(channel.getStreamUrl());
             MediaItem mediaItem = new MediaItem.Builder()
@@ -117,6 +129,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             player.play();
 
             Toast.makeText(getContext(), "Iniciando: " + channel.getName(), Toast.LENGTH_SHORT).show();
+            Log.d("TvFragment", "Playback started for: " + channel.getName());
+        } else {
+            Log.e("TvFragment", "Channel stream URL is null or empty");
+            Toast.makeText(getContext(), "URL do canal inválida", Toast.LENGTH_SHORT).show();
         }
     }
 
