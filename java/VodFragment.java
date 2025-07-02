@@ -340,9 +340,62 @@ public class VodFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        Log.d("VodFragmentLifecycle", "onResume called. Calling loadMovies().");
         // Força o recarregamento dos filmes sempre que o fragmento se torna visível novamente
         // Isso garante que os dados sejam atualizados e exibidos corretamente.
         loadMovies();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Log.d("VodFragmentLifecycle", "onViewCreated called.");
+        // loadMovies() é chamado em onCreateView, que por sua vez é chamado antes de onViewCreated
+        // ou em onResume. Se for chamado aqui, pode ser redundante com onResume.
+        // Mantendo a chamada em onResume para garantir o frescor dos dados ao voltar ao fragment.
+    }
+
+    private void setupAndDisplayMovies() {
+        Log.d("VodFragmentLogic", "setupAndDisplayMovies called.");
+        if (allMovies == null || allMovies.isEmpty()) {
+            Log.w("VodFragmentLogic", "No movies to display. allMovies is null or empty.");
+            if (categoryAdapter != null) {
+                Log.d("VodFragmentLogic", "Clearing categoryAdapter as allMovies is empty.");
+                categoryAdapter.updateData(new LinkedHashMap<>()); // Limpar o adapter
+            }
+            showLoading(false);
+            return;
+        }
+
+        Log.d("VodFragmentLogic", "Total movies to process: " + allMovies.size());
+        Log.d("VodFragmentLogic", "Category ID to Name Map size: " + categoryIdToNameMap.size());
+
+        // Agrupar filmes por categoria
+        Map<String, List<Movie>> moviesByCategory = allMovies.stream()
+                .collect(Collectors.groupingBy(movie -> {
+                    String categoryId = movie.getCategory();
+                    String categoryName = categoryIdToNameMap.getOrDefault(categoryId, "Outros");
+                    // Log.d("VodFragmentLogic", "Movie: " + movie.getName() + ", CategoryId: " + categoryId + ", Resolved CategoryName: " + categoryName);
+                    return categoryName;
+                }, LinkedHashMap::new, Collectors.toList())); // Manter a ordem de inserção
+
+
+        Log.d("VodFragmentLogic", "Number of categories with movies: " + moviesByCategory.size());
+        if (moviesByCategory.isEmpty() && !allMovies.isEmpty()){
+            Log.w("VodFragmentLogic", "moviesByCategory is empty, but allMovies is not. Check category mapping.");
+        }
+
+
+        if (categoryAdapter == null) {
+            Log.d("VodFragmentLogic", "categoryAdapter is null, creating new instance.");
+            categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory);
+            mainRecyclerView.setAdapter(categoryAdapter);
+        } else {
+            Log.d("VodFragmentLogic", "categoryAdapter exists, calling updateData.");
+            categoryAdapter.updateData(moviesByCategory);
+        }
+        showLoading(false);
+        Log.d("VodFragmentLogic", "setupAndDisplayMovies completed.");
     }
 }
 
