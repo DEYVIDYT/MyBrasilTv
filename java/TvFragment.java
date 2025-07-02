@@ -1,5 +1,23 @@
 package com.example.iptvplayer;
 
+// Group standard Java imports
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.InputStreamReader; // Ensuring it's here
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+// Group Android imports
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -155,7 +173,7 @@ public class TvFragment extends Fragment {
                 conn.setRequestMethod("GET");
                 int responseCode = conn.getResponseCode();
                 if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    BufferedReader in = new BufferedReader(new java.io.InputStreamReader(conn.getInputStream())); // Fully qualified
                     StringBuilder response = new StringBuilder();
                     String inputLine;
                     while ((inputLine = in.readLine()) != null) {
