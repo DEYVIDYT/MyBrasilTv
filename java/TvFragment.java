@@ -79,6 +79,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
     private VideoView mVideoView;
     private StandardVideoController mController;
+    private TitleView mTitleViewComponent; // Referência ao componente TitleView
     private int mWidthPixels;
     private PictureInPictureParams.Builder mPictureInPictureParamsBuilder;
     private BroadcastReceiver mReceiver;
@@ -158,20 +159,21 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             }
         });
         mController.addControlComponent(vodControlView);
-        TitleView titleView = new TitleView(getContext());
-        titleView.findViewById(R.id.pip).setOnClickListener(new View.OnClickListener() {
+
+        // Criar e configurar o TitleView, depois armazenar a referência
+        mTitleViewComponent = new TitleView(getContext());
+        mTitleViewComponent.findViewById(R.id.pip).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Rational aspectRatio = new Rational(16, 9);
-                mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio).build();
+                mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio); // Corrigido: .build() removido daqui
                 if (getActivity() != null) {
                     getActivity().enterPictureInPictureMode(mPictureInPictureParamsBuilder.build());
                 }
             }
         });
-
-        titleView.setTitle(title);
-        mController.addControlComponent(titleView);
+        mTitleViewComponent.setTitle(title); // Define um título inicial
+        mController.addControlComponent(mTitleViewComponent);
 
         mVideoView.setVideoController(mController);
         mVideoView.addOnStateChangeListener(new VideoView.SimpleOnStateChangeListener() {
@@ -286,26 +288,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             mVideoView.setUrl(channel.getStreamUrl());
             mVideoView.start();
 
-            // Atualizar título no controller
-            if (mController != null) {
-                TitleView titleView = mController.getControlComponent(TitleView.class);
-                if (titleView != null) {
-                    titleView.setTitle(channel.getName());
-                } else {
-                     // Se o TitleView foi perdido (improvável com o release padrão), recriar/adicionar
-                    TitleView newTitleView = new TitleView(getContext());
-                    newTitleView.setTitle(channel.getName());
-                    newTitleView.findViewById(R.id.pip).setOnClickListener(v -> {
-                        Rational aspectRatio = new Rational(16, 9);
-                        mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio);
-                        if (getActivity() != null) {
-                            getActivity().enterPictureInPictureMode(mPictureInPictureParamsBuilder.build());
-                        }
-                    });
-                    mController.addControlComponent(newTitleView); // Adiciona se não existir
-                }
+            // Atualizar título no controller usando a referência mTitleViewComponent
+            if (mTitleViewComponent != null) {
+                mTitleViewComponent.setTitle(channel.getName());
+            } else {
+                // Fallback muito improvável: se mTitleViewComponent for nulo, logar erro.
+                // Isso não deveria acontecer se onCreateView foi chamado corretamente.
+                Log.e("TvFragment", "mTitleViewComponent is null in onChannelClick. Title not updated.");
             }
-
 
             Toast.makeText(getContext(), "Iniciando: " + channel.getName(), Toast.LENGTH_SHORT).show();
             Log.d("TvFragment", "Playback initiated for: " + channel.getName() + " URL: " + channel.getStreamUrl());
