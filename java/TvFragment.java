@@ -144,7 +144,9 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
                     @Override
                     public void onCategoriesReceived(Map<String, String> categoryMap) {
-                        fetchLiveChannelsFromApi(baseUrl, username, password, null);
+                        // Carrega todos os canais inicialmente (ou a primeira categoria, se preferir)
+                        // Para carregar "Todos", passamos null ou um ID específico como "0"
+                        fetchLiveChannelsFromApi(baseUrl, username, password, "0"); //  Ou null se a API tratar null como "todos"
                     }
 
                     @Override
@@ -155,7 +157,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                                 showLoading(false);
                             });
                         }
-                        fetchLiveChannelsFromApi(baseUrl, username, password, null);
+                        // Tenta carregar canais mesmo se as categorias falharem, talvez com categoryId nulo (todos)
+                        fetchLiveChannelsFromApi(baseUrl, username, password, "0");
                     }
                 });
             }
@@ -286,9 +289,26 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
                             allChannels.clear();
-                            allChannels.addAll(data);
-                            channelAdapter = new ChannelAdapter(getContext(), allChannels, TvFragment.this);
-                            recyclerViewChannels.setAdapter(channelAdapter);
+                            allChannels.addAll(data); // Armazena todos os canais recebidos
+
+                            List<Channel> filteredChannels = new ArrayList<>();
+                            if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) { // "0" ou nulo pode ser "Todos os canais"
+                                filteredChannels.addAll(allChannels);
+                            } else {
+                                for (Channel channel : allChannels) {
+                                    if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
+                                        filteredChannels.add(channel);
+                                    }
+                                }
+                            }
+
+                            if (channelAdapter == null) {
+                                channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
+                                recyclerViewChannels.setAdapter(channelAdapter);
+                            } else {
+                                channelAdapter.updateData(filteredChannels);
+                            }
+                            channelAdapter.filterList(searchEditText.getText().toString()); // Reaplicar filtro de busca
                             showLoading(false);
                         });
                     }
@@ -299,6 +319,9 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
                             Toast.makeText(getContext(), "Falha ao carregar canais: " + error, Toast.LENGTH_LONG).show();
+                            if (channelAdapter != null) {
+                                channelAdapter.updateData(new ArrayList<>()); // Limpa canais em caso de falha
+                            }
                             showLoading(false);
                         });
                     }
