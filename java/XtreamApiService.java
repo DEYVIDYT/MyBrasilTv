@@ -114,7 +114,9 @@ public class XtreamApiService {
                         String streamId = jsonObject.optString("stream_id");
                         String streamIcon = jsonObject.optString("stream_icon");
                         String categoryId = jsonObject.optString("category_id");
-                        String directSource = String.format("%s/%s/%s/%s", baseUrl, streamId, username, password);
+                        // Correção da URL conforme o formato esperado: baseUrl/live/username/password/streamId.ts
+                        String directSource = String.format("%s/live/%s/%s/%s.ts", baseUrl, username, password, streamId);
+                        Log.d("XtreamApiService", "Constructed stream URL: " + directSource); // Log para verificar a URL construída
                         channels.add(new Channel(name, directSource, streamIcon, categoryId));
                     }
                     callback.onSuccess(channels);
