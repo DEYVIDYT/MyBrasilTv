@@ -1,76 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="12dp"
-    android:background="?android:attr/selectableItemBackground">
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
 
     <ImageView
         android:id="@+id/channel_logo"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
         android:scaleType="centerCrop"
-        android:background="#333333"
-        android:src="@android:color/darker_gray"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:background="@drawable/rounded_corner_image_placeholder"
+        tools:srcCompat="@tools:sample/avatars" />
 
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/channel_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nome do Canal HD"
+            android:textColor="@color/md_sys_color_on_background"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/channel_program"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Recebendo a programação..."
+            android:textColor="@color/md_sys_color_on_surface_variant"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/channel_chevron"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_chevron_right"
+        app:tint="@color/md_sys_color_on_surface_variant" />
+
+    <!-- Hidden: channel_number, not present in the new design for the list item itself -->
     <TextView
         android:id="@+id/channel_number"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:text="001"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@id/channel_logo"
-        app:layout_constraintTop_toTopOf="@id/channel_logo" />
+        android:visibility="gone"
+        tools:text="001"/>
 
-    <TextView
-        android:id="@+id/channel_name"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="8dp"
-        android:text="CARTOON HD"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:ellipsize="end"
-        app:layout_constraintEnd_toStartOf="@id/arrow_icon"
-        app:layout_constraintStart_toEndOf="@id/channel_logo"
-        app:layout_constraintTop_toBottomOf="@id/channel_number" />
-
-    <TextView
-        android:id="@+id/channel_program"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="8dp"
-        android:text="Recebendo a programação..."
-        android:textColor="#AAAAAA"
-        android:textSize="12sp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        app:layout_constraintEnd_toStartOf="@id/arrow_icon"
-        app:layout_constraintStart_toEndOf="@id/channel_logo"
-        app:layout_constraintTop_toBottomOf="@id/channel_name"
-        app:layout_constraintBottom_toBottomOf="@id/channel_logo" />
-
-    <ImageView
-        android:id="@+id/arrow_icon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@android:drawable/ic_media_play"
-        android:tint="#AAAAAA"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
-
+</LinearLayout>

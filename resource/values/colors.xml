@@ -7,15 +7,47 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    
-    <!-- Cores personalizadas para o tema escuro -->
-    <color name="dark_background">#FF000000</color>
-    <color name="dark_surface">#FF1A1A1A</color>
-    <color name="dark_surface_variant">#FF2A2A2A</color>
-    <color name="dark_primary">#FFFF6B35</color>
-    <color name="text_primary">#FFFFFFFF</color>
-    <color name="text_secondary">#FFAAAAAA</color>
-    <color name="text_hint">#FF666666</color>
-    <color name="divider">#FF555555</color>
-    <color name="card_background">#FF1A1A1A</color>
+
+    <!-- Material Design 3 Colors -->
+    <color name="md_sys_color_primary">#A4C9FF</color>
+    <color name="md_sys_color_on_primary">#00315E</color>
+    <color name="md_sys_color_primary_container">#004884</color>
+    <color name="md_sys_color_on_primary_container">#D3E4FF</color>
+    <color name="md_sys_color_secondary">#B8C8E0</color>
+    <color name="md_sys_color_on_secondary">#243141</color>
+    <color name="md_sys_color_secondary_container">#3A4858</color>
+    <color name="md_sys_color_on_secondary_container">#D4E4F8</color>
+    <color name="md_sys_color_tertiary">#D7BEE4</color>
+    <color name="md_sys_color_on_tertiary">#3B2947</color>
+    <color name="md_sys_color_tertiary_container">#523F5E</color>
+    <color name="md_sys_color_on_tertiary_container">#F3DAFF</color>
+    <color name="md_sys_color_error">#FFB4AB</color>
+    <color name="md_sys_color_on_error">#690005</color>
+    <color name="md_sys_color_error_container">#93000A</color>
+    <color name="md_sys_color_on_error_container">#FFDAD6</color>
+    <color name="md_sys_color_background">#1A1C1E</color>
+    <color name="md_sys_color_on_background">#E3E2E6</color>
+    <color name="md_sys_color_surface">#1A1C1E</color>
+    <color name="md_sys_color_on_surface">#E3E2E6</color>
+    <color name="md_sys_color_surface_variant">#43474E</color>
+    <color name="md_sys_color_on_surface_variant">#C3C7CF</color>
+    <color name="md_sys_color_outline">#8D9199</color>
+    <color name="md_sys_color_inverse_on_surface">#1A1C1E</color>
+    <color name="md_sys_color_inverse_surface">#E3E2E6</color>
+    <color name="md_sys_color_inverse_primary">#0060A9</color>
+    <color name="md_sys_color_shadow">#000000</color> <!-- Geralmente não definido como cor sólida, mas sim via elevação -->
+    <color name="md_sys_color_surface_tint">#A4C9FF</color>
+    <color name="md_sys_color_outline_variant">#43474E</color>
+    <color name="md_sys_color_scrim">#000000</color>
+
+    <!-- Cores antigas personalizadas para o tema escuro (manter se ainda usadas ou remover) -->
+    <color name="dark_background">#FF000000</color> <!-- Substituído por md_sys_color_background -->
+    <color name="dark_surface">#FF1A1A1A</color> <!-- Substituído por md_sys_color_surface -->
+    <color name="dark_surface_variant">#FF2A2A2A</color> <!-- Substituído por md_sys_color_surface_variant ou similar -->
+    <color name="dark_primary">#FFFF6B35</color> <!-- Substituído por md_sys_color_primary -->
+    <color name="text_primary">#FFFFFFFF</color> <!-- Substituído por md_sys_color_on_background / md_sys_color_on_surface -->
+    <color name="text_secondary">#FFAAAAAA</color> <!-- Substituído por md_sys_color_on_surface_variant -->
+    <color name="text_hint">#FF666666</color> <!-- Substituído por md_sys_color_on_surface_variant com alpha -->
+    <color name="divider">#FF555555</color> <!-- Substituído por md_sys_color_outline ou md_sys_color_outline_variant -->
+    <color name="card_background">#FF1A1A1A</color> <!-- Substituído por md_sys_color_surface ou md_sys_color_surface_variant -->
 </resources>
