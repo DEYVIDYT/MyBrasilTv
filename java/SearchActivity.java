@@ -1,6 +1,7 @@
 package com.example.iptvplayer;
 
 import android.content.Intent;
+import android.util.Log; // Import adicionado
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
