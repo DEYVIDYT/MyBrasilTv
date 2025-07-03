@@ -211,7 +211,7 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         if (mCategoryAdapter != null) {
             mCategoryAdapter.setSelectedCategory(categoryId);
         }
-        hideChannelGrid(); // Restaurado para que a grade desapareça ao selecionar uma categoria
+        // hideChannelGrid(); // REMOVIDO: Não fechar a grade ao selecionar uma categoria.
     }
 
     private void onChannelSelected(Channel channel) {
