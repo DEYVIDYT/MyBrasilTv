@@ -2,6 +2,7 @@ package com.example.iptvplayer.component;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log; // Mover import para o topo
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.Animation;
@@ -44,6 +45,7 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     private String mCurrentCategoryId = "0";
     
     private OnChannelSelectedListener mChannelSelectedListener;
+    private static final String TAG = "ChannelGridView_Debug"; // Tag for logging
 
     public interface OnChannelSelectedListener {
         void onChannelSelected(Channel channel);
@@ -80,16 +82,10 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         // Setup click listener for overlay to close grid
         mChannelGridOverlay.setOnClickListener(this);
         
-        // Prevent clicks on the grid content itself from closing the overlay
-        // This is a basic attempt. If issues persist with scrolling/complex interactions,
-        // a more sophisticated touch handling might be needed (e.g., onInterceptTouchEvent).
         View contentAreaView = findViewById(R.id.channel_grid_content_area);
         if (contentAreaView != null) {
             contentAreaView.setOnClickListener(v -> { /* Consume click */ });
         }
-        // Also, specifically for RecyclerViews if the above is not enough
-        // findViewById(R.id.recycler_categories_grid).setOnClickListener(v -> { /* Consume click */ });
-        // findViewById(R.id.recycler_channels_grid).setOnClickListener(v -> { /* Consume click */ });
     }
 
     @Override
@@ -137,17 +133,6 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
             hideChannelGrid();
         }
     }
-
-import android.util.Log;
-
-// ... (other imports)
-
-public class ChannelGridView extends FrameLayout implements IControlComponent, View.OnClickListener {
-
-    // ... (fields)
-    private static final String TAG = "ChannelGridView_Debug"; // Tag for logging
-
-    // ... (constructors and init)
 
     @Override
     public void onClick(View v) {
@@ -277,4 +262,3 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         }
     }
 }
-

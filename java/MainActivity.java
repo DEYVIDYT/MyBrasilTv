@@ -31,7 +31,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import android.view.MenuItem;
 import androidx.annotation.NonNull;
-import android.util.Log;
+import android.util.Log; // Movido para o topo
 import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.view.ViewGroup;
@@ -54,8 +54,8 @@ public class MainActivity extends AppCompatActivity {
     private XtreamLoginService xtreamLoginService;
     private XtreamApiService xtreamApiService;
     private NotificationHelper notificationHelper;
-
     
+    private static final String TAG_BACK_MAIN = "MainActivity_Back"; // Adicionado aqui
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,8 +91,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-
-        
     }
 
     private void loadFragment(Fragment fragment) {
@@ -128,21 +126,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    
-
-    
-
-import android.util.Log; // Ensure Log is imported
-
-// ... other imports
-
-public class MainActivity extends AppCompatActivity {
-
-    // ... fields ...
-    private static final String TAG_BACK_MAIN = "MainActivity_Back";
-
-    // ... onCreate and other methods ...
-
     @Override
     public void onBackPressed() {
         Log.d(TAG_BACK_MAIN, "onBackPressed called.");
@@ -166,5 +149,3 @@ public class MainActivity extends AppCompatActivity {
         super.onBackPressed();
     }
 }
-
-
