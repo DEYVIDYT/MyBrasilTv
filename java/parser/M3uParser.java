@@ -35,8 +35,12 @@ public class M3uParser {
                 channelName = line.substring(line.lastIndexOf(",") + 1).trim();
             } else if (!line.startsWith("#") && channelName != null) {
                 String channelUrl = line.trim();
-                channels.add(new Channel(channelName, channelUrl, channelLogo, groupTitle));
+                // Pass null for streamId as M3U channels don't have an Xtream-style stream ID
+                channels.add(new Channel(channelName, channelUrl, channelLogo, groupTitle, null));
                 channelName = null;
+                // Reset other attributes for the next entry
+                channelLogo = null;
+                groupTitle = null;
             }
         }
         return channels;

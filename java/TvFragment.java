@@ -55,6 +55,7 @@ import java.net.HttpURLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import org.json.JSONObject;
+import org.json.JSONArray; // Added this import
 import org.json.JSONException;
 import java.io.File;
 import java.io.FileReader;
