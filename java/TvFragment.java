@@ -80,6 +80,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private List<Channel> allChannels = new ArrayList<>();
     private List<EpgProgram> currentEpgPrograms = new ArrayList<>();
     private DownloadReceiver downloadReceiver;
+    private Map<String, String> mFetchedCategoryMap; // Armazenar o mapa de categorias globalmente
     private EpgService epgService;
     private String currentChannelStreamId = null;
 
@@ -568,12 +569,12 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 
                 fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
                     @Override
-                    public void onCategoriesReceived(Map<String, String> categoryMap) {
-                        Log.d(TV_TAG, "loadInitialData - onCategoriesReceived, categoryMap size: " + categoryMap.size());
-                        
+                    public void onCategoriesReceived(Map<String, String> receivedCategoryMap) {
+                        Log.d(TV_TAG, "loadInitialData - onCategoriesReceived, categoryMap size: " + receivedCategoryMap.size());
+                        mFetchedCategoryMap = receivedCategoryMap; // Armazena o mapa de categorias
                         // Carrega todos os canais inicialmente (ou a primeira categoria, se preferir)
                         // Para carregar "Todos", passamos null ou um ID específico como "0"
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0", categoryMap); //  Ou null se a API tratar null como "todos"
+                        fetchLiveChannelsFromApi(baseUrl, username, password, "0", mFetchedCategoryMap); // Passa o mapa armazenado
                     }
 
                     @Override
@@ -740,7 +741,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         fetchLiveChannelsFromApi(baseUrl, username, password, categoryId, null);
     }
 
-    private void fetchLiveChannelsFromApi(String baseUrl, String username, String password, @Nullable String categoryId, @Nullable Map<String, String> categoryMap) {
+    private void fetchLiveChannelsFromApi(String baseUrl, String username, String password, @Nullable String categoryId, @Nullable Map<String, String> categoryMapFromParam) {
         Log.d(TV_TAG, "fetchLiveChannelsFromApi called for categoryId: " + categoryId);
         showLoading(true);
         executor.execute(() -> {
@@ -802,7 +803,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
                             // Atualizar ChannelGridView com os novos dados de canais
                             if (mChannelGridView != null) {
-                                mChannelGridView.setChannelsData(allChannels, categoryMap);
+                                // Usar o mFetchedCategoryMap armazenado para garantir que a grade sempre tenha todas as categorias
+                                mChannelGridView.setChannelsData(allChannels, mFetchedCategoryMap);
                             }
 
                             // Após carregar os canais, buscar o EPG para cada um
