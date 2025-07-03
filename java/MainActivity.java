@@ -103,20 +103,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchXtreamLoginData() {
-        notificationHelper.showProgressNotification("Conectando", "Conectando ao Xtream Codes...", 0, 0, true);
+        notificationHelper.showProgressNotification(
+                getString(R.string.connecting_xtream_title),
+                getString(R.string.connecting_xtream_message), 0, 0, true);
         xtreamLoginService.getLoginData(new XtreamLoginService.LoginCallback() {
             @Override
             public void onSuccess(XtreamLoginService.XtreamAccount account) {
                 Log.d("MainActivity", "Login data received: " + account.server + ", " + account.username + ", " + account.password);
                 xtreamApiService = new XtreamApiService(account.server, account.username, account.password);
-                notificationHelper.showCompletionNotification("Conectado", "Conexão com Xtream Codes estabelecida.");
+                notificationHelper.showCompletionNotification(
+                        getString(R.string.connected_xtream_title),
+                        getString(R.string.connected_xtream_message));
             }
 
             @Override
             public void onFailure(String error) {
                 Log.e("MainActivity", "Failed to get login data: " + error);
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Erro ao obter dados de login: " + error, Toast.LENGTH_LONG).show());
-                notificationHelper.showCompletionNotification("Erro de Conexão", "Falha ao conectar ao Xtream Codes.");
+                String errorMessage = getString(R.string.error_login_data_message, error);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show());
+                notificationHelper.showCompletionNotification(
+                        getString(R.string.error_xtream_connection_title),
+                        getString(R.string.error_xtream_connection_message));
             }
         });
     }

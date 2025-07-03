@@ -15,7 +15,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="Nome da Categoria"
+        android:text="@string/category_title_placeholder"
         android:textColor="@color/selector_category_text"
         android:textSize="14sp"
         android:textStyle="normal"/> <!-- O textStyle bold será aplicado via seletor de cor de texto -->

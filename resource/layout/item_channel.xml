@@ -15,7 +15,6 @@
         android:layout_height="48dp"
         android:layout_marginEnd="16dp"
         android:scaleType="centerCrop"
-        android:background="@drawable/rounded_corner_image_placeholder"
         tools:srcCompat="@tools:sample/avatars" />
 
     <LinearLayout
@@ -28,10 +27,9 @@
             android:id="@+id/channel_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Nome do Canal HD"
-            android:textColor="@color/md_sys_color_on_background"
-            android:textSize="16sp"
-            android:textStyle="bold"
+            android:text="@string/channel_name_placeholder"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="?attr/colorOnSurface"
             android:maxLines="1"
             android:ellipsize="end"/>
 
@@ -39,9 +37,9 @@
             android:id="@+id/channel_program"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Recebendo a programação..."
-            android:textColor="@color/md_sys_color_on_surface_variant"
-            android:textSize="14sp"
+            android:text="@string/channel_program_placeholder"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:maxLines="1"
             android:ellipsize="end"/>
     </LinearLayout>

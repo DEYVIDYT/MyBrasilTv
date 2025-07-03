@@ -129,7 +129,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             playerContainer.addView(mVideoView); // Adicionar ao FrameLayout
         } else {
             Log.e("TvFragment", "player_container FrameLayout not found in fragment_tv.xml");
-            Toast.makeText(getContext(), "Erro: Container do player não encontrado.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), getString(R.string.player_container_not_found_error), Toast.LENGTH_LONG).show();
         }
         mWidthPixels = getResources().getDisplayMetrics().widthPixels;
         
@@ -205,17 +205,17 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 switch (playState) {
                     case VideoView.STATE_PAUSED:
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_play_arrow, "Play", CONTROL_TYPE_PLAY, REQUEST_PLAY);
+                                R.drawable.dkplayer_ic_action_play_arrow, getString(R.string.pip_action_play), CONTROL_TYPE_PLAY, REQUEST_PLAY);
                         break;
                     case VideoView.STATE_PLAYING:
                         // Quando estiver tocando, e não trocando de canal, reseta o flag (segurança extra).
                         // mIsSwitchingChannels = false; // Já tratado acima, mas pode ser uma garantia.
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_pause, "Pause", CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
+                                R.drawable.dkplayer_ic_action_pause, getString(R.string.pip_action_pause), CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
                         break;
                     case VideoView.STATE_PLAYBACK_COMPLETED:
                         updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_replay, "Replay", CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
+                                R.drawable.dkplayer_ic_action_replay, getString(R.string.pip_action_replay), CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
                         break;
                     // Outros estados como STATE_PREPARING, STATE_BUFFERING podem ser usados para mostrar/esconder o ProgressBar
                     case VideoView.STATE_PREPARING:
@@ -271,7 +271,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         Log.d("TvFragment", "onChannelClick: " + channel.getName() + " URL: " + channel.getStreamUrl());
         if (mVideoView == null) {
             Log.e("TvFragment", "Player not initialized");
-            Toast.makeText(getContext(), "Player não inicializado", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), getString(R.string.player_not_initialized_error), Toast.LENGTH_SHORT).show();
             return;
         }
         if (channel.getStreamUrl() != null && !channel.getStreamUrl().isEmpty()) {
@@ -297,12 +297,12 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 Log.e("TvFragment", "mTitleViewComponent is null in onChannelClick. Title not updated.");
             }
 
-            Toast.makeText(getContext(), "Iniciando: " + channel.getName(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), getString(R.string.starting_channel_toast, channel.getName()), Toast.LENGTH_SHORT).show();
             Log.d("TvFragment", "Playback initiated for: " + channel.getName() + " URL: " + channel.getStreamUrl());
         } else {
             Log.e("TvFragment", "Channel stream URL is null or empty");
             showLoading(false); // Esconder loading se a URL for inválida
-            Toast.makeText(getContext(), "URL do canal inválida", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), getString(R.string.invalid_channel_url_error), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -323,7 +323,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     public void onCategoryFailure(String error) {
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
-                                Toast.makeText(getContext(), "Falha ao carregar categorias: " + error, Toast.LENGTH_LONG).show();
+                                Toast.makeText(getContext(), getString(R.string.error_loading_categories, error), Toast.LENGTH_LONG).show();
                                 showLoading(false);
                             });
                         }
@@ -337,7 +337,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             public void onCredentialsFailure(String error) {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Falha ao obter credenciais: " + error, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
                         showLoading(false);
                     });
                 }
@@ -388,14 +388,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                         channelAdapter = new ChannelAdapter(getContext(), allChannels, this);
                         recyclerViewChannels.setAdapter(channelAdapter);
                         showLoading(false);
-                        Toast.makeText(getContext(), "M3U carregado com sucesso!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), getString(R.string.m3u_loaded_success_toast), Toast.LENGTH_SHORT).show();
                     });
                 }
             } catch (IOException e) {
                 Log.e("TvFragment", "Erro ao ler arquivo M3U", e);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Erro ao carregar M3U: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), getString(R.string.m3u_load_error_toast, e.getMessage()), Toast.LENGTH_LONG).show();
                         showLoading(false);
                     });
                 }
@@ -510,7 +510,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 public void onFailure(String error) {
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
-                            Toast.makeText(getContext(), "Falha ao carregar canais: " + error, Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(), getString(R.string.error_loading_channels, error), Toast.LENGTH_LONG).show();
                             if (channelAdapter != null) {
                                 channelAdapter.updateData(new ArrayList<>()); // Limpa canais em caso de falha
                             }

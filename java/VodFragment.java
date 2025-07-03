@@ -68,7 +68,7 @@ public class VodFragment extends Fragment {
             if (isGranted) {
                 Log.d("VodFragment", "Notification permission granted.");
             } else {
-                Toast.makeText(getContext(), "Permission for notifications is required to see download progress.", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), getString(R.string.notification_permission_required_toast), Toast.LENGTH_LONG).show();
                 Log.w("VodFragment", "Notification permission denied.");
             }
         });
@@ -150,7 +150,7 @@ public class VodFragment extends Fragment {
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> {
                                         if (showInitialLoading) showLoading(false);
-                                        Toast.makeText(getContext(), "Failed to load VOD streams: " + error, Toast.LENGTH_LONG).show();
+                                        Toast.makeText(getContext(), getString(R.string.error_loading_vod_streams, error), Toast.LENGTH_LONG).show();
                                         Log.e("VodFragment", "VOD API Error: " + error);
                                     });
                                 }
@@ -171,7 +171,7 @@ public class VodFragment extends Fragment {
                                     getActivity().runOnUiThread(() -> {
                                         setupAndDisplayMovies();
                                         if (showInitialLoading) showLoading(false);
-                                        Toast.makeText(getContext(), "Movies loaded, but category names might be missing.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(getContext(), getString(R.string.vod_categories_missing_toast), Toast.LENGTH_SHORT).show();
                                     });
                                 }
                             }
@@ -180,7 +180,7 @@ public class VodFragment extends Fragment {
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> {
                                         if (showInitialLoading) showLoading(false);
-                                        Toast.makeText(getContext(), "Failed to load VOD streams: " + movieError, Toast.LENGTH_LONG).show();
+                                        Toast.makeText(getContext(), getString(R.string.error_loading_vod_streams, movieError), Toast.LENGTH_LONG).show();
                                         Log.e("VodFragment", "VOD API Error: " + movieError);
                                     });
                                 }
@@ -195,7 +195,7 @@ public class VodFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         if (showInitialLoading) showLoading(false);
-                        Toast.makeText(getContext(), "Failed to get Xtream credentials: " + error, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
                         Log.e("VodFragment", "Credentials Error: " + error);
                     });
                 }
@@ -259,7 +259,8 @@ public class VodFragment extends Fragment {
         Map<String, List<Movie>> moviesByCategory = allMovies.stream()
                 .collect(Collectors.groupingBy(movie -> {
                     String categoryId = movie.getCategory();
-                    return categoryIdToNameMap.getOrDefault(categoryId, "Outros"); // Usar nome da categoria ou 'Outros'
+                    // Usar getString para "Outros"
+                    return categoryIdToNameMap.getOrDefault(categoryId, getContext() != null ? getContext().getString(R.string.label_other_category) : "Outros");
                 }, LinkedHashMap::new, Collectors.toList())); // Manter a ordem de inserção
 
         // Se 'All' for uma categoria, mover para o início ou tratar separadamente
@@ -329,10 +330,10 @@ public class VodFragment extends Fragment {
             String filePath = intent.getStringExtra(DownloadService.EXTRA_FILE_PATH);
             if (filePath != null) {
                 Log.d("VodFragment", "DownloadReceiver received file: " + filePath + " but processM3uFile is no longer in use.");
-                Toast.makeText(getContext(), "File download complete (manual processing needed).", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), getString(R.string.download_complete_manual_processing_toast), Toast.LENGTH_LONG).show();
             } else {
                 showLoading(false);
-                Toast.makeText(getContext(), "Download failed.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), getString(R.string.download_failed_toast), Toast.LENGTH_SHORT).show();
             }
         }
     }

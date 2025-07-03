@@ -4,17 +4,19 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
+    android:background="?attr/colorSurface"
     tools:context=".VodFragment">
 
     <!-- Barra superior com título VOD e ícone de busca -->
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="?attr/actionBarSize"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:gravity="center_vertical"
+        android:background="?attr/colorSurface"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -23,9 +25,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="VOD"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp"
+            android:text="@string/title_vod"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
 
         <ImageView
@@ -33,27 +35,17 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@android:drawable/ic_menu_search"
-            android:tint="#FFFFFF" />
+            android:contentDescription="@string/search_hint_vod"
+            app:tint="?attr/colorOnSurface" />
 
     </LinearLayout>
 
-    <!-- Dropdown para seleção de grupo (manter por enquanto, pode ser removido depois) -->
+    <!-- Dropdown para seleção de grupo REMOVIDO -->
+    <!--
     <TextView
         android:id="@+id/group_selector"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
-        android:text="Selecione o grupo ▼"
-        android:textColor="#AAAAAA"
-        android:textSize="14sp"
-        android:padding="8dp"
-        android:background="@android:color/transparent"
-        android:visibility="gone" 
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/top_bar" />
+        ... />
+    -->
 
     <!-- ProgressBar para carregamento -->
     <ProgressBar
@@ -62,22 +54,24 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
+        android:indeterminateTint="?attr/colorPrimary"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/top_bar" />
 
     <!-- RecyclerView principal para as categorias (vertical) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_categories"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/top_bar"
-        tools:listitem="@layout/item_movie_category_row" />
+        tools:listitem="@layout/item_movie_category_row"
+        android:paddingTop="8dp"
+        android:clipToPadding="false"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 

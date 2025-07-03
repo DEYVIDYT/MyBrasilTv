@@ -18,13 +18,14 @@
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:padding="@dimen/dkplayer_controller_icon_padding"
-            android:src="@drawable/dkplayer_selector_play_button" />
+            android:src="@drawable/dkplayer_selector_play_button"
+            app:tint="?attr/colorOnSurface" />
 
         <TextView
             android:id="@+id/curr_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/white"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="@dimen/dkplayer_controller_time_text_size"
             tools:text="00:00" />
 
@@ -50,50 +51,35 @@
             android:id="@+id/total_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/white"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="@dimen/dkplayer_controller_time_text_size"
             tools:text="00:00" />
 			
 
         <ImageView
             android:id="@+id/proportion"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="center"
-            android:background="@drawable/dkplayer_shape_back_bg"
-            android:padding="@dimen/dkplayer_default_spacing"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="10dp"
-            android:src="@drawable/dkplayer_ic_action_portion" />
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:src="@drawable/dkplayer_ic_action_portion"
+            app:tint="?attr/colorOnSurface" />
             
         <ImageView
             android:id="@+id/speed"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="center"
-            android:background="@drawable/dkplayer_shape_back_bg"
-            android:padding="@dimen/dkplayer_default_spacing"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
-            android:src="@drawable/dkplayer_ic_action_speed" />
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:src="@drawable/dkplayer_ic_action_speed"
+            app:tint="?attr/colorOnSurface" />
 
 
         <ImageView
             android:id="@+id/fullscreen"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="center"
-            android:background="@drawable/dkplayer_shape_back_bg"
-            android:padding="@dimen/dkplayer_default_spacing"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="20dp"
-            android:src="@drawable/dkplayer_selector_full_screen_button"/>
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:src="@drawable/dkplayer_selector_full_screen_button"
+            app:tint="?attr/colorOnSurface" />
 	</LinearLayout>
 		
     <ProgressBar

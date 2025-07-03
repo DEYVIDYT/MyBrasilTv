@@ -9,8 +9,9 @@ import androidx.core.app.NotificationCompat;
 public class NotificationHelper {
 
     private static final String CHANNEL_ID = "iptv_progress_channel";
-    private static final String CHANNEL_NAME = "IPTV Progress Notifications";
-    private static final String CHANNEL_DESCRIPTION = "Notifications for IPTV data loading progress.";
+    // Strings externalizadas
+    // private static final String CHANNEL_NAME = "IPTV Progress Notifications";
+    // private static final String CHANNEL_DESCRIPTION = "Notifications for IPTV data loading progress.";
     private static final int NOTIFICATION_ID = 1;
 
     private Context context;
@@ -24,8 +25,11 @@ public class NotificationHelper {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription(CHANNEL_DESCRIPTION);
+            // Usar strings externalizadas
+            String channelName = context.getString(R.string.notification_channel_name);
+            String channelDescription = context.getString(R.string.notification_channel_description);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription(channelDescription);
             notificationManager.createNotificationChannel(channel);
         }
     }

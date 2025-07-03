@@ -2,20 +2,21 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@android:id/background">
         <shape>
-            <solid android:color="#7FFFFFFF"/>
+            <!-- Usar uma cor de superfície com alfa ou uma cor de contorno -->
+            <solid android:color="@color/md_theme_dark_surfaceVariant"/> <!-- Exemplo: superfície variante, ou #40938F99 (outline com alpha) -->
         </shape>
     </item>
     <item android:id="@android:id/secondaryProgress">
         <clip>
             <shape>
-                <solid android:color="@android:color/white"/>
+                <solid android:color="@color/md_theme_dark_primaryContainer"/> <!-- Cor primária container para progresso secundário -->
             </shape>
         </clip>
     </item>
     <item android:id="@android:id/progress">
         <clip>
             <shape>
-                <solid android:color="@color/dkplayer_theme_color"/>
+                <solid android:color="@color/md_theme_dark_primary"/> <!-- Cor primária para progresso principal -->
             </shape>
         </clip>
     </item>
