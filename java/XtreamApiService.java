@@ -107,16 +107,30 @@ public class XtreamApiService {
                             }
                         }
 
-                        if (processedPosterUrl == null) {
-                            Log.w(API_TAG, "Movie: " + name + " - Final poster URL is null after processing stream_icon: '" + streamIcon + "'.");
+                        Log.d(API_TAG, "Movie: " + name + ", Raw stream_icon from API: '" + streamIcon + "'"); // LOG ADICIONADO
+
+                        // ... (lógica de processamento de streamIcon para processedPosterUrl - esta já deve estar correta da última vez) ...
+                        // A lógica existente que preenche processedPosterUrl a partir de streamIcon permanece.
+
+                        Log.d(API_TAG, "Movie: " + name + ", Processed poster URL BEFORE new Movie(): '" + processedPosterUrl + "'"); // LOG ADICIONADO
+
+                        String videoUrlPlaceholder = "video_placeholder_test"; // Placeholder diferente
+                        String posterUrlForTesting;
+
+                        // --- INÍCIO DO TESTE DE DIAGNÓSTICO ---
+                        if (processedPosterUrl != null && !processedPosterUrl.isEmpty()) {
+                            posterUrlForTesting = processedPosterUrl; // Usa a URL processada se existir
+                        } else {
+                            // Se processedPosterUrl for null ou vazio, vamos passar null explicitamente
+                            // para testar o bloco 'else' do MovieAdapter.
+                            posterUrlForTesting = null;
+                            Log.d(API_TAG, "Movie: " + name + ", Setting posterUrlForTesting to NULL for Movie object.");
                         }
+                        // Alternativamente, para forçar um erro diferente no Glide com uma URL claramente inválida, mas não o placeholder:
+                        // posterUrlForTesting = "http://invalid.url.that.will.fail/" + name.replaceAll("\\s+", "") + ".jpg";
+                        // --- FIM DO TESTE DE DIAGNÓSTICO ---
 
-                        // String realVideoUrl = String.format("%s/movie/%s/%s/%s.%s", this.baseUrl, username, password, streamId, containerExtension);
-                        // A URL do vídeo real provavelmente é construída assim, mas está como placeholder por enquanto.
-                        // O importante é que o SEGUNDO argumento para Movie seja a URL do pôster.
-
-                        movies.add(new Movie(name, processedPosterUrl, "placeholder_video_url", categoryId));
-                        // Mudei o placeholder da URL do vídeo para ser diferente e evitar confusão nos logs, se necessário.
+                        movies.add(new Movie(name, posterUrlForTesting, videoUrlPlaceholder, categoryId));
                     }
                     Log.i(API_TAG, "fetchVodStreams - Successfully parsed " + movies.size() + " movies.");
                     callback.onSuccess(movies);
