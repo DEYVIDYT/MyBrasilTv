@@ -118,6 +118,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private String title = "测试标题";
 
     private static final String TV_TAG = "TV_DEBUG"; // Tag para logs
+    private static final String TAG_BACK_TV = "TvFragment_Back"; // Tag para logs do onBackPressed
+    private static final String TAG_PLAYER_STATE_TV = "TvFragment_PlayerState"; // Tag para logs de estado do player
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Nullable
@@ -245,7 +247,9 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             @Override
 
             public void onPlayStateChanged(int playState) {
-                Log.d(TV_TAG, "PlayerStateChanged: " + playStateToString(playState) + ", SwitchingChannels: " + mIsSwitchingChannels + ", PiP: " + (getActivity() != null && getActivity().isInPictureInPictureMode()));
+                String currentPlayStateString = playStateToString(playState);
+                boolean isFullScreen = (mVideoView != null && mVideoView.isFullScreen());
+                Log.d(TAG_PLAYER_STATE_TV, "Player state event: " + currentPlayStateString + ". IsFullScreen: " + isFullScreen + ". SwitchingChannels: " + mIsSwitchingChannels + ". PiP: " + (getActivity() != null && getActivity().isInPictureInPictureMode()));
 
                 // Se um novo vídeo começou a tocar ou está pronto (ou erro), a troca terminou.
                 if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PREPARED || playState == VideoView.STATE_ERROR) {
@@ -1187,10 +1191,16 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     public boolean onBackPressed() {
-        Log.d(TV_TAG, "onBackPressed called in TvFragment");
+        Log.d(TAG_BACK_TV, "onBackPressed called in TvFragment.");
         if (mVideoView != null) {
-            return mVideoView.onBackPressed();
+            boolean isFullScreenCurrently = mVideoView.isFullScreen();
+            Log.d(TAG_BACK_TV, "Player is currently fullscreen: " + isFullScreenCurrently);
+            boolean handledByPlayer = mVideoView.onBackPressed();
+            Log.d(TAG_BACK_TV, "mVideoView.onBackPressed() returned: " + handledByPlayer);
+            Log.d(TAG_BACK_TV, "Player is now fullscreen (after mVideoView.onBackPressed()): " + mVideoView.isFullScreen());
+            return handledByPlayer;
         }
+        Log.d(TAG_BACK_TV, "mVideoView is null, returning false.");
         return false;
     }
 }

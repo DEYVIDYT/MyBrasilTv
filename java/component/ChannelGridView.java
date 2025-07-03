@@ -72,7 +72,6 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         mRecyclerCategories = findViewById(R.id.recycler_categories_grid);
         mRecyclerChannels = findViewById(R.id.recycler_channels_grid);
         mCategoryTitle = findViewById(R.id.tv_category_title);
-        View contentArea = findViewById(R.id.channel_grid_content_area);
         
         // Setup RecyclerViews
         mRecyclerCategories.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -81,13 +80,16 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         // Setup click listener for overlay to close grid
         mChannelGridOverlay.setOnClickListener(this);
         
-        // Prevent clicks/touches on the grid content area from propagating to the overlay
-        if (contentArea != null) {
-            contentArea.setOnTouchListener((v, event) -> {
-                // Consume all touch events within the content area
-                return true;
-            });
+        // Prevent clicks on the grid content itself from closing the overlay
+        // This is a basic attempt. If issues persist with scrolling/complex interactions,
+        // a more sophisticated touch handling might be needed (e.g., onInterceptTouchEvent).
+        View contentAreaView = findViewById(R.id.channel_grid_content_area);
+        if (contentAreaView != null) {
+            contentAreaView.setOnClickListener(v -> { /* Consume click */ });
         }
+        // Also, specifically for RecyclerViews if the above is not enough
+        // findViewById(R.id.recycler_categories_grid).setOnClickListener(v -> { /* Consume click */ });
+        // findViewById(R.id.recycler_channels_grid).setOnClickListener(v -> { /* Consume click */ });
     }
 
     @Override
@@ -136,10 +138,26 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         }
     }
 
+import android.util.Log;
+
+// ... (other imports)
+
+public class ChannelGridView extends FrameLayout implements IControlComponent, View.OnClickListener {
+
+    // ... (fields)
+    private static final String TAG = "ChannelGridView_Debug"; // Tag for logging
+
+    // ... (constructors and init)
+
     @Override
     public void onClick(View v) {
+        Log.d(TAG, "onClick triggered by view: " + v.getClass().getName() + " with ID: " + v.getId() + " (hex: " + Integer.toHexString(v.getId()) + ")");
+        Log.d(TAG, "Overlay ID expected: " + R.id.channel_grid_overlay + " (hex: " + Integer.toHexString(R.id.channel_grid_overlay) + ")");
         if (v.getId() == R.id.channel_grid_overlay) {
+            Log.d(TAG, "Condition met: Clicked view IS the overlay. Hiding channel grid.");
             hideChannelGrid();
+        } else {
+            Log.d(TAG, "Condition NOT met: Clicked view is NOT the overlay. Grid remains visible.");
         }
     }
 

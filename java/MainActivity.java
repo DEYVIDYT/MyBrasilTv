@@ -132,21 +132,37 @@ public class MainActivity extends AppCompatActivity {
 
     
 
+import android.util.Log; // Ensure Log is imported
+
+// ... other imports
+
+public class MainActivity extends AppCompatActivity {
+
+    // ... fields ...
+    private static final String TAG_BACK_MAIN = "MainActivity_Back";
+
+    // ... onCreate and other methods ...
+
     @Override
     public void onBackPressed() {
+        Log.d(TAG_BACK_MAIN, "onBackPressed called.");
         FragmentManager fm = getSupportFragmentManager();
         Fragment currentFragment = fm.findFragmentById(R.id.fragment_container);
+        Log.d(TAG_BACK_MAIN, "Current fragment: " + (currentFragment != null ? currentFragment.getClass().getName() : "null"));
 
         if (currentFragment instanceof TvFragment) {
+            Log.d(TAG_BACK_MAIN, "CurrentFragment is TvFragment. Calling its onBackPressed...");
             if (((TvFragment) currentFragment).onBackPressed()) {
-                // Se TvFragment.onBackPressed() retornou true,
-                // significa que o evento foi consumido (ex: saiu da tela cheia).
-                // Não fazer mais nada.
+                Log.d(TAG_BACK_MAIN, "TvFragment.onBackPressed() returned true. Event consumed by fragment.");
                 return;
+            } else {
+                Log.d(TAG_BACK_MAIN, "TvFragment.onBackPressed() returned false. Event NOT consumed by fragment.");
             }
+        } else {
+            Log.d(TAG_BACK_MAIN, "CurrentFragment is not TvFragment or is null.");
         }
-        // Se não for TvFragment, ou se TvFragment.onBackPressed() retornou false,
-        // executar o comportamento padrão do botão voltar.
+
+        Log.d(TAG_BACK_MAIN, "Calling super.onBackPressed().");
         super.onBackPressed();
     }
 }
