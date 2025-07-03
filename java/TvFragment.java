@@ -115,8 +115,24 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         playerProgressBar = root.findViewById(R.id.player_progress_bar); // Conectar ProgressBar
         playerLoadingTextView = root.findViewById(R.id.player_loading_text); // Conectar TextView de Loading
 
-        recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerViewCategories.setLayoutManager(new LinearLayoutManager(getContext()));
+        if (getContext() != null) {
+            if (recyclerViewChannels != null) {
+                if (recyclerViewChannels.getLayoutManager() == null) {
+                    Log.d(TV_TAG, "onCreateView - Setting LayoutManager for recyclerViewChannels.");
+                }
+                // Definir ou redefinir para garantir que está presente
+                recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
+            }
+            if (recyclerViewCategories != null) {
+                if (recyclerViewCategories.getLayoutManager() == null) {
+                    Log.d(TV_TAG, "onCreateView - Setting LayoutManager for recyclerViewCategories.");
+                }
+                // Definir ou redefinir para garantir que está presente
+                recyclerViewCategories.setLayoutManager(new LinearLayoutManager(getContext()));
+            }
+        } else {
+            Log.e(TV_TAG, "onCreateView - getContext() is null, cannot set LayoutManagers.");
+        }
 
         // New player initialization
         mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
@@ -526,13 +542,39 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                             }
                             Log.d(TV_TAG, "fetchLiveChannelsFromApi - filteredChannels size: " + filteredChannels.size());
 
-                            if (channelAdapter == null) {
-                                channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
-                                recyclerViewChannels.setAdapter(channelAdapter);
-                            } else {
-                                channelAdapter.updateData(filteredChannels);
+                            if (getContext() == null) { // Proteção adicional
+                                Log.e(TV_TAG, "fetchLiveChannelsFromApi onSuccess - Context is null, cannot update adapter.");
+                                showLoading(false);
+                                return;
                             }
-                            channelAdapter.filterList(searchEditText.getText().toString()); // Reaplicar filtro de busca
+
+                            if (channelAdapter == null) {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi onSuccess - Creating new ChannelAdapter.");
+                                channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
+                            } else {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi onSuccess - Updating existing ChannelAdapter data.");
+                                channelAdapter.updateData(filteredChannels); // Isso já chama notifyDataSetChanged e atualiza channelListFull
+                            }
+
+                            if (recyclerViewChannels != null) {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi onSuccess - Setting/Resetting adapter on recyclerViewChannels.");
+                                recyclerViewChannels.setAdapter(channelAdapter); // Sempre definir/redefinir na RecyclerView
+
+                                if (recyclerViewChannels.getLayoutManager() == null) {
+                                    Log.w(TV_TAG, "fetchLiveChannelsFromApi onSuccess - LayoutManager was null, re-setting.");
+                                    recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
+                                }
+                            } else {
+                                Log.e(TV_TAG, "fetchLiveChannelsFromApi onSuccess - recyclerViewChannels is null!");
+                            }
+
+                            // A chamada filterList é importante, mas updateData no ChannelAdapter já limpa e recria
+                            // channelListFull. Se searchEditText.getText() estiver vazio (o que deveria estar
+                            // devido à correção anterior), filterList("") irá popular channelList com channelListFull.
+                            if (channelAdapter != null && searchEditText != null) { // Garantir que ambos não sejam nulos
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi onSuccess - Applying search filter: '" + searchEditText.getText().toString() + "'");
+                                channelAdapter.filterList(searchEditText.getText().toString());
+                            }
                             showLoading(false);
                         });
                     }
@@ -541,11 +583,18 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 @Override
                 public void onFailure(String error) {
                     Log.e(TV_TAG, "fetchLiveChannelsFromApi - onFailure for categoryId: " + categoryId + ", Error: " + error);
-                    if (getActivity() != null) {
+                    if (getActivity() != null && getContext() != null) { // Adicionado getContext() != null
                         getActivity().runOnUiThread(() -> {
                             Toast.makeText(getContext(), getString(R.string.error_loading_channels, error), Toast.LENGTH_LONG).show();
                             if (channelAdapter != null) {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi onFailure - Clearing channelAdapter.");
                                 channelAdapter.updateData(new ArrayList<>()); // Limpa canais em caso de falha
+                                if (recyclerViewChannels != null) { // Garante que o adapter vazio seja setado
+                                    recyclerViewChannels.setAdapter(channelAdapter);
+                                }
+                            } else if (recyclerViewChannels != null) {
+                                // Se channelAdapter é nulo mas a view existe, limpar a RecyclerView explicitamente
+                                recyclerViewChannels.setAdapter(null);
                             }
                             showLoading(false);
                         });
@@ -563,9 +612,25 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             mVideoView.release();
         }
         if (downloadReceiver != null) {
-            requireActivity().unregisterReceiver(downloadReceiver);
+            if (getActivity() != null) {
+                getActivity().unregisterReceiver(downloadReceiver);
+                Log.d(TV_TAG, "DownloadReceiver unregistered.");
+            }
+        } catch (IllegalArgumentException e) {
+            Log.w(TV_TAG, "DownloadReceiver not registered or already unregistered.", e);
         }
     }
+    if (recyclerViewChannels != null) {
+        recyclerViewChannels.setAdapter(null);
+        Log.d(TV_TAG, "onDestroyView - Set null adapter to recyclerViewChannels.");
+    }
+    if (recyclerViewCategories != null) {
+        recyclerViewCategories.setAdapter(null);
+        Log.d(TV_TAG, "onDestroyView - Set null adapter to recyclerViewCategories.");
+    }
+    // channelAdapter e o adapter de categorias (se fosse uma variável de instância)
+    // não são nulificados aqui para permitir que persistam se a instância do fragmento persistir.
+}
 
     void updatePictureInPictureActions(
             @DrawableRes int iconId, String title, int controlType, int requestCode) {
