@@ -32,6 +32,7 @@ public class SearchActivity extends AppCompatActivity {
     private List<String> recentSearches = new ArrayList<>();
     private List<Movie> searchResults = new ArrayList<>();
     private List<Movie> allMovies = new ArrayList<>();
+    private static final String TAG_SEARCH = "SearchActivity_DEBUG"; // Tag para logs
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,29 +74,30 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String query = s.toString().trim();
-                if (allMovies.isEmpty()) {
+                Log.d(TAG_SEARCH, "onTextChanged: query='" + query + "', allMovies.isEmpty()=" + (allMovies == null || allMovies.isEmpty()));
+
+                if (allMovies == null || allMovies.isEmpty()) {
                     searchResults.clear();
-                    if (searchResultsAdapter != null) { // Adicionada verificação de nulidade
+                    if (searchResultsAdapter != null) {
                         searchResultsAdapter.notifyDataSetChanged();
                     }
-                    if (searchResultsRecycler != null) { // Adicionada verificação de nulidade
-                        searchResultsRecycler.setVisibility(View.GONE);
-                    }
-                    // Mostrar recentes apenas se a query for vazia, mesmo que allMovies esteja vazio
-                    if (query.isEmpty() && recentSearchesRecycler != null && noHistoryText != null) {
-                         recentSearchesRecycler.setVisibility(View.VISIBLE);
+                    // A mensagem noSearchDataText já deve estar visível por loadAllMovies().
+                    // Garantir que as listas estejam escondidas se não houver dados.
+                    if (searchResultsRecycler != null) searchResultsRecycler.setVisibility(View.GONE);
+                    if (recentSearchesRecycler != null) recentSearchesRecycler.setVisibility(View.GONE);
+                    if (noHistoryText != null) noHistoryText.setVisibility(View.GONE);
+                    // Se noSearchDataText está visível, ele tem prioridade sobre noHistoryText
+                    if (noSearchDataText != null && noSearchDataText.getVisibility() == View.VISIBLE && noHistoryText != null) {
+                        noHistoryText.setVisibility(View.GONE);
+                    } else if (noHistoryText != null && recentSearchesRecycler != null && recentSearchesRecycler.getVisibility() == View.VISIBLE) {
                          noHistoryText.setVisibility(recentSearches.isEmpty() ? View.VISIBLE : View.GONE);
-                    } else if (recentSearchesRecycler != null) {
-                         recentSearchesRecycler.setVisibility(View.GONE); // Esconde recentes se houver query
                     }
+
                     return;
                 }
 
-                if (query.isEmpty()) {
-                    showRecentSearches();
-                } else {
-                    performSearch(query);
-                }
+                // Se allMovies não está vazio, processar a query
+                performSearch(query); // performSearch agora decide se mostra resultados ou recentes
             }
 
             @Override
@@ -104,58 +106,90 @@ public class SearchActivity extends AppCompatActivity {
 
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
             String query = searchEditText.getText().toString().trim();
-            if (!query.isEmpty()) {
+            if (allMovies != null && !allMovies.isEmpty() && !query.isEmpty()) { // Só adiciona e pesquisa se houver dados e query
                 addToRecentSearches(query);
-                performSearch(query);
+                // performSearch(query); // performSearch já é chamado pelo TextWatcher
             }
+            // Sempre retornar true pode impedir o teclado de fechar, dependendo do actionId.
+            // Considerar verificar actionId == EditorInfo.IME_ACTION_SEARCH
             return true;
         });
     }
 
     private void performSearch(String query) {
+        Log.d(TAG_SEARCH, "performSearch called with query: '" + query + "'");
+        Log.d(TAG_SEARCH, "allMovies size: " + (allMovies != null ? allMovies.size() : "null"));
+
         searchResults.clear();
         
-        // Filtrar filmes baseado na query
-        for (Movie movie : allMovies) {
-            if (movie.getName().toLowerCase().contains(query.toLowerCase())) {
-                searchResults.add(movie);
+        // Só filtra se allMovies não for nulo/vazio E a query não for nula/vazia
+        if (allMovies != null && !allMovies.isEmpty() && query != null && !query.isEmpty()) {
+            int moviesLogged = 0;
+            for (Movie movie : allMovies) {
+                if (movie != null && movie.getName() != null) {
+                    if (moviesLogged < 5) {
+                        Log.d(TAG_SEARCH, "Checking movie: " + movie.getName());
+                        moviesLogged++;
+                    }
+                    if (movie.getName().toLowerCase().contains(query.toLowerCase())) {
+                        searchResults.add(movie);
+                        Log.d(TAG_SEARCH, "Added to searchResults: " + movie.getName());
+                    }
+                }
             }
         }
+        // Se a query for vazia, searchResults permanecerá vazia (ou será esvaziada no início).
+        Log.d(TAG_SEARCH, "searchResults size after filter: " + searchResults.size());
         
-        showSearchResults();
-        if (searchResultsAdapter != null) { // Adicionada verificação de nulidade
+        if (searchResultsAdapter != null) {
             searchResultsAdapter.notifyDataSetChanged();
+            Log.d(TAG_SEARCH, "searchResultsAdapter notified. Adapter item count: " + searchResultsAdapter.getItemCount());
+        } else {
+            Log.w(TAG_SEARCH, "searchResultsAdapter is null, cannot notify or get item count.");
+        }
+
+        // Decidir qual view mostrar com base na query
+        if (query != null && !query.isEmpty()) {
+            showSearchResults();
+        } else {
+            showRecentSearches();
         }
     }
 
     private void showRecentSearches() {
-        if (allMovies != null && allMovies.isEmpty() && noSearchDataText != null && noSearchDataText.getVisibility() == View.VISIBLE) {
-            // Se a mensagem "no search data" está visível, não mostre "recent searches" ou "no history"
+        Log.d(TAG_SEARCH, "showRecentSearches called.");
+        // Não mostrar recentes se a mensagem "sem dados para pesquisar" estiver ativa
+        if (noSearchDataText != null && noSearchDataText.getVisibility() == View.VISIBLE) {
             if (recentSearchesRecycler != null) recentSearchesRecycler.setVisibility(View.GONE);
             if (searchResultsRecycler != null) searchResultsRecycler.setVisibility(View.GONE);
             if (noHistoryText != null) noHistoryText.setVisibility(View.GONE);
+            Log.d(TAG_SEARCH, "showRecentSearches: Hiding all due to noSearchDataText visible.");
             return;
         }
 
+        Log.d(TAG_SEARCH, "showRecentSearches: Setting recentSearchesRecycler to VISIBLE, searchResultsRecycler to GONE.");
         if (recentSearchesRecycler != null) recentSearchesRecycler.setVisibility(View.VISIBLE);
         if (searchResultsRecycler != null) searchResultsRecycler.setVisibility(View.GONE);
         if (noHistoryText != null) noHistoryText.setVisibility(recentSearches.isEmpty() ? View.VISIBLE : View.GONE);
-        if (noSearchDataText != null) noSearchDataText.setVisibility(View.GONE);
+        // if (noSearchDataText != null) noSearchDataText.setVisibility(View.GONE); // Já tratado acima
     }
 
     private void showSearchResults() {
-         if (allMovies != null && allMovies.isEmpty() && noSearchDataText != null && noSearchDataText.getVisibility() == View.VISIBLE) {
-            // Se a mensagem "no search data" está visível, não mostre os resultados da pesquisa (que estarão vazios)
+        Log.d(TAG_SEARCH, "showSearchResults called.");
+        // Não mostrar resultados se a mensagem "sem dados para pesquisar" estiver ativa
+         if (noSearchDataText != null && noSearchDataText.getVisibility() == View.VISIBLE) {
             if (recentSearchesRecycler != null) recentSearchesRecycler.setVisibility(View.GONE);
             if (searchResultsRecycler != null) searchResultsRecycler.setVisibility(View.GONE);
             if (noHistoryText != null) noHistoryText.setVisibility(View.GONE);
+            Log.d(TAG_SEARCH, "showSearchResults: Hiding all due to noSearchDataText visible.");
             return;
         }
 
+        Log.d(TAG_SEARCH, "showSearchResults: Setting searchResultsRecycler to VISIBLE, recentSearchesRecycler to GONE.");
         if (recentSearchesRecycler != null) recentSearchesRecycler.setVisibility(View.GONE);
         if (searchResultsRecycler != null) searchResultsRecycler.setVisibility(View.VISIBLE);
         if (noHistoryText != null) noHistoryText.setVisibility(View.GONE);
-        if (noSearchDataText != null) noSearchDataText.setVisibility(View.GONE);
+        // if (noSearchDataText != null) noSearchDataText.setVisibility(View.GONE); // Já tratado acima
     }
 
     private void addToRecentSearches(String query) {
