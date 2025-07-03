@@ -28,6 +28,7 @@ import java.util.List;
 
 public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelViewHolder> {
 
+    private static final String CHAN_ADAPTER_TAG = "ChannelAdapter_DEBUG";
     private List<Channel> channelList;
     private List<Channel> channelListFull;
     private OnChannelClickListener listener;
@@ -37,6 +38,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     }
 
     public ChannelAdapter(Context context, List<Channel> channelList, OnChannelClickListener listener) {
+        Log.d(CHAN_ADAPTER_TAG, "Constructor called with " + channelList.size() + " channels.");
         this.channelList = channelList;
         this.channelListFull = new ArrayList<>(channelList);
         this.listener = listener;
@@ -45,6 +47,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     @NonNull
     @Override
     public ChannelViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Log.d(CHAN_ADAPTER_TAG, "onCreateViewHolder called"); // Pode ser verboso
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel, parent, false);
         return new ChannelViewHolder(view);
     }
@@ -52,13 +55,14 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     @Override
     public void onBindViewHolder(@NonNull ChannelViewHolder holder, int position) {
         Channel channel = channelList.get(position);
+        // Log.d(CHAN_ADAPTER_TAG, "onBindViewHolder for channel: " + channel.getName()); // Pode ser verboso
         holder.channelName.setText(channel.getName());
         holder.channelNumber.setText(String.format("%03d", position + 1));
 
         holder.channelProgram.setText("Recebendo a programação...");
 
         String logoUrl = channel.getLogoUrl();
-        Log.d("ChannelAdapter", "Channel: " + channel.getName() + ", Logo URL: " + logoUrl);
+        // Log.d(CHAN_ADAPTER_TAG, "Channel: " + channel.getName() + ", Logo URL: " + logoUrl); // Verboso se muitos canais
 
         if (logoUrl != null && !logoUrl.isEmpty()) {
             Glide.with(holder.itemView.getContext())
@@ -68,19 +72,19 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
                     .listener(new RequestListener<Drawable>() {
                         @Override
                         public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-                            Log.e("ChannelAdapter", "Glide onLoadFailed for " + channel.getName() + ": " + logoUrl, e);
+                            Log.e(CHAN_ADAPTER_TAG, "Glide onLoadFailed for " + channel.getName() + ": " + model, e);
                             return false; // Importante retornar false para que o error() drawable seja exibido.
                         }
 
                         @Override
                         public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
-                            Log.d("ChannelAdapter", "Glide onResourceReady for " + channel.getName() + ": " + logoUrl);
+                            // Log.d(CHAN_ADAPTER_TAG, "Glide onResourceReady for " + channel.getName() + ": " + model); // Verboso
                             return false;
                         }
                     })
                     .into(holder.channelLogo);
         } else {
-            Log.d("ChannelAdapter", "Logo URL is null or empty for " + channel.getName());
+            // Log.d(CHAN_ADAPTER_TAG, "Logo URL is null or empty for " + channel.getName()); // Verboso
             // Define uma imagem padrão se a URL do logo for nula ou vazia
             Glide.with(holder.itemView.getContext())
                  .load(R.drawable.rounded_corner_image_placeholder)
@@ -89,6 +93,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
+                Log.d(CHAN_ADAPTER_TAG, "Channel clicked: " + channel.getName() + ", ID: " + channel.getStreamId() + ", CategoryID: " + channel.getCategoryId());
                 listener.onChannelClick(channel);
             }
         });
@@ -96,6 +101,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
 
     @Override
     public int getItemCount() {
+        // Log.d(CHAN_ADAPTER_TAG, "getItemCount: " + channelList.size()); // Pode ser verboso
         return channelList.size();
     }
 
@@ -115,6 +121,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     }
 
     public void updateData(List<Channel> newChannelList) {
+        Log.d(CHAN_ADAPTER_TAG, "updateData called with " + newChannelList.size() + " channels. Search text will be reapplied if any.");
         this.channelList.clear();
         this.channelList.addAll(newChannelList);
         this.channelListFull.clear();
@@ -123,6 +130,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     }
 
     public void filterList(String text) {
+        Log.d(CHAN_ADAPTER_TAG, "filterList called with text: '" + text + "'. channelListFull size: " + channelListFull.size());
         channelList.clear();
         if (text.isEmpty()) {
             channelList.addAll(channelListFull);

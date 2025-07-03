@@ -17,6 +17,7 @@ import com.example.iptvplayer.data.Movie;
 import com.example.iptvplayer.data.Channel;
 
 public class XtreamApiService {
+    private static final String API_TAG = "XtreamApi_DEBUG";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private String baseUrl;
@@ -36,6 +37,7 @@ public class XtreamApiService {
 
     public void fetchVodStreams(XtreamApiCallback<Movie> callback) {
         executor.execute(() -> {
+            Log.d(API_TAG, "fetchVodStreams called. URL: " + String.format("%s/player_api.php?username=%s&password=%s&action=get_vod_streams", baseUrl, username, "******"));
             try {
                 String apiUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_vod_streams", baseUrl, username, password);
                 URL url = new URL(apiUrl);
@@ -53,6 +55,7 @@ public class XtreamApiService {
                     }
                     in.close();
 
+                    Log.d(API_TAG, "fetchVodStreams - Raw API Response: " + response.toString().substring(0, Math.min(response.toString().length(), 500)) + "..."); // Log first 500 chars
                     List<Movie> movies = new ArrayList<>();
                     JSONArray jsonArray = new JSONArray(response.toString());
                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -79,19 +82,21 @@ public class XtreamApiService {
                                 // Handle relative paths if necessary, for now, treat as invalid
                                 Log.w("XtreamApiService", "Unhandled/unexpected stream_icon format for VOD: " + streamIcon);
                             }
+                        } else {
+                            // Log.d(API_TAG, "Movie: " + name + ", stream_icon is null or empty.");
                         }
-
-                        Log.d("XtreamApiService", "Movie: " + name + ", Final Icon URL: " + fullPosterUrl);
+                        // Log.d(API_TAG, "Movie Parsed: " + name + ", Final Icon URL: " + fullPosterUrl); // Can be verbose
                         movies.add(new Movie(name, fullPosterUrl, "placeholder_stream_url", categoryId));
                     }
+                    Log.i(API_TAG, "fetchVodStreams - Successfully parsed " + movies.size() + " movies.");
                     callback.onSuccess(movies);
 
                 } else {
-                    Log.e("XtreamApiService", "Failed to fetch VOD streams. HTTP error code: " + responseCode);
+                    Log.e(API_TAG, "fetchVodStreams - Failed. HTTP error code: " + responseCode);
                     callback.onFailure("Failed to fetch VOD streams. HTTP error code: " + responseCode);
                 }
             } catch (Exception e) {
-                Log.e("XtreamApiService", "Error fetching VOD streams", e);
+                Log.e(API_TAG, "fetchVodStreams - Error: ", e);
                 callback.onFailure("Error: " + e.getMessage());
             }
         });
@@ -99,6 +104,7 @@ public class XtreamApiService {
 
     public void fetchLiveStreams(XtreamApiCallback<Channel> callback) {
         executor.execute(() -> {
+            Log.d(API_TAG, "fetchLiveStreams called. URL: " + String.format("%s/player_api.php?username=%s&password=%s&action=get_live_streams", baseUrl, username, "******"));
             try {
                 String apiUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_live_streams", baseUrl, username, password);
                 URL url = new URL(apiUrl);
@@ -116,6 +122,7 @@ public class XtreamApiService {
                     }
                     in.close();
 
+                    Log.d(API_TAG, "fetchLiveStreams - Raw API Response: " + response.toString().substring(0, Math.min(response.toString().length(), 500)) + "...");
                     List<Channel> channels = new ArrayList<>();
                     JSONArray jsonArray = new JSONArray(response.toString());
                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -130,37 +137,39 @@ public class XtreamApiService {
                             String lowerStreamIconPath = streamIconPath.toLowerCase();
                             if (lowerStreamIconPath.startsWith("http://") || lowerStreamIconPath.startsWith("https://")) {
                                 fullLogoUrl = streamIconPath;
-                                Log.d("XtreamApiService", "Channel: " + name + ", Absolute Logo URL: " + fullLogoUrl);
+                                // Log.d(API_TAG, "Channel: " + name + ", Absolute Logo URL: " + fullLogoUrl);
                             } else if (streamIconPath.startsWith("//")) {
                                 try {
                                     URL base = new URL(this.baseUrl); // Assume this.baseUrl é http(s)://domain.com
                                     fullLogoUrl = base.getProtocol() + ":" + streamIconPath;
-                                    Log.d("XtreamApiService", "Channel: " + name + ", Protocol-relative resolved to: " + fullLogoUrl);
+                                    // Log.d(API_TAG, "Channel: " + name + ", Protocol-relative resolved to: " + fullLogoUrl);
                                 } catch (java.net.MalformedURLException e) {
-                                    Log.e("XtreamApiService", "Malformed baseUrl (", e);
+                                    Log.e(API_TAG, "fetchLiveStreams - Malformed baseUrl (", e);
                                     // fullLogoUrl permanece null
                                 }
                             } else {
                                 // Não é http, https, ou //. Tratar como logo ausente ou inválido.
                                 // Se houvesse uma regra para caminhos relativos ao this.baseUrl, ela entraria aqui.
-                                Log.w("XtreamApiService", "Channel: " + name + " - Unhandled/unexpected stream_icon format: " + streamIconPath + ". Treating as no logo.");
+                                Log.w(API_TAG, "Channel: " + name + " - Unhandled/unexpected stream_icon format: " + streamIconPath + ". Treating as no logo.");
                                 // fullLogoUrl permanece null
                             }
                         } else {
-                            Log.d("XtreamApiService", "Channel: " + name + ", stream_icon is null, empty, or 'null' string.");
+                            // Log.d(API_TAG, "Channel: " + name + ", stream_icon is null, empty, or 'null' string.");
                         }
 
-                        Log.i("XtreamIconDebug", "Channel: " + name + ", Final Logo URL to be used: " + fullLogoUrl);
+                        // Log.i(API_TAG, "Channel: " + name + ", Final Logo URL to be used: " + fullLogoUrl); // Can be verbose
                         String directSource = String.format("%s/live/%s/%s/%s.ts", this.baseUrl, username, password, streamId);
                         channels.add(new Channel(name, directSource, fullLogoUrl, categoryId));
                     }
+                    Log.i(API_TAG, "fetchLiveStreams - Successfully parsed " + channels.size() + " channels.");
                     callback.onSuccess(channels);
 
                 } else {
+                    Log.e(API_TAG, "fetchLiveStreams - Failed. HTTP error code: " + responseCode);
                     callback.onFailure("Failed to fetch live streams. HTTP error code: " + responseCode);
                 }
             } catch (Exception e) {
-                Log.e("XtreamApiService", "Error fetching live streams", e);
+                Log.e(API_TAG, "fetchLiveStreams - Error: ", e);
                 callback.onFailure("Error: " + e.getMessage());
             }
         });
@@ -168,6 +177,7 @@ public class XtreamApiService {
 
     public void fetchVodCategories(XtreamApiCallback<CategoryInfo> callback) {
         executor.execute(() -> {
+            Log.d(API_TAG, "fetchVodCategories called. URL: " + String.format("%s/player_api.php?username=%s&password=%s&action=get_vod_categories", baseUrl, username, "******"));
             try {
                 String apiUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_vod_categories", baseUrl, username, password);
                 URL url = new URL(apiUrl);
@@ -184,6 +194,7 @@ public class XtreamApiService {
                     }
                     in.close();
 
+                    Log.d(API_TAG, "fetchVodCategories - Raw API Response: " + response.toString().substring(0, Math.min(response.toString().length(), 500)) + "...");
                     List<CategoryInfo> categories = new ArrayList<>();
                     JSONArray jsonArray = new JSONArray(response.toString());
                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -192,12 +203,14 @@ public class XtreamApiService {
                         String categoryName = jsonObject.getString("category_name");
                         categories.add(new CategoryInfo(categoryId, categoryName));
                     }
+                    Log.i(API_TAG, "fetchVodCategories - Successfully parsed " + categories.size() + " VOD categories.");
                     callback.onSuccess(categories);
                 } else {
+                    Log.e(API_TAG, "fetchVodCategories - Failed. HTTP error code: " + responseCode);
                     callback.onFailure("Failed to fetch VOD categories. HTTP error code: " + responseCode);
                 }
             } catch (Exception e) {
-                Log.e("XtreamApiService", "Error fetching VOD categories", e);
+                Log.e(API_TAG, "fetchVodCategories - Error: ", e);
                 callback.onFailure("Error: " + e.getMessage());
             }
         });
@@ -205,6 +218,7 @@ public class XtreamApiService {
 
     public void fetchLiveStreamCategories(XtreamApiCallback<CategoryInfo> callback) {
         executor.execute(() -> {
+            Log.d(API_TAG, "fetchLiveStreamCategories called. URL: " + String.format("%s/player_api.php?username=%s&password=%s&action=get_live_categories", baseUrl, username, "******"));
             try {
                 String apiUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_live_categories", baseUrl, username, password);
                 URL url = new URL(apiUrl);
@@ -221,6 +235,7 @@ public class XtreamApiService {
                     }
                     in.close();
 
+                    Log.d(API_TAG, "fetchLiveStreamCategories - Raw API Response: " + response.toString().substring(0, Math.min(response.toString().length(), 500)) + "...");
                     List<CategoryInfo> categories = new ArrayList<>();
                     JSONArray jsonArray = new JSONArray(response.toString());
                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -229,12 +244,14 @@ public class XtreamApiService {
                         String categoryName = jsonObject.getString("category_name");
                         categories.add(new CategoryInfo(categoryId, categoryName));
                     }
+                    Log.i(API_TAG, "fetchLiveStreamCategories - Successfully parsed " + categories.size() + " live categories.");
                     callback.onSuccess(categories);
                 } else {
+                    Log.e(API_TAG, "fetchLiveStreamCategories - Failed. HTTP error code: " + responseCode);
                     callback.onFailure("Failed to fetch Live Stream categories. HTTP error code: " + responseCode);
                 }
             } catch (Exception e) {
-                Log.e("XtreamApiService", "Error fetching Live Stream categories", e);
+                Log.e(API_TAG, "fetchLiveStreamCategories - Error: ", e);
                 callback.onFailure("Error: " + e.getMessage());
             }
         });
