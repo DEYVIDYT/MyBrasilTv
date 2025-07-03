@@ -84,7 +84,17 @@ public class VodFragment extends Fragment {
         progressBar = root.findViewById(R.id.progress_bar_vod);
         // chipGroupCategories = root.findViewById(R.id.chip_group_categories); // Não será mais usado
 
-        mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); // Layout vertical para as categorias
+        // Garantir que o LayoutManager esteja sempre definido na nova instância da view.
+        if (mainRecyclerView != null && mainRecyclerView.getLayoutManager() == null) {
+            Log.d(VOD_TAG, "onCreateView - Setting LayoutManager for mainRecyclerView.");
+            mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); // Layout vertical para as categorias
+        } else if (mainRecyclerView != null) {
+            // Se já tem um layout manager (ex: do XML), não precisa redefinir, a menos que queira explicitamente.
+            // A linha original mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); já fazia isso incondicionalmente.
+            // Para manter o comportamento original caso o XML não defina um:
+            mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        }
+
 
         downloadReceiver = new DownloadReceiver();
         IntentFilter filter = new IntentFilter(DownloadService.ACTION_DOWNLOAD_COMPLETE);
@@ -260,10 +270,33 @@ public class VodFragment extends Fragment {
 
     private void setupAndDisplayMovies() {
         Log.d(VOD_TAG, "setupAndDisplayMovies called");
+
         if (allMovies == null || allMovies.isEmpty()) {
-            Log.w(VOD_TAG, "setupAndDisplayMovies - No movies to display (allMovies is null or empty). Clearing adapter.");
-            if (categoryAdapter != null) categoryAdapter.updateData(new LinkedHashMap<>()); // Limpar o adapter
-            else Log.w(VOD_TAG, "setupAndDisplayMovies - CategoryAdapter is null, cannot clear.");
+            Log.w(VOD_TAG, "setupAndDisplayMovies - No movies to display (allMovies is null or empty).");
+            Map<String, List<Movie>> emptyMap = new LinkedHashMap<>();
+            if (categoryAdapter == null) {
+                // Se o adapter não existe, criamos um novo com dados vazios.
+                // Isso pode acontecer se setupAndDisplayMovies for chamado antes de qualquer carregamento bem-sucedido.
+                if (getContext() != null) { // Evitar crash se o contexto for nulo
+                    categoryAdapter = new CategoryAdapter(getContext(), emptyMap);
+                    Log.d(VOD_TAG, "setupAndDisplayMovies - Created new empty CategoryAdapter.");
+                } else {
+                    Log.e(VOD_TAG, "setupAndDisplayMovies - Context is null, cannot create CategoryAdapter.");
+                    showLoading(false);
+                    return; // Não podemos prosseguir sem contexto
+                }
+            } else {
+                // Se o adapter já existe, apenas atualizamos com dados vazios.
+                Log.d(VOD_TAG, "setupAndDisplayMovies - Clearing existing CategoryAdapter.");
+                categoryAdapter.updateData(emptyMap);
+            }
+            // Sempre defina o adapter na RecyclerView para garantir que a UI reflita o estado vazio.
+            if (mainRecyclerView != null) {
+                mainRecyclerView.setAdapter(categoryAdapter);
+                Log.d(VOD_TAG, "setupAndDisplayMovies - Set empty/cleared adapter to mainRecyclerView.");
+            } else {
+                Log.e(VOD_TAG, "setupAndDisplayMovies - mainRecyclerView is null, cannot set empty adapter.");
+            }
             showLoading(false);
             return;
         }
@@ -282,13 +315,38 @@ public class VodFragment extends Fragment {
         // Aqui, estamos exibindo todas as categorias disponíveis.
 
         if (categoryAdapter == null) {
-            categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory);
-            Log.d(VOD_TAG, "setupAndDisplayMovies - New CategoryAdapter created.");
-            mainRecyclerView.setAdapter(categoryAdapter);
+            Log.d(VOD_TAG, "setupAndDisplayMovies - Creating new CategoryAdapter with movie data.");
+            if (getContext() != null) {
+                categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory);
+            } else {
+                Log.e(VOD_TAG, "setupAndDisplayMovies - Context is null, cannot create CategoryAdapter with movie data.");
+                showLoading(false);
+                return; // Não podemos prosseguir sem contexto
+            }
         } else {
+            Log.d(VOD_TAG, "setupAndDisplayMovies - Updating existing CategoryAdapter with movie data.");
             categoryAdapter.updateData(moviesByCategory);
-            Log.d(VOD_TAG, "setupAndDisplayMovies - Existing CategoryAdapter updated.");
         }
+
+        if (mainRecyclerView != null) {
+            // Sempre (re)defina o adapter na RecyclerView.
+            // Isso é crucial se a view do fragmento (e, portanto, mainRecyclerView) foi recriada.
+            mainRecyclerView.setAdapter(categoryAdapter);
+            Log.d(VOD_TAG, "setupAndDisplayMovies - Adapter with data set/reset on mainRecyclerView.");
+
+            // Garantir que o LayoutManager também esteja presente.
+            if (mainRecyclerView.getLayoutManager() == null) {
+                Log.w(VOD_TAG, "setupAndDisplayMovies - LayoutManager was null, re-setting.");
+                if (getContext() != null) {
+                    mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+                } else {
+                    Log.e(VOD_TAG, "setupAndDisplayMovies - Context is null, cannot set LayoutManager.");
+                }
+            }
+        } else {
+            Log.e(VOD_TAG, "setupAndDisplayMovies - mainRecyclerView is null! Cannot set adapter with data.");
+        }
+
         showLoading(false);
     }
 
@@ -341,8 +399,26 @@ public class VodFragment extends Fragment {
         super.onDestroyView();
         Log.d(VOD_TAG, "onDestroyView called");
         if (downloadReceiver != null) {
-            requireActivity().unregisterReceiver(downloadReceiver);
+            try {
+                if (getActivity() != null) { // Adicionada verificação de getActivity()
+                    getActivity().unregisterReceiver(downloadReceiver);
+                    Log.d(VOD_TAG, "DownloadReceiver unregistered.");
+                } else {
+                    Log.w(VOD_TAG, "onDestroyView - getActivity is null, cannot unregister DownloadReceiver.");
+                }
+            } catch (IllegalArgumentException e) {
+                // Isso pode acontecer se o receiver não foi registrado ou já foi desregistrado.
+                Log.w(VOD_TAG, "DownloadReceiver not registered or already unregistered.", e);
+            }
         }
+        // Limpar o adapter da RecyclerView para ajudar o GC e evitar problemas
+        // se a instância do fragmento sobreviver mas a view for recriada.
+        if (mainRecyclerView != null) {
+            mainRecyclerView.setAdapter(null);
+            Log.d(VOD_TAG, "onDestroyView - Set null adapter to mainRecyclerView.");
+        }
+        // Não é necessário nulificar mainRecyclerView ou progressBar aqui, pois são obtidos novamente em onCreateView.
+        // categoryAdapter é uma variável de instância e sua persistência (ou não) depende do ciclo de vida do Fragmento em si.
     }
 
     private class DownloadReceiver extends BroadcastReceiver {
