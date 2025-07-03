@@ -118,6 +118,21 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerViewCategories.setLayoutManager(new LinearLayoutManager(getContext()));
 
+    // NEW: If adapter already exists (from a previous fragment instance),
+    // re-link it to the new recyclerViewChannels instance immediately.
+    // Also, clear its list to avoid showing stale data briefly if load is slow.
+    if (channelAdapter != null) {
+        Log.d(TV_TAG, "onCreateView: ChannelAdapter exists. Clearing its data and re-linking to new RecyclerView.");
+        channelAdapter.updateData(new ArrayList<>()); // Clear old data
+        recyclerViewChannels.setAdapter(channelAdapter);
+    } else {
+        Log.d(TV_TAG, "onCreateView: ChannelAdapter is null. Will be created by fetchLiveChannelsFromApi.");
+        // Ensure RecyclerView doesn't have a stale adapter from XML or a previous different fragment.
+        if (recyclerViewChannels != null) { // Check if recyclerViewChannels is initialized
+            recyclerViewChannels.setAdapter(null);
+        }
+    }
+
         // New player initialization
         mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
 
@@ -542,17 +557,30 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                             if (channelAdapter == null) {
                                 Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter is null, creating new adapter.");
                                 channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
-                                recyclerViewChannels.setAdapter(channelAdapter);
+                                // recyclerViewChannels.setAdapter(channelAdapter); // Moved down
                             } else {
                                 Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter exists, calling updateData.");
                                 channelAdapter.updateData(filteredChannels);
                             }
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after updateData: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
+
+                            // ALWAYS set or re-set the adapter to the RecyclerView instance from the current view
+                            if (recyclerViewChannels != null && channelAdapter != null) {
+                                recyclerViewChannels.setAdapter(channelAdapter);
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - recyclerViewChannels.setAdapter() called.");
+                            } else {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - recyclerViewChannels or channelAdapter is null, setAdapter skipped.");
+                            }
+
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after updateData/creation and setAdapter: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
 
                             String currentSearchText = searchEditText.getText().toString();
                             Log.d(TV_TAG, "fetchLiveChannelsFromApi - Re-applying search filter with text: '" + currentSearchText + "'");
-                            channelAdapter.filterList(currentSearchText); // Reaplicar filtro de busca
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after filterList: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
+                            if (channelAdapter != null) { // Ensure adapter exists before filtering
+                                channelAdapter.filterList(currentSearchText); // Reaplicar filtro de busca
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after filterList: " + channelAdapter.getItemCount());
+                            } else {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - channelAdapter is null, filterList skipped.");
+                            }
 
                             showLoading(false);
                             Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess END");

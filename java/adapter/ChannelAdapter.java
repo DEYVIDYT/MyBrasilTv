@@ -47,7 +47,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     @NonNull
     @Override
     public ChannelViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Log.d(CHAN_ADAPTER_TAG, "onCreateViewHolder called"); // Pode ser verboso
+        Log.d(CHAN_ADAPTER_TAG, "onCreateViewHolder called, viewType: " + viewType);
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel, parent, false);
         return new ChannelViewHolder(view);
     }
@@ -55,7 +55,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     @Override
     public void onBindViewHolder(@NonNull ChannelViewHolder holder, int position) {
         Channel channel = channelList.get(position);
-        // Log.d(CHAN_ADAPTER_TAG, "onBindViewHolder for channel: " + channel.getName()); // Pode ser verboso
+        Log.d(CHAN_ADAPTER_TAG, "onBindViewHolder called for position: " + position + ", Channel: " + channel.getName() + ", Adapter list size: " + channelList.size());
         holder.channelName.setText(channel.getName());
         holder.channelNumber.setText(String.format("%03d", position + 1));
 
