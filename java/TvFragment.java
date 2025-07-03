@@ -326,8 +326,15 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     private void loadInitialData() {
-        Log.d(TV_TAG, "loadInitialData called");
+        Log.d(TV_TAG, "loadInitialData called - FRAGMENT RE-ENTRY OR INITIAL CREATION");
         showLoading(true);
+        // It's important to see if search text is already present here
+        Log.d(TV_TAG, "loadInitialData - Current search text before any clearing: '" + (searchEditText != null ? searchEditText.getText().toString() : "searchEditText is null") + "'");
+        if (searchEditText != null) {
+             // searchEditText.setText(""); // Clearing search text is already in onCreateView. Let's log before it.
+             Log.d(TV_TAG, "loadInitialData - Search text after onCreateView's potential clear: '" + searchEditText.getText().toString() + "'");
+        }
+
         fetchXtreamCredentials(new CredentialsCallback() {
             @Override
             public void onCredentialsReceived(String baseUrl, String username, String password) {
@@ -510,30 +517,45 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 public void onSuccess(List<Channel> data) {
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(() -> {
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess, channels from API: " + data.size() + ", for categoryId: " + categoryId);
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess START");
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Category ID: " + categoryId);
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Channels from API (data.size()): " + data.size());
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Current search text: '" + searchEditText.getText().toString() + "'");
+
                             allChannels.clear();
                             allChannels.addAll(data); // Armazena todos os canais recebidos
 
                             List<Channel> filteredChannels = new ArrayList<>();
                             if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) { // "0" ou nulo pode ser "Todos os canais"
                                 filteredChannels.addAll(allChannels);
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Filtering for 'All Channels' or initial load.");
                             } else {
                                 for (Channel channel : allChannels) {
                                     if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
                                         filteredChannels.add(channel);
                                     }
                                 }
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Filtering for specific category ID: " + categoryId);
                             }
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - filteredChannels size: " + filteredChannels.size());
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Size of filteredChannels (after category filter): " + filteredChannels.size());
 
                             if (channelAdapter == null) {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter is null, creating new adapter.");
                                 channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
                                 recyclerViewChannels.setAdapter(channelAdapter);
                             } else {
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter exists, calling updateData.");
                                 channelAdapter.updateData(filteredChannels);
                             }
-                            channelAdapter.filterList(searchEditText.getText().toString()); // Reaplicar filtro de busca
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after updateData: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
+
+                            String currentSearchText = searchEditText.getText().toString();
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Re-applying search filter with text: '" + currentSearchText + "'");
+                            channelAdapter.filterList(currentSearchText); // Reaplicar filtro de busca
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after filterList: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
+
                             showLoading(false);
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess END");
                         });
                     }
                 }
