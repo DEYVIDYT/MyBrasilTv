@@ -64,29 +64,59 @@ public class XtreamApiService {
                         String streamId = jsonObject.optString("stream_id");
                         String streamIcon = jsonObject.optString("stream_icon", null);
                         String categoryId = jsonObject.optString("category_id");
-                        String containerExtension = jsonObject.optString("container_extension");
+                        // String containerExtension = jsonObject.optString("container_extension"); // Não usado atualmente
 
-                        String fullPosterUrl = null;
+                        String processedPosterUrl = null; // Nova variável para clareza
                         if (streamIcon != null && !streamIcon.isEmpty() && !streamIcon.equalsIgnoreCase("null")) {
                             String lowerStreamIcon = streamIcon.toLowerCase();
                             if (lowerStreamIcon.startsWith("http://") || lowerStreamIcon.startsWith("https://")) {
-                                fullPosterUrl = streamIcon;
+                                processedPosterUrl = streamIcon;
                             } else if (streamIcon.startsWith("//")) {
                                 try {
                                     URL base = new URL(this.baseUrl);
-                                    fullPosterUrl = base.getProtocol() + ":" + streamIcon;
+                                    processedPosterUrl = base.getProtocol() + ":" + streamIcon;
                                 } catch (java.net.MalformedURLException e) {
-                                    Log.e("XtreamApiService", "Malformed baseUrl (", e);
+                                    Log.e(API_TAG, "Malformed baseUrl for VOD icon construction (protocol-relative): " + this.baseUrl, e);
+                                }
+                            } else if (streamIcon.startsWith("/")) { // Tratamento para caminhos relativos começando com /
+                                try {
+                                    URL base = new URL(this.baseUrl);
+                                    processedPosterUrl = base.getProtocol() + "://" + base.getHost() + (base.getPort() != -1 ? ":" + base.getPort() : "") + streamIcon;
+                                    Log.d(API_TAG, "VOD Icon: Relative path '" + streamIcon + "' resolved to: " + processedPosterUrl);
+                                } catch (java.net.MalformedURLException e) {
+                                    Log.e(API_TAG, "Malformed baseUrl for VOD icon (relative path /): " + this.baseUrl, e);
                                 }
                             } else {
-                                // Handle relative paths if necessary, for now, treat as invalid
-                                Log.w("XtreamApiService", "Unhandled/unexpected stream_icon format for VOD: " + streamIcon);
+                                // Para outros caminhos relativos (ex: "images/poster.jpg") ou inesperados
+                                // Se a API Xtream geralmente os tem relativos ao domínio base:
+                                if (!streamIcon.contains("://") && !streamIcon.trim().isEmpty()) {
+                                    try {
+                                        URL base = new URL(this.baseUrl);
+                                        String domainBase = base.getProtocol() + "://" + base.getHost() + (base.getPort() != -1 ? ":" + base.getPort() : "");
+                                        processedPosterUrl = domainBase + (streamIcon.startsWith("/") ? "" : "/") + streamIcon;
+                                        Log.d(API_TAG, "VOD Icon: Other relative path '" + streamIcon + "' resolved to: " + processedPosterUrl);
+                                    } catch (java.net.MalformedURLException e) {
+                                        Log.e(API_TAG, "Malformed baseUrl for VOD icon (other relative): " + this.baseUrl, e);
+                                    }
+                                } else if (!streamIcon.trim().isEmpty()){
+                                     Log.w(API_TAG, "Unhandled or already absolute stream_icon format for VOD: " + streamIcon);
+                                     // Se já for uma URL completa (improvável aqui), ou algo que não conseguimos resolver.
+                                     // Poderia tentar usar streamIcon diretamente se as outras falharem.
+                                     // Mas se chegou aqui, provavelmente não é http/https/etc.
+                                }
                             }
-                        } else {
-                            // Log.d(API_TAG, "Movie: " + name + ", stream_icon is null or empty.");
                         }
-                        // Log.d(API_TAG, "Movie Parsed: " + name + ", Final Icon URL: " + fullPosterUrl); // Can be verbose
-                        movies.add(new Movie(name, fullPosterUrl, "placeholder_stream_url", categoryId));
+
+                        if (processedPosterUrl == null) {
+                            Log.w(API_TAG, "Movie: " + name + " - Final poster URL is null after processing stream_icon: '" + streamIcon + "'.");
+                        }
+
+                        // String realVideoUrl = String.format("%s/movie/%s/%s/%s.%s", this.baseUrl, username, password, streamId, containerExtension);
+                        // A URL do vídeo real provavelmente é construída assim, mas está como placeholder por enquanto.
+                        // O importante é que o SEGUNDO argumento para Movie seja a URL do pôster.
+
+                        movies.add(new Movie(name, processedPosterUrl, "placeholder_video_url", categoryId));
+                        // Mudei o placeholder da URL do vídeo para ser diferente e evitar confusão nos logs, se necessário.
                     }
                     Log.i(API_TAG, "fetchVodStreams - Successfully parsed " + movies.size() + " movies.");
                     callback.onSuccess(movies);
