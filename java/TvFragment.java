@@ -957,11 +957,19 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         // Ensure credentials are available
         if (xtreamBaseUrl == null || xtreamUsername == null || xtreamPassword == null) {
             Log.e(TV_TAG, "fetchEpgDataForChannel: Xtream credentials not available.");
-            // Optionally update channel state to show EPG error
-            channel.setCurrentEpgTitle(getString(R.string.epg_error_credentials)); // Placeholder for "Credentials Error"
-            channel.setEpgFetched(true); // Mark as fetched (with error) to avoid retries
-            if (getActivity() != null && channelAdapter != null) {
-                getActivity().runOnUiThread(() -> channelAdapter.notifyItemChanged(position));
+            if (isAdded() && getContext() != null) {
+                channel.setCurrentEpgTitle(getString(R.string.epg_error_credentials));
+            } else {
+                channel.setCurrentEpgTitle("EPG Error: Credentials"); // Raw fallback
+            }
+            channel.setEpgFetched(true);
+            // Notify UI on the main thread. Check activity and adapter again.
+            if (getActivity() != null && channelAdapter != null && isAdded()) {
+                getActivity().runOnUiThread(() -> {
+                    if (position >= 0 && position < channelAdapter.getItemCount()) {
+                        channelAdapter.notifyItemChanged(position);
+                    }
+                });
             }
             return;
         }
@@ -997,14 +1005,16 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     JSONArray epgListings = epgObject.optJSONArray("epg_listings");
 
                     if (epgListings != null && epgListings.length() > 0) {
-                        // Typically, the first program is the current or next one.
                         JSONObject currentProgram = epgListings.getJSONObject(0);
-                        String title = currentProgram.optString("title", getString(R.string.epg_not_available_short));
-                        String start = currentProgram.optString("start"); // Consider formatting this
-                        String end = currentProgram.optString("end");     // Consider formatting this
+                        String title;
+                        if (isAdded() && getContext() != null) {
+                            title = currentProgram.optString("title", getString(R.string.epg_not_available_short));
+                        } else {
+                            title = currentProgram.optString("title", "N/A"); // Raw fallback
+                        }
+                        String start = currentProgram.optString("start");
+                        String end = currentProgram.optString("end");
                         String description = currentProgram.optString("description");
-                        // String programId = currentProgram.optString("id");
-                        // int hasArchive = currentProgram.optInt("has_archive", 0);
 
                         channel.setCurrentEpgTitle(title);
                         channel.setCurrentEpgStartTime(start);
@@ -1013,20 +1023,36 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                         Log.d(TV_TAG, "fetchEpgDataForChannel: Success for " + channel.getName() + " - Title: " + title);
                     } else {
                         Log.d(TV_TAG, "fetchEpgDataForChannel: No EPG listings found for " + channel.getName());
-                        channel.setCurrentEpgTitle(getString(R.string.epg_not_available_short)); // Placeholder for "N/A" or "No Info"
+                        if (isAdded() && getContext() != null) {
+                            channel.setCurrentEpgTitle(getString(R.string.epg_not_available_short));
+                        } else {
+                            channel.setCurrentEpgTitle("N/A"); // Raw fallback
+                        }
                     }
                 } else {
                     Log.e(TV_TAG, "fetchEpgDataForChannel: HTTP error for " + channel.getName() + " - Code: " + responseCode);
-                    channel.setCurrentEpgTitle(getString(R.string.epg_error_fetch)); // Placeholder for "EPG Load Error"
+                    if (isAdded() && getContext() != null) {
+                        channel.setCurrentEpgTitle(getString(R.string.epg_error_fetch));
+                    } else {
+                        channel.setCurrentEpgTitle("EPG Error: Load Failed"); // Raw fallback
+                    }
                 }
             } catch (IOException e) {
                 Log.e(TV_TAG, "fetchEpgDataForChannel: IOException for " + channel.getName(), e);
-                channel.setCurrentEpgTitle(getString(R.string.epg_error_network)); // Placeholder for "Network Error"
+                if (isAdded() && getContext() != null) {
+                    channel.setCurrentEpgTitle(getString(R.string.epg_error_network));
+                } else {
+                    channel.setCurrentEpgTitle("EPG Error: Network"); // Raw fallback
+                }
             } catch (JSONException e) {
                 Log.e(TV_TAG, "fetchEpgDataForChannel: JSONException for " + channel.getName(), e);
-                channel.setCurrentEpgTitle(getString(R.string.epg_error_parse)); // Placeholder for "Data Error"
+                if (isAdded() && getContext() != null) {
+                    channel.setCurrentEpgTitle(getString(R.string.epg_error_parse));
+                } else {
+                    channel.setCurrentEpgTitle("EPG Error: Data Format"); // Raw fallback
+                }
             } finally {
-                channel.setEpgFetched(true); // Mark as fetched, whether success or failure, to update UI state
+                channel.setEpgFetched(true);
                 if (getActivity() != null && channelAdapter != null && isAdded()) {
                     getActivity().runOnUiThread(() -> {
                         if (position >= 0 && position < channelAdapter.getItemCount()) {
