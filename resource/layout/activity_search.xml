@@ -101,5 +101,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/search_bar_container" />
 
+    <TextView
+        android:id="@+id/no_search_data_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/search_no_data_to_search"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/search_bar_container"
+        tools:visibility="visible"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
 

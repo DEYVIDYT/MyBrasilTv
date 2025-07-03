@@ -81,4 +81,5 @@
     <string name="profile_logout_button">Logout</string>
     <string name="profile_settings_title">Settings</string>
     <string name="profile_setting_item_placeholder">Example Setting</string>
+    <string name="search_no_data_to_search">Não há dados de filmes carregados. Por favor, visite a seção VOD para carregar os filmes e tente novamente.</string>
 </resources>
