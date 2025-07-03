@@ -1,5 +1,6 @@
 package com.example.iptvplayer;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +13,8 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,27 +29,39 @@ import java.util.regex.Pattern;
 
 public class ProfileFragment extends Fragment {
 
-    private TextInputEditText xtreamUrlEditText;
-    private MaterialButton sendXtreamButton;
+    private MaterialButton addXtreamButton;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
 
-        xtreamUrlEditText = view.findViewById(R.id.xtream_url_edit_text);
-        sendXtreamButton = view.findViewById(R.id.send_xtream_button);
+        addXtreamButton = view.findViewById(R.id.add_xtream_button);
+        addXtreamButton.setOnClickListener(v -> showXtreamInputDialog());
 
-        sendXtreamButton.setOnClickListener(v -> {
-            String xtreamUrl = xtreamUrlEditText.getText().toString();
+        return view;
+    }
+
+    private void showXtreamInputDialog() {
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        builder.setTitle(R.string.xtream_dialog_title);
+
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_xtream_input, null);
+        builder.setView(dialogView);
+
+        TextInputEditText dialogXtreamUrlEditText = dialogView.findViewById(R.id.dialog_xtream_url_edit_text);
+
+        builder.setPositiveButton(R.string.send_button_text, (dialog, which) -> {
+            String xtreamUrl = dialogXtreamUrlEditText.getText().toString();
             if (xtreamUrl.isEmpty()) {
-                Toast.makeText(getContext(), "Por favor, insira a URL da Lista Xtream Codes.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), R.string.xtream_url_empty_error, Toast.LENGTH_SHORT).show();
                 return;
             }
             sendXtreamData(xtreamUrl);
         });
+        builder.setNegativeButton(R.string.cancel_button_text, (dialog, which) -> dialog.dismiss());
 
-        return view;
+        builder.show();
     }
 
     private void sendXtreamData(String urlString) {

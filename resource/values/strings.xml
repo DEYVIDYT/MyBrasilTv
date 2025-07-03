@@ -82,7 +82,13 @@
     <string name="profile_settings_title">Settings</string>
     <string name="profile_setting_item_placeholder">Example Setting</string>
     <string name="search_no_data_to_search">Não há dados de filmes carregados. Por favor, visite a seção VOD para carregar os filmes e tente novamente.</string>
-    <string name="xtream_url_hint">URL da Lista Xtream Codes</string>
-    <string name="send_xtream_button_text">Enviar Lista Xtream Codes</string>
+    <string name="xtream_url_hint">Xtream Codes List URL</string>
+    <string name="send_xtream_button_text">Send Xtream Codes List</string>
+    <string name="add_xtream_button_text">Add Xtream Codes List</string>
+    <string name="xtream_dialog_title">Add Xtream Codes List</string>
+    <string name="xtream_dialog_description">This will help keep the app active.</string>
+    <string name="send_button_text">Send</string>
+    <string name="cancel_button_text">Cancel</string>
+    <string name="xtream_url_empty_error">Please enter the Xtream Codes List URL.</string>
 </resources>
 

@@ -76,10 +76,17 @@
 
     <!-- Strings para a Tela de Perfil -->
     <string name="profile_avatar_desc">Avatar do perfil</string>
-    <string name="profile_name_placeholder">Nome do Usuário</string>
+    <string name="profile_name_placeholder">MyBrasilTV</string>
     <string name="profile_info_placeholder">info@exemplo.com</string>
     <string name="profile_logout_button">Sair</string>
     <string name="profile_settings_title">Configurações</string>
     <string name="profile_setting_item_placeholder">Exemplo de Configuração</string>
-
+    <string name="xtream_url_hint">URL da Lista Xtream Codes</string>
+    <string name="send_xtream_button_text">Enviar Lista Xtream Codes</string>
+    <string name="add_xtream_button_text">Adicionar Lista Xtream Codes</string>
+    <string name="xtream_dialog_title">Adicionar Lista Xtream Codes</string>
+    <string name="xtream_dialog_description">Isso vai ajudar o app ficar ativo.</string>
+    <string name="send_button_text">Enviar</string>
+    <string name="cancel_button_text">Cancelar</string>
+    <string name="xtream_url_empty_error">Por favor, insira a URL da Lista Xtream Codes.</string>
 </resources>
