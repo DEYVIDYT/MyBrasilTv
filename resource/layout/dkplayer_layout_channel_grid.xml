@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/channel_grid_overlay"
-    android:background="#80000000"
+    android:background="?attr/scrimBackground"
     android:visibility="gone">
 
     <LinearLayout
@@ -11,7 +11,7 @@
         android:layout_width="600dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#FF1A1A1A"
+        android:background="?attr/colorSurface"
         android:orientation="horizontal">
 
         <!-- Categories Section -->
@@ -19,17 +19,17 @@
             android:layout_width="200dp"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:background="#FF0D0D0D">
+            android:background="?attr/colorSurfaceContainerLow">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="CATEGORIAS"
-                android:textColor="#FFFFFF"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:background="#FF333333" />
+                android:background="?attr/colorSurfaceContainer" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_categories_grid"
@@ -44,18 +44,18 @@
             android:layout_width="400dp"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:background="#FF1A1A1A">
+            android:background="?attr/colorSurface">
 
             <TextView
                 android:id="@+id/tv_category_title"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="TODOS"
-                android:textColor="#FFFFFF"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:background="#FF333333" />
+                android:background="?attr/colorSurfaceContainer" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_channels_grid"

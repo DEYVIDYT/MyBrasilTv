@@ -45,6 +45,10 @@
         <!-- A API mínima do app não está especificada, mas o targetApi="o" sugere compatibilidade com Oreo. -->
         <!-- Usar o_mr1 para targetApi para windowLightNavigationBar é mais seguro se o compileSdk for 27+ -->
 
+        <!-- Definição do Scrim Background -->
+        <item name="scrimBackground">@color/my_scrim_color</item>
+        <!-- Atributo de scrim do Material 3 (se for usar componentes M3 que o utilizem) -->
+        <item name="colorScrim">@color/md_theme_dark_scrim</item>
     </style>
 </resources>
 

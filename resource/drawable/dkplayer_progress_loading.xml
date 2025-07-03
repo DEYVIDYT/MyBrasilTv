@@ -11,7 +11,7 @@
         android:thicknessRatio="15"
         android:useLevel="false">
         <gradient
-            android:endColor="@color/md_theme_dark_primary"
+            android:endColor="?attr/colorPrimary"
             android:startColor="@android:color/transparent"
             android:type="sweep"
             android:useLevel="false" />

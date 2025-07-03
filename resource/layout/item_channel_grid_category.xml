@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:text="CATEGORIA"
-        android:textColor="#FFFFFF"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="14sp"
         android:gravity="center_vertical"
         android:paddingStart="16dp"

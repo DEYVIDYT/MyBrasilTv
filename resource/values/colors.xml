@@ -55,4 +55,8 @@
     <color name="md_sys_color_on_tertiary_container">@color/md_theme_dark_onTertiaryContainer</color>
     <color name="md_sys_color_outline_variant">@color/md_theme_dark_outline</color>
 
+    <!-- Cor para Scrim Background -->
+    <color name="my_scrim_color">#99000000</color> <!-- Preto com 60% de opacidade -->
+    <color name="md_theme_dark_scrim">#000000</color> <!-- Cor base do Scrim M3, geralmente é preto puro e a opacidade é aplicada no componente -->
+
 </resources>

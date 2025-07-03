@@ -12,7 +12,7 @@
         android:layout_width="40dp"
         android:layout_height="wrap_content"
         android:text="001"
-        android:textColor="#FFCCCCCC"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
         android:gravity="center" />
 
@@ -23,7 +23,8 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:scaleType="centerInside"
-        android:src="@drawable/ic_dashboard_black_24dp" />
+        android:src="@drawable/ic_dashboard_black_24dp"
+        app:tint="?attr/colorOnSurfaceVariant" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -36,7 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="NOME DO CANAL"
-            android:textColor="#FFFFFF"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="14sp"
             android:maxLines="1"
             android:ellipsize="end" />
@@ -46,7 +47,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Programa atual"
-            android:textColor="#FFCCCCCC"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             android:maxLines="1"
             android:ellipsize="end"

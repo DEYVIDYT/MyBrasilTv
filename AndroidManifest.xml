@@ -21,7 +21,7 @@
 	<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.WRITE_GSERVICES" />
-	<uses-permission android:name="android.permission.INTERNET" />
+	<!-- Permissão de INTERNET duplicada removida -->
 	<application
 		android:allowBackup="true"
 		android:icon="@drawable/app_icon"
@@ -30,17 +30,7 @@
 		android:requestLegacyExternalStorage="true"
 		android:usesCleartextTraffic="true"
 		android:theme="@style/Theme.IPTVPlayer">
-		<activity
-			android:name=".MainActivity"
-			android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
-			android:hardwareAccelerated="true"
-			android:supportsPictureInPicture="true"
-			android:screenOrientation="portrait">
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-		</activity>
+		<!-- A MainActivity foi consolidada abaixo -->
 		<activity
 			android:name=".DebugActivity"
 			android:screenOrientation="portrait" />
@@ -59,30 +49,27 @@
 			android:name="org.apache.http.legacy"
 			android:required="false" />
 
-<activity
+		<activity
 			android:name=".MainActivity"
-			android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
+			android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
 			android:hardwareAccelerated="true"
 			android:supportsPictureInPicture="true"
 			android:screenOrientation="portrait"
 			android:windowSoftInputMode="stateHidden"
 			android:resizeableActivity="true"
 			android:exported="true">
-            <!-- windowSoftInputMode="adjustPan" é frequentemente útil com tela cheia e teclado -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        
-                    <activity android:name=".MovieDetailsActivity" />
-        <activity android:name=".VideoPlayerActivity" />
-        
-        <service
-       android:name=".DownloadService"
-       android:exported="false"
-    android:foregroundServiceType="dataSync" />
-    
+			<!-- windowSoftInputMode="adjustPan" é frequentemente útil com tela cheia e teclado -->
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+		<activity android:name=".MovieDetailsActivity" />
+		<activity android:name=".VideoPlayerActivity" />
 
+		<service
+			android:name=".DownloadService"
+			android:exported="false"
+			android:foregroundServiceType="dataSync" />
 	</application>
 </manifest>

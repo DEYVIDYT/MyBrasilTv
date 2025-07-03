@@ -2,14 +2,21 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/md_sys_color_primary_container"/>
+            <solid android:color="?attr/colorPrimaryContainer"/>
             <corners android:topRightRadius="24dp" android:bottomRightRadius="24dp"/>
-            <padding android:right="16dp"/> <!-- Similar to mr-2 in Tailwind, adjust as needed -->
+            <padding android:right="16dp"/>
+        </shape>
+    </item>
+    <item android:state_pressed="true"> <!-- Adicionado estado pressionado -->
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSurfaceContainerHighest"/> <!-- Feedback visual para pressionado -->
+            <corners android:topRightRadius="24dp" android:bottomRightRadius="24dp"/>
+            <padding android:right="16dp"/>
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@android:color/transparent"/>
+            <solid android:color="?android:attr/colorBackground"/> <!-- Usar cor de fundo do tema -->
         </shape>
     </item>
 </selector>
