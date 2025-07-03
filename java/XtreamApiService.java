@@ -112,35 +112,36 @@ public class XtreamApiService {
                         JSONObject jsonObject = jsonArray.getJSONObject(i);
                         String name = jsonObject.optString("name");
                         String streamId = jsonObject.optString("stream_id");
-                        String streamIconPath = jsonObject.optString("stream_icon"); // Pode ser um caminho relativo ou absoluto
+                        String streamIconPath = jsonObject.optString("stream_icon");
                         String categoryId = jsonObject.optString("category_id");
-
                         String fullLogoUrl = null;
+
                         if (streamIconPath != null && !streamIconPath.isEmpty() && !streamIconPath.equalsIgnoreCase("null")) {
-                            if (streamIconPath.toLowerCase().startsWith("http://") || streamIconPath.toLowerCase().startsWith("https://")) {
-                                fullLogoUrl = streamIconPath; // Já é uma URL absoluta
+                            String lowerStreamIconPath = streamIconPath.toLowerCase();
+                            if (lowerStreamIconPath.startsWith("http://") || lowerStreamIconPath.startsWith("https://")) {
+                                fullLogoUrl = streamIconPath;
                                 Log.d("XtreamApiService", "Channel: " + name + ", Absolute Logo URL: " + fullLogoUrl);
-                            } else {
-                                // É um caminho relativo, precisa ser combinado com o baseUrl
-                                // Garantir que baseUrl não termine com / se streamIconPath começar com /
-                                // e vice-versa, para evitar barras duplas.
-                                // A forma mais segura é usar a classe URL para resolver.
+                            } else if (streamIconPath.startsWith("//")) {
                                 try {
-                                    URL base = new URL(this.baseUrl); // this.baseUrl é o baseUrl da instância XtreamApiService
-                                    URL resolved = new URL(base, streamIconPath.startsWith("/") ? streamIconPath.substring(1) : streamIconPath);
-                                    fullLogoUrl = resolved.toString();
-                                    Log.d("XtreamApiService", "Channel: " + name + ", Resolved Relative Logo URL: " + fullLogoUrl + " (Base: " + this.baseUrl + ", Path: " + streamIconPath + ")");
+                                    URL base = new URL(this.baseUrl); // Assume this.baseUrl é http(s)://domain.com
+                                    fullLogoUrl = base.getProtocol() + ":" + streamIconPath;
+                                    Log.d("XtreamApiService", "Channel: " + name + ", Protocol-relative resolved to: " + fullLogoUrl);
                                 } catch (java.net.MalformedURLException e) {
-                                    Log.e("XtreamApiService", "Malformed URL for logo: Base=" + this.baseUrl + ", Path=" + streamIconPath, e);
-                                    fullLogoUrl = null; // Ou um placeholder
+                                    Log.e("XtreamApiService", "Malformed baseUrl ('" + this.baseUrl + "') for protocol-relative icon: " + streamIconPath, e);
+                                    // fullLogoUrl permanece null
                                 }
+                            } else {
+                                // Não é http, https, ou //. Tratar como logo ausente ou inválido.
+                                // Se houvesse uma regra para caminhos relativos ao this.baseUrl, ela entraria aqui.
+                                Log.w("XtreamApiService", "Channel: " + name + " - Unhandled/unexpected stream_icon format: " + streamIconPath + ". Treating as no logo.");
+                                // fullLogoUrl permanece null
                             }
                         } else {
-                            Log.d("XtreamApiService", "Channel: " + name + ", Logo URL is null, empty, or 'null' string.");
+                            Log.d("XtreamApiService", "Channel: " + name + ", stream_icon is null, empty, or 'null' string.");
                         }
 
+                        Log.i("XtreamIconDebug", "Channel: " + name + ", Final Logo URL to be used: " + fullLogoUrl);
                         String directSource = String.format("%s/live/%s/%s/%s.ts", this.baseUrl, username, password, streamId);
-                        // Log.d("XtreamApiService", "Constructed stream URL: " + directSource);
                         channels.add(new Channel(name, directSource, fullLogoUrl, categoryId));
                     }
                     callback.onSuccess(channels);
