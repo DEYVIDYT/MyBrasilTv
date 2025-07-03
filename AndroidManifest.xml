@@ -66,6 +66,7 @@
 		</activity>
 		<activity android:name=".MovieDetailsActivity" />
 		<activity android:name=".VideoPlayerActivity" />
+		<activity android:name=".SearchActivity" />
 
 		<service
 			android:name=".DownloadService"
