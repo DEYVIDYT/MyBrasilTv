@@ -47,8 +47,7 @@
 
         <!-- Definição do Scrim Background -->
         <item name="scrimBackground">@color/my_scrim_color</item>
-        <!-- Atributo de scrim do Material 3 (se for usar componentes M3 que o utilizem) -->
-        <item name="colorScrim">@color/md_theme_dark_scrim</item>
+        <!-- <item name="colorScrim">@color/md_theme_dark_scrim</item> Atributo removido para evitar erro de linking -->
     </style>
 </resources>
 
