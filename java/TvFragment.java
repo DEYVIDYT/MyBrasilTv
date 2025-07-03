@@ -111,6 +111,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         recyclerViewChannels = root.findViewById(R.id.recycler_view_channels);
         recyclerViewCategories = root.findViewById(R.id.recycler_view_categories);
         searchEditText = root.findViewById(R.id.search_edit_text);
+        searchEditText.setText(""); // Limpar o texto de busca na criação da view
         playerProgressBar = root.findViewById(R.id.player_progress_bar); // Conectar ProgressBar
         playerLoadingTextView = root.findViewById(R.id.player_loading_text); // Conectar TextView de Loading
 
