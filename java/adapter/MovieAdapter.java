@@ -13,6 +13,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.request.RequestOptions;
 import com.example.iptvplayer.R;
 import com.example.iptvplayer.data.Movie;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder> {
 
+    private static final String MOVIE_ADAPTER_TAG = "MovieAdapter_DEBUG";
     private List<Movie> movieListDisplayed;
     private final List<Movie> movieListAll;
     private Context context;
@@ -45,20 +49,35 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         Movie movie = movieListDisplayed.get(position);
         holder.movieTitle.setText(movie.getTitle());
 
+
         String posterUrl = movie.getPosterUrl();
+        Log.d(MOVIE_ADAPTER_TAG, "Movie: " + movie.getTitle() + ", Attempting to load poster URL: " + posterUrl);
+
         if (posterUrl != null && !posterUrl.isEmpty()) {
             // Adicionando opções de requisição para Glide
             RequestOptions requestOptions = new RequestOptions()
                     .placeholder(R.drawable.rounded_corner_image_placeholder) // Placeholder personalizado
                     .error(R.drawable.dkplayer_ic_action_error) // Imagem de erro personalizada
                     .diskCacheStrategy(DiskCacheStrategy.ALL); // Estratégia de cache para todas as imagens
-
             Glide.with(context)
                     .load(posterUrl)
                     .apply(requestOptions)
+                    .listener(new RequestListener<android.graphics.drawable.Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
+                            Log.e(MOVIE_ADAPTER_TAG, "Glide onLoadFailed for VOD: " + movie.getTitle() + ", URL: " + model, e);
+                            return false; // Importante retornar false para que o error() drawable seja exibido.
+                        }
+
+                        @Override
+                        public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            Log.d(MOVIE_ADAPTER_TAG, "Glide onResourceReady for VOD: " + movie.getTitle() + ", URL: " + model);
+                            return false;
+                        }
+                    })
                     .into(holder.moviePoster);
         } else {
-            Log.w("MovieAdapter", "Poster URL is null or empty for movie: " + movie.getTitle());
+            Log.w(MOVIE_ADAPTER_TAG, "Poster URL is null or empty for VOD movie: " + movie.getTitle() + ". Setting placeholder.");
             holder.moviePoster.setImageResource(R.drawable.rounded_corner_image_placeholder); // Placeholder padrão
         }
     }
