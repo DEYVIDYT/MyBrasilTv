@@ -132,6 +132,23 @@ public class MainActivity extends AppCompatActivity {
 
     
 
+    @Override
+    public void onBackPressed() {
+        FragmentManager fm = getSupportFragmentManager();
+        Fragment currentFragment = fm.findFragmentById(R.id.fragment_container);
+
+        if (currentFragment instanceof TvFragment) {
+            if (((TvFragment) currentFragment).onBackPressed()) {
+                // Se TvFragment.onBackPressed() retornou true,
+                // significa que o evento foi consumido (ex: saiu da tela cheia).
+                // Não fazer mais nada.
+                return;
+            }
+        }
+        // Se não for TvFragment, ou se TvFragment.onBackPressed() retornou false,
+        // executar o comportamento padrão do botão voltar.
+        super.onBackPressed();
+    }
 }
 
 

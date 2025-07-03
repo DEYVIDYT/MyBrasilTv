@@ -72,6 +72,7 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         mRecyclerCategories = findViewById(R.id.recycler_categories_grid);
         mRecyclerChannels = findViewById(R.id.recycler_channels_grid);
         mCategoryTitle = findViewById(R.id.tv_category_title);
+        View contentArea = findViewById(R.id.channel_grid_content_area);
         
         // Setup RecyclerViews
         mRecyclerCategories.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -80,12 +81,12 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         // Setup click listener for overlay to close grid
         mChannelGridOverlay.setOnClickListener(this);
         
-        // Prevent clicks on the grid content from closing the overlay
-        findViewById(R.id.recycler_categories_grid).setOnClickListener(v -> {});
-        findViewById(R.id.recycler_channels_grid).setOnClickListener(v -> {});
-        View gridContent = mChannelGridOverlay.getChildAt(0);
-        if (gridContent != null) {
-            gridContent.setOnClickListener(v -> {});
+        // Prevent clicks/touches on the grid content area from propagating to the overlay
+        if (contentArea != null) {
+            contentArea.setOnTouchListener((v, event) -> {
+                // Consume all touch events within the content area
+                return true;
+            });
         }
     }
 

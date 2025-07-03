@@ -7,6 +7,7 @@
     android:visibility="gone">
 
     <LinearLayout
+        android:id="@+id/channel_grid_content_area"
         android:layout_width="600dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
