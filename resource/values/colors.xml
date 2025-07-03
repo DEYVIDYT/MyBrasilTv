@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material Design 3 Dark Theme Colors -->
+    <color name="md_theme_dark_primary">#D0BCFF</color> <!-- Roxo vibrante -->
+    <color name="md_theme_dark_onPrimary">#381E72</color>
+    <color name="md_theme_dark_primaryContainer">#4A4458</color>
+    <color name="md_theme_dark_onPrimaryContainer">#EADDFF</color>
+    <color name="md_theme_dark_secondary">#CCC2DC</color> <!-- Azul/ciano acinzentado -->
+    <color name="md_theme_dark_onSecondary">#332D41</color>
+    <color name="md_theme_dark_secondaryContainer">#4A4458</color> <!-- Pode ser o mesmo que primaryContainer ou um tom diferente -->
+    <color name="md_theme_dark_onSecondaryContainer">#E8DEF8</color>
+    <color name="md_theme_dark_tertiary">#EFB8C8</color> <!-- Rosa/magenta -->
+    <color name="md_theme_dark_onTertiary">#492532</color>
+    <color name="md_theme_dark_tertiaryContainer">#633B48</color>
+    <color name="md_theme_dark_onTertiaryContainer">#FFD8E4</color>
+    <color name="md_theme_dark_error">#F2B8B5</color>
+    <color name="md_theme_dark_onError">#601410</color>
+    <color name="md_theme_dark_errorContainer">#8C1D18</color>
+    <color name="md_theme_dark_onErrorContainer">#F9DEDC</color>
+    <color name="md_theme_dark_background">#1C1B1F</color> <!-- Fundo principal escuro -->
+    <color name="md_theme_dark_onBackground">#E6E1E5</color> <!-- Texto sobre o fundo -->
+    <color name="md_theme_dark_surface">#2A292E</color> <!-- Superfícies (cards, menus) um pouco mais claras que o fundo -->
+    <color name="md_theme_dark_onSurface">#E6E1E5</color> <!-- Texto sobre superfícies -->
+    <color name="md_theme_dark_surfaceVariant">#49454F</color> <!-- Variante de superfície -->
+    <color name="md_theme_dark_onSurfaceVariant">#CAC4D0</color> <!-- Texto sobre variante de superfície -->
+    <color name="md_theme_dark_outline">#938F99</color> <!-- Contornos -->
+    <color name="md_theme_dark_shadow">#000000</color>
+    <color name="md_theme_dark_inverseSurface">#E6E1E5</color>
+    <color name="md_theme_dark_inverseOnSurface">#313033</color>
+    <color name="md_theme_dark_inversePrimary">#6750A4</color>
+
+    <!-- Cores específicas do player atualizadas para o novo tema -->
+    <color name="dkplayer_theme_color">@color/md_theme_dark_primary</color>
+    <color name="dkplayer_theme_color_translucent">#80D0BCFF</color> <!-- md_theme_dark_primary com 50% de opacidade (alpha 80) -->
+    <color name="dkplayer_background_color">@color/md_theme_dark_background</color>
+    <color name="dkplayer_gesture_bg_color">#CC2A292E</color> <!-- md_theme_dark_surface com ~80% alpha -->
+
+    <!-- Cores genéricas -->
+    <color name="black">#000000</color> <!-- Mantida para usos genéricos se houver -->
+    <color name="white">#FFFFFF</color> <!-- Mantida para usos genéricos se houver -->
+    <color name="gray">#808080</color> <!-- Cor cinza para textos secundários -->
+
+    <!-- Cores do sistema (md_sys_*) atualizadas para refletir o novo tema Material 3 -->
+    <!-- Estas são usadas por alguns componentes Material e devem apontar para as cores do tema M3 -->
+    <color name="md_sys_color_primary">@color/md_theme_dark_primary</color>
+    <color name="md_sys_color_on_primary_container">@color/md_theme_dark_onPrimaryContainer</color>
+    <color name="md_sys_color_primary_container">@color/md_theme_dark_primaryContainer</color>
+    <color name="md_sys_color_surface">@color/md_theme_dark_surface</color>
+    <color name="md_sys_color_on_surface">@color/md_theme_dark_onSurface</color>
+    <color name="md_sys_color_surface_variant">@color/md_theme_dark_surfaceVariant</color>
+    <color name="md_sys_color_on_surface_variant">@color/md_theme_dark_onSurfaceVariant</color>
+    <color name="md_sys_color_background">@color/md_theme_dark_background</color>
+    <color name="md_sys_color_on_background">@color/md_theme_dark_onBackground</color>
+    <color name="md_sys_color_tertiary_container">@color/md_theme_dark_tertiaryContainer</color>
+    <color name="md_sys_color_on_tertiary_container">@color/md_theme_dark_onTertiaryContainer</color>
+    <color name="md_sys_color_outline_variant">@color/md_theme_dark_outline</color>
+
+</resources>
