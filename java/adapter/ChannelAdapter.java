@@ -93,7 +93,7 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
-                Log.d(CHAN_ADAPTER_TAG, "Channel clicked: " + channel.getName() + ", ID: " + channel.getStreamId() + ", CategoryID: " + channel.getCategoryId());
+                Log.d(CHAN_ADAPTER_TAG, "Channel clicked: " + channel.getName() + ", URL: " + channel.getStreamUrl() + ", CategoryID: " + channel.getCategoryId());
                 listener.onChannelClick(channel);
             }
         });
