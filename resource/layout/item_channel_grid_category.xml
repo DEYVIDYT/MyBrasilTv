@@ -3,8 +3,11 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp"
-    android:background="@drawable/category_item_selector">
+    android:paddingVertical="4dp"
+    android:paddingHorizontal="8dp"
+    android:background="@drawable/category_item_selector"
+    android:clickable="true"
+    android:focusable="true">
 
     <TextView
         android:id="@+id/tv_category_name"

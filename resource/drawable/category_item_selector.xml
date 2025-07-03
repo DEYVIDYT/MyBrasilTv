@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_selected="true">
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true" android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="?attr/colorPrimaryContainer"/>
-            <corners android:topRightRadius="24dp" android:bottomRightRadius="24dp"/>
-            <padding android:right="16dp"/>
+            <solid android:color="?attr/colorPrimaryContainer" /> <!-- Pressionado e Selecionado -->
+            <corners android:topRightRadius="12dp" android:bottomRightRadius="12dp" />
         </shape>
     </item>
-    <item android:state_pressed="true"> <!-- Adicionado estado pressionado -->
+    <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="?attr/colorSurfaceContainerHighest"/> <!-- Feedback visual para pressionado -->
-            <corners android:topRightRadius="24dp" android:bottomRightRadius="24dp"/>
-            <padding android:right="16dp"/>
+            <solid android:color="?attr/colorPrimaryContainer" /> <!-- Apenas Selecionado -->
+            <corners android:topRightRadius="12dp" android:bottomRightRadius="12dp" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSurfaceContainerHighest" /> <!-- Apenas Pressionado -->
+            <corners android:topRightRadius="12dp" android:bottomRightRadius="12dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="?android:attr/colorBackground"/> <!-- Usar cor de fundo do tema -->
+            <solid android:color="?android:attr/colorBackground" /> <!-- Default (fundo da lista de categorias é colorSurfaceContainerLow) -->
+            <corners android:topRightRadius="12dp" android:bottomRightRadius="12dp" />
         </shape>
     </item>
 </selector>

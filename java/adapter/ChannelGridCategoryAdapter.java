@@ -75,12 +75,28 @@ public class ChannelGridCategoryAdapter extends RecyclerView.Adapter<ChannelGrid
             
             // Highlight selected category
             if (category.id.equals(mSelectedCategoryId)) {
-                mCategoryName.setTextColor(mContext.getResources().getColor(R.color.md_sys_color_primary));
-                itemView.setBackgroundColor(mContext.getResources().getColor(R.color.md_sys_color_primary_container));
+                // itemView.setSelected(true) é mais apropriado para usar com o seletor
+                itemView.setSelected(true);
+                // As cores de texto e fundo devem ser tratadas pelo seletor (category_item_selector.xml)
+                // e pelo tema para texto.
+                // No entanto, se quisermos forçar aqui, podemos usar atributos do tema:
+                // TypedValue typedValue = new TypedValue();
+                // mContext.getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true);
+                // mCategoryName.setTextColor(typedValue.data);
+                // mContext.getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimaryContainer, typedValue, true);
+                // itemView.setBackgroundColor(typedValue.data);
             } else {
-                mCategoryName.setTextColor(mContext.getResources().getColor(android.R.color.white));
-                itemView.setBackgroundColor(mContext.getResources().getColor(android.R.color.transparent));
+                itemView.setSelected(false);
+                // mCategoryName.setTextColor(mContext.getResources().getColor(android.R.color.white)); // Deveria vir do tema/layout
+                // itemView.setBackgroundColor(mContext.getResources().getColor(android.R.color.transparent)); // Deveria vir do seletor
             }
+            // A cor do texto já está sendo definida no XML como ?attr/colorOnSurface.
+            // O fundo do itemView é @drawable/category_item_selector.xml que lida com o estado selected.
+            // Então, o código de mudança de cor aqui pode ser redundante ou entrar em conflito.
+            // A melhor maneira é deixar o seletor cuidar do fundo e o tema/XML cuidar da cor do texto.
+            // Apenas precisamos garantir que o estado 'selected' seja corretamente passado para a view.
+             itemView.setSelected(category.id.equals(mSelectedCategoryId));
+
         }
     }
 }
