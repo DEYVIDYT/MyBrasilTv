@@ -103,6 +103,11 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private static final String TV_TAG = "TV_DEBUG"; // Tag para logs
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    // Member variables to store Xtream credentials for EPG calls
+    private String xtreamBaseUrl;
+    private String xtreamUsername;
+    private String xtreamPassword;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -475,8 +480,13 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                         server = "http://" + server;
                     }
 
-                    Log.i(TV_TAG, "fetchXtreamCredentials - Credentials received: Server=" + server + ", User=" + user + ", Pass=***");
-                    callback.onCredentialsReceived(server, user, pass);
+                    // Store credentials in member variables
+                    xtreamBaseUrl = server;
+                    xtreamUsername = user;
+                    xtreamPassword = pass;
+
+                    Log.i(TV_TAG, "fetchXtreamCredentials - Credentials received and stored. Server=" + xtreamBaseUrl + ", User=" + xtreamUsername + ", Pass=***");
+                    callback.onCredentialsReceived(xtreamBaseUrl, xtreamUsername, xtreamPassword);
 
                 } else {
                     Log.e(TV_TAG, "fetchXtreamCredentials - HTTP error code: " + responseCode);
@@ -571,15 +581,33 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                                 Log.d(TV_TAG, "fetchLiveChannelsFromApi - recyclerViewChannels or channelAdapter is null, setAdapter skipped.");
                             }
 
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after updateData/creation and setAdapter: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after updateData/creation and setAdapter: " + (channelAdapter != null ? channelAdapter.getItemCount() : "adapter is null"));
 
-                            String currentSearchText = searchEditText.getText().toString();
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Re-applying search filter with text: '" + currentSearchText + "'");
-                            if (channelAdapter != null) { // Ensure adapter exists before filtering
-                                channelAdapter.filterList(currentSearchText); // Reaplicar filtro de busca
+                            if (searchEditText != null && channelAdapter != null) {
+                                String currentSearchText = searchEditText.getText().toString();
+                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Re-applying search filter with text: '" + currentSearchText + "'");
+                                channelAdapter.filterList(currentSearchText);
                                 Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after filterList: " + channelAdapter.getItemCount());
+
+                                // After channels are filtered and ready in the adapter, fetch EPG for them
+                                if (channelAdapter.getItemCount() > 0) {
+                                    Log.d(TV_TAG, "fetchLiveChannelsFromApi - Triggering EPG fetch for " + channelAdapter.getItemCount() + " channels.");
+                                    for (int i = 0; i < channelAdapter.getItemCount(); i++) {
+                                        Channel channelToGetEpg = channelAdapter.getChannelAtPosition(i);
+                                        if (channelToGetEpg != null && !channelToGetEpg.isEpgFetched()) {
+                                            // Set EPG as not fetched initially before making the call,
+                                            // so "Loading EPG..." appears immediately.
+                                            // The fetchEpgDataForChannel will set it to true upon completion/failure.
+                                            // channelToGetEpg.setEpgFetched(false); // This is already default or set by previous logic
+                                            // adapter.notifyItemChanged(i); // To show "Loading EPG..."
+                                            fetchEpgDataForChannel(channelToGetEpg, i);
+                                        } else if (channelToGetEpg == null) {
+                                            Log.w(TV_TAG, "fetchLiveChannelsFromApi - Channel at position " + i + " is null, cannot fetch EPG.");
+                                        }
+                                    }
+                                }
                             } else {
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - channelAdapter is null, filterList skipped.");
+                                Log.w(TV_TAG, "fetchLiveChannelsFromApi - searchEditText or channelAdapter is null, filterList and EPG fetch skipped.");
                             }
 
                             showLoading(false);
@@ -909,5 +937,115 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             return mVideoView.onBackPressed();
         }
         return false;
+    }
+
+    private void fetchEpgDataForChannel(Channel channel, int position) {
+        if (channel == null || channel.getStreamId() == null || channel.getStreamId().isEmpty()) {
+            Log.w(TV_TAG, "fetchEpgDataForChannel: Channel or Stream ID is null/empty for channel: " + (channel != null ? channel.getName() : "null channel"));
+            return;
+        }
+
+        // Avoid re-fetching if already fetched, unless a refresh mechanism is implemented
+        // For now, this simple flag prevents multiple fetches for the same channel during a single list load.
+        // A more sophisticated cache or timestamp-based refresh could be added later.
+        if (channel.isEpgFetched()) {
+            // Log.d(TV_TAG, "fetchEpgDataForChannel: EPG already fetched for " + channel.getName());
+            // return; // Comment out if we want to allow refresh on every list display
+        }
+
+        // Ensure credentials are available
+        if (xtreamBaseUrl == null || xtreamUsername == null || xtreamPassword == null) {
+            Log.e(TV_TAG, "fetchEpgDataForChannel: Xtream credentials not available.");
+            // Optionally update channel state to show EPG error
+            channel.setCurrentEpgTitle(getString(R.string.epg_error_credentials)); // Placeholder for "Credentials Error"
+            channel.setEpgFetched(true); // Mark as fetched (with error) to avoid retries
+            if (getActivity() != null && channelAdapter != null) {
+                getActivity().runOnUiThread(() -> channelAdapter.notifyItemChanged(position));
+            }
+            return;
+        }
+
+        String streamId = channel.getStreamId();
+        String epgUrl = String.format("%s/player_api.php?username=%s&password=%s&action=get_short_epg&stream_id=%s",
+                xtreamBaseUrl, xtreamUsername, xtreamPassword, streamId);
+
+        Log.d(TV_TAG, "fetchEpgDataForChannel: Fetching EPG for " + channel.getName() + " (ID: " + streamId + ") URL: " + epgUrl.replace(xtreamPassword, "*****"));
+
+        executor.execute(() -> {
+            try {
+                URL url = new URL(epgUrl);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000); // 5 seconds
+                conn.setReadTimeout(5000);    // 5 seconds
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+
+                    String jsonResponse = response.toString();
+                    Log.d(TV_TAG, "fetchEpgDataForChannel: Raw EPG Response for " + channel.getName() + ": " + jsonResponse.substring(0, Math.min(jsonResponse.length(), 300)) + "...");
+
+                    JSONObject epgObject = new JSONObject(jsonResponse);
+                    JSONArray epgListings = epgObject.optJSONArray("epg_listings");
+
+                    if (epgListings != null && epgListings.length() > 0) {
+                        // Typically, the first program is the current or next one.
+                        JSONObject currentProgram = epgListings.getJSONObject(0);
+                        String title = currentProgram.optString("title", getString(R.string.epg_not_available_short));
+                        String start = currentProgram.optString("start"); // Consider formatting this
+                        String end = currentProgram.optString("end");     // Consider formatting this
+                        String description = currentProgram.optString("description");
+                        // String programId = currentProgram.optString("id");
+                        // int hasArchive = currentProgram.optInt("has_archive", 0);
+
+                        channel.setCurrentEpgTitle(title);
+                        channel.setCurrentEpgStartTime(start);
+                        channel.setCurrentEpgEndTime(end);
+                        channel.setCurrentEpgDescription(description);
+                        Log.d(TV_TAG, "fetchEpgDataForChannel: Success for " + channel.getName() + " - Title: " + title);
+                    } else {
+                        Log.d(TV_TAG, "fetchEpgDataForChannel: No EPG listings found for " + channel.getName());
+                        channel.setCurrentEpgTitle(getString(R.string.epg_not_available_short)); // Placeholder for "N/A" or "No Info"
+                    }
+                } else {
+                    Log.e(TV_TAG, "fetchEpgDataForChannel: HTTP error for " + channel.getName() + " - Code: " + responseCode);
+                    channel.setCurrentEpgTitle(getString(R.string.epg_error_fetch)); // Placeholder for "EPG Load Error"
+                }
+            } catch (IOException e) {
+                Log.e(TV_TAG, "fetchEpgDataForChannel: IOException for " + channel.getName(), e);
+                channel.setCurrentEpgTitle(getString(R.string.epg_error_network)); // Placeholder for "Network Error"
+            } catch (JSONException e) {
+                Log.e(TV_TAG, "fetchEpgDataForChannel: JSONException for " + channel.getName(), e);
+                channel.setCurrentEpgTitle(getString(R.string.epg_error_parse)); // Placeholder for "Data Error"
+            } finally {
+                channel.setEpgFetched(true); // Mark as fetched, whether success or failure, to update UI state
+                if (getActivity() != null && channelAdapter != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (position >= 0 && position < channelAdapter.getItemCount()) {
+                             // Check if the channel object in the adapter is still the same one we fetched for.
+                             // This is a safeguard if the list changes rapidly.
+                            Channel channelInAdapter = channelAdapter.getChannelAtPosition(position); // Requires a new method in adapter
+                            if (channelInAdapter != null && channelInAdapter.getStreamId().equals(channel.getStreamId())) {
+                                channelAdapter.notifyItemChanged(position);
+                                Log.d(TV_TAG, "fetchEpgDataForChannel: Notifying item changed at position " + position + " for " + channel.getName());
+                            } else {
+                                Log.w(TV_TAG, "fetchEpgDataForChannel: Channel at position " + position + " changed or adapter list changed. Skipping notifyItemChanged for " + channel.getName());
+                            }
+                        } else {
+                             Log.w(TV_TAG, "fetchEpgDataForChannel: Invalid position " + position + " or adapter changed. Skipping notifyItemChanged for " + channel.getName());
+                        }
+                    });
+                } else {
+                     Log.w(TV_TAG, "fetchEpgDataForChannel: Activity/Adapter null or fragment not added. Cannot notify item changed for " + channel.getName());
+                }
+            }
+        });
     }
 }

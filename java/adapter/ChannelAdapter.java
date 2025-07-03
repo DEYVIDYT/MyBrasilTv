@@ -57,12 +57,19 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
         Channel channel = channelList.get(position);
         Log.d(CHAN_ADAPTER_TAG, "onBindViewHolder called for position: " + position + ", Channel: " + channel.getName() + ", Adapter list size: " + channelList.size());
         holder.channelName.setText(channel.getName());
-        holder.channelNumber.setText(String.format("%03d", position + 1));
+        holder.channelNumber.setText(String.format("%03d", position + 1)); // This is hidden in XML, but kept for consistency
 
-        holder.channelProgram.setText("Recebendo a programação...");
+        // Display EPG information
+        if (channel.getCurrentEpgTitle() != null && !channel.getCurrentEpgTitle().isEmpty()) {
+            holder.channelProgram.setText(channel.getCurrentEpgTitle());
+        } else if (channel.isEpgFetched()) { // EPG was fetched, but no title (or intentionally empty)
+            holder.channelProgram.setText(holder.itemView.getContext().getString(R.string.epg_not_available));
+        } else { // EPG not fetched yet
+            holder.channelProgram.setText(holder.itemView.getContext().getString(R.string.epg_loading));
+        }
 
         String logoUrl = channel.getLogoUrl();
-        // Log.d(CHAN_ADAPTER_TAG, "Channel: " + channel.getName() + ", Logo URL: " + logoUrl); // Verboso se muitos canais
+        // Log.d(CHAN_ADAPTER_TAG, "Channel: " + channel.getName() + ", Logo URL: " + logoUrl);
 
         if (logoUrl != null && !logoUrl.isEmpty()) {
             Glide.with(holder.itemView.getContext())
@@ -143,5 +150,15 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
             }
         }
         notifyDataSetChanged();
+    }
+
+    // Helper method to get channel at a specific position
+    // This is useful for callbacks or async operations that need to verify
+    // if the item at the position is still the one they expect.
+    public Channel getChannelAtPosition(int position) {
+        if (position >= 0 && position < channelList.size()) {
+            return channelList.get(position);
+        }
+        return null;
     }
 }

@@ -81,4 +81,13 @@
     <string name="profile_logout_button">Logout</string>
     <string name="profile_settings_title">Settings</string>
     <string name="profile_setting_item_placeholder">Example Setting</string>
+
+    <!-- EPG Strings -->
+    <string name="epg_loading">Loading EPG...</string>
+    <string name="epg_not_available">EPG not available</string>
+    <string name="epg_not_available_short">N/A</string>
+    <string name="epg_error_credentials">EPG Error: Credentials</string>
+    <string name="epg_error_fetch">EPG Error: Load Failed</string>
+    <string name="epg_error_network">EPG Error: Network</string>
+    <string name="epg_error_parse">EPG Error: Data Format</string>
 </resources>

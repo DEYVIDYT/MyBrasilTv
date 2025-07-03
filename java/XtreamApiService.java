@@ -203,7 +203,8 @@ public class XtreamApiService {
 
                         // Log.i(API_TAG, "Channel: " + name + ", Final Logo URL to be used: " + fullLogoUrl); // Can be verbose
                         String directSource = String.format("%s/live/%s/%s/%s.ts", this.baseUrl, username, password, streamId);
-                        channels.add(new Channel(name, directSource, fullLogoUrl, categoryId));
+                        // Pass the streamId to the Channel constructor
+                        channels.add(new Channel(name, directSource, fullLogoUrl, categoryId, streamId));
                     }
                     Log.i(API_TAG, "fetchLiveStreams - Successfully parsed " + channels.size() + " channels.");
                     callback.onSuccess(channels);
