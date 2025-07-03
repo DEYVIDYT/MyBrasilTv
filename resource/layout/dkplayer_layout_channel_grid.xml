@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/channel_grid_overlay"
+    android:background="#80000000"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="600dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#FF1A1A1A"
+        android:orientation="horizontal">
+
+        <!-- Categories Section -->
+        <LinearLayout
+            android:layout_width="200dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="#FF0D0D0D">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="CATEGORIAS"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="#FF333333" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_categories_grid"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+        <!-- Channels Section -->
+        <LinearLayout
+            android:layout_width="400dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="#FF1A1A1A">
+
+            <TextView
+                android:id="@+id/tv_category_title"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="TODOS"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="#FF333333" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_channels_grid"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
+
