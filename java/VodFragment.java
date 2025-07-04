@@ -135,21 +135,28 @@ public class VodFragment extends Fragment {
 
     private void loadMovies() {
         Log.d(VOD_TAG, "loadMovies() called");
+        if (!isAdded() || getContext() == null) {
+            Log.w(VOD_TAG, "loadMovies - Fragment not added or context is null. Aborting.");
+            return;
+        }
         showLoading(true);
-        List<Movie> cachedMovies = MovieCacheManager.loadMoviesFromCache(requireContext());
-        Map<String, String> cachedCategoryMap = MovieCacheManager.loadCategoryMapFromCache(requireContext());
+        // Use getContext() instead of requireContext() after checking for null
+        List<Movie> cachedMovies = MovieCacheManager.loadMoviesFromCache(getContext());
+        Map<String, String> cachedCategoryMap = MovieCacheManager.loadCategoryMapFromCache(getContext());
 
-        Log.d(VOD_TAG, "loadMovies - Cached movies size: " + cachedMovies.size());
-        Log.d(VOD_TAG, "loadMovies - Cached category map size: " + cachedCategoryMap.size());
+        Log.d(VOD_TAG, "loadMovies - Cached movies size: " + (cachedMovies != null ? cachedMovies.size() : "null"));
+        Log.d(VOD_TAG, "loadMovies - Cached category map size: " + (cachedCategoryMap != null ? cachedCategoryMap.size() : "null"));
 
-        if (!cachedMovies.isEmpty() && !cachedCategoryMap.isEmpty()) {
+        if (cachedMovies != null && !cachedMovies.isEmpty() && cachedCategoryMap != null && !cachedCategoryMap.isEmpty()) {
             Log.i(VOD_TAG, "loadMovies - Cache HIT: Loaded " + cachedMovies.size() + " movies and category map from cache.");
             allMovies = cachedMovies;
             categoryIdToNameMap = cachedCategoryMap;
             setupAndDisplayMovies();
-            if (!MovieCacheManager.isCacheValid(requireContext())) {
+            if (!MovieCacheManager.isCacheValid(getContext())) {
                  Log.i(VOD_TAG, "loadMovies - Cache is old or incomplete, scheduling a background refresh.");
                  fetchMoviesAndCategoriesFromApi(false);
+            } else {
+                showLoading(false); // Hide loading if cache is valid and used
             }
         } else {
             Log.i(VOD_TAG, "loadMovies - Cache MISS or incomplete: Fetching from API.");
@@ -159,6 +166,11 @@ public class VodFragment extends Fragment {
 
     private void fetchMoviesAndCategoriesFromApi(boolean showInitialLoading) {
         Log.d(VOD_TAG, "fetchMoviesAndCategoriesFromApi called - showInitialLoading: " + showInitialLoading);
+        if (!isAdded() || getContext() == null) {
+             Log.w(VOD_TAG, "fetchMoviesAndCategoriesFromApi - Fragment not usable. Aborting.");
+            if (showInitialLoading) showLoading(false); // Ensure loading is hidden if we abort early
+            return;
+        }
         if (showInitialLoading) {
             showLoading(true);
         }
@@ -166,22 +178,26 @@ public class VodFragment extends Fragment {
         fetchXtreamCredentials(new CredentialsCallback() {
             @Override
             public void onCredentialsReceived(String baseUrl, String username, String password) {
+                if (!isAdded() || getContext() == null) return;
                 Log.d(VOD_TAG, "fetchMoviesAndCategoriesFromApi - CredentialsReceived: " + baseUrl);
                 fetchCategoryNames(baseUrl, username, password, new CategoryFetchCallback() {
                     @Override
                     public void onCategoriesReceived(Map<String, String> categoryMap) {
+                        if (!isAdded() || getContext() == null) return;
                         Log.d(VOD_TAG, "fetchMoviesAndCategoriesFromApi - CategoriesReceived, count: " + categoryMap.size());
                         categoryIdToNameMap = categoryMap;
-                        MovieCacheManager.saveCategoryMapToCache(requireContext(), categoryIdToNameMap);
+                        MovieCacheManager.saveCategoryMapToCache(getContext(), categoryIdToNameMap);
 
                         XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
                         apiService.fetchVodStreams(new XtreamApiService.XtreamApiCallback<Movie>() {
                             @Override
                             public void onSuccess(List<Movie> movies) {
-                                MovieCacheManager.saveMoviesToCache(requireContext(), movies);
+                                if (!isAdded() || getContext() == null) return;
+                                MovieCacheManager.saveMoviesToCache(getContext(), movies);
                                 allMovies = movies;
                                 if (getActivity() != null) {
-                                    getActivity().runOnUiThread(() -> { // Log já existe na API Service, mas um aqui também é bom
+                                    getActivity().runOnUiThread(() -> {
+                                        if (!isAdded()) return;
                                         Log.i(VOD_TAG, "fetchMoviesAndCategoriesFromApi - VOD Streams onSuccess, count: " + movies.size());
                                         setupAndDisplayMovies();
                                         if (showInitialLoading) showLoading(false);
@@ -191,28 +207,30 @@ public class VodFragment extends Fragment {
 
                             @Override
                             public void onFailure(String error) {
-                                if (getActivity() != null) {
-                                    getActivity().runOnUiThread(() -> {
-                                        if (showInitialLoading) showLoading(false);
-                                        Toast.makeText(getContext(), getString(R.string.error_loading_vod_streams, error), Toast.LENGTH_LONG).show();
-                                        Log.e(VOD_TAG, "fetchMoviesAndCategoriesFromApi - VOD API Error: " + error);
-                                    });
-                                }
+                                if (!isAdded() || getActivity() == null) return;
+                                getActivity().runOnUiThread(() -> {
+                                    if (!isAdded() || getContext() == null) return;
+                                    if (showInitialLoading) showLoading(false);
+                                    Toast.makeText(getContext(), getString(R.string.error_loading_vod_streams, error), Toast.LENGTH_LONG).show();
+                                    Log.e(VOD_TAG, "fetchMoviesAndCategoriesFromApi - VOD API Error: " + error);
+                                });
                             }
                         });
                     }
                     @Override
                     public void onCategoryFetchFailure(String error) {
+                        if (!isAdded() || getContext() == null) return;
                         Log.w(VOD_TAG, "fetchMoviesAndCategoriesFromApi - Failed to fetch category names ("+error+"), proceeding to fetch movies.");
-                        // Mesmo com falha nas categorias, tenta buscar filmes
                         XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
                         apiService.fetchVodStreams(new XtreamApiService.XtreamApiCallback<Movie>() {
                             @Override
                             public void onSuccess(List<Movie> movies) {
-                                MovieCacheManager.saveMoviesToCache(requireContext(), movies);
+                                if (!isAdded() || getContext() == null) return;
+                                MovieCacheManager.saveMoviesToCache(getContext(), movies);
                                 allMovies = movies;
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> {
+                                        if (!isAdded() || getContext() == null) return;
                                         Log.i(VOD_TAG, "fetchMoviesAndCategoriesFromApi (after cat failure) - VOD Streams onSuccess, count: " + movies.size());
                                         setupAndDisplayMovies();
                                         if (showInitialLoading) showLoading(false);
@@ -222,13 +240,13 @@ public class VodFragment extends Fragment {
                             }
                              @Override
                             public void onFailure(String movieError) {
-                                if (getActivity() != null) {
-                                    getActivity().runOnUiThread(() -> {
-                                        if (showInitialLoading) showLoading(false);
-                                        Toast.makeText(getContext(), getString(R.string.error_loading_vod_streams, movieError), Toast.LENGTH_LONG).show();
-                                        Log.e(VOD_TAG, "fetchMoviesAndCategoriesFromApi (after cat failure) - VOD API Error: " + movieError);
-                                    });
-                                }
+                                 if (!isAdded() || getActivity() == null) return;
+                                getActivity().runOnUiThread(() -> {
+                                    if (!isAdded() || getContext() == null) return;
+                                    if (showInitialLoading) showLoading(false);
+                                    Toast.makeText(getContext(), getString(R.string.error_loading_vod_streams, movieError), Toast.LENGTH_LONG).show();
+                                    Log.e(VOD_TAG, "fetchMoviesAndCategoriesFromApi (after cat failure) - VOD API Error: " + movieError);
+                                });
                             }
                         });
                     }
@@ -236,13 +254,13 @@ public class VodFragment extends Fragment {
             }
             @Override
             public void onCredentialsFailure(String error) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        if (showInitialLoading) showLoading(false);
-                        Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
-                        Log.e(VOD_TAG, "fetchMoviesAndCategoriesFromApi - Credentials Error: " + error);
-                    });
-                }
+                if (!isAdded() || getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    if (!isAdded() || getContext() == null) return;
+                    if (showInitialLoading) showLoading(false);
+                    Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
+                    Log.e(VOD_TAG, "fetchMoviesAndCategoriesFromApi - Credentials Error: " + error);
+                });
             }
         });
     }
@@ -255,6 +273,13 @@ public class VodFragment extends Fragment {
     private void fetchXtreamCredentials(CredentialsCallback callback) {
         executor.execute(() -> {
             Log.d(VOD_TAG, "fetchXtreamCredentials called");
+            if (!isAdded() || getContext() == null) { // Early exit
+                Log.w(VOD_TAG, "fetchXtreamCredentials - Fragment not usable, aborting.");
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> callback.onCredentialsFailure("Fragment not available"));
+                }
+                return;
+            }
             try {
                 URL url = new URL("http://mybrasiltv.x10.mx/GetLoguin.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -295,89 +320,56 @@ public class VodFragment extends Fragment {
 
     private void setupAndDisplayMovies() {
         Log.d(VOD_TAG, "setupAndDisplayMovies called");
+        if (!isAdded() || getContext() == null || getView() == null) {
+            Log.w(VOD_TAG, "setupAndDisplayMovies - Fragment not in a usable state. Aborting.");
+            showLoading(false); // Attempt to hide loading if called in bad state
+            return;
+        }
 
         if (allMovies == null || allMovies.isEmpty()) {
-            Log.w(VOD_TAG, "setupAndDisplayMovies - No movies to display (allMovies is null or empty).");
+            Log.w(VOD_TAG, "setupAndDisplayMovies - No movies to display.");
             Map<String, List<Movie>> emptyMap = new LinkedHashMap<>();
             if (categoryAdapter == null) {
-                // Se o adapter não existe, criamos um novo com dados vazios.
-                // Isso pode acontecer se setupAndDisplayMovies for chamado antes de qualquer carregamento bem-sucedido.
-                if (getContext() != null) { // Evitar crash se o contexto for nulo
-                    categoryAdapter = new CategoryAdapter(getContext(), emptyMap);
-                    Log.d(VOD_TAG, "setupAndDisplayMovies - Created new empty CategoryAdapter.");
-                } else {
-                    Log.e(VOD_TAG, "setupAndDisplayMovies - Context is null, cannot create CategoryAdapter.");
-                    showLoading(false);
-                    return; // Não podemos prosseguir sem contexto
-                }
+                categoryAdapter = new CategoryAdapter(getContext(), emptyMap);
+                Log.d(VOD_TAG, "setupAndDisplayMovies - Created new empty CategoryAdapter.");
             } else {
-                // Se o adapter já existe, apenas atualizamos com dados vazios.
-                Log.d(VOD_TAG, "setupAndDisplayMovies - Clearing existing CategoryAdapter.");
                 categoryAdapter.updateData(emptyMap);
+                Log.d(VOD_TAG, "setupAndDisplayMovies - Cleared existing CategoryAdapter.");
             }
-            // Sempre defina o adapter na RecyclerView para garantir que a UI reflita o estado vazio.
             if (mainRecyclerView != null) {
                 mainRecyclerView.setAdapter(categoryAdapter);
-                Log.d(VOD_TAG, "setupAndDisplayMovies - Set empty/cleared adapter to mainRecyclerView.");
             } else {
-                Log.e(VOD_TAG, "setupAndDisplayMovies - mainRecyclerView is null, cannot set empty adapter.");
+                 Log.e(VOD_TAG, "setupAndDisplayMovies - mainRecyclerView is null, cannot set empty adapter.");
             }
             showLoading(false);
             return;
         }
 
-        // Agrupar filmes por categoria
         Map<String, List<Movie>> moviesByCategory = allMovies.stream()
                 .collect(Collectors.groupingBy(movie -> {
                     String categoryId = movie.getCategory();
-                    // Usar getString para "Outros"
-                    return categoryIdToNameMap.getOrDefault(categoryId, getContext() != null ? getContext().getString(R.string.label_other_category) : "Outros");
-                }, LinkedHashMap::new, Collectors.toList())); // Manter a ordem de inserção
-        Log.d(VOD_TAG, "setupAndDisplayMovies - Movies grouped by category. Number of categories: " + moviesByCategory.size());
-
-        // Se 'All' for uma categoria, mover para o início ou tratar separadamente
-        // No novo layout, 'All' não faz sentido como uma categoria separada, mas sim como um filtro.
-        // Aqui, estamos exibindo todas as categorias disponíveis.
+                    return categoryIdToNameMap.getOrDefault(categoryId, getContext().getString(R.string.label_other_category));
+                }, LinkedHashMap::new, Collectors.toList()));
+        Log.d(VOD_TAG, "setupAndDisplayMovies - Movies grouped, category count: " + moviesByCategory.size());
 
         if (categoryAdapter == null) {
-            Log.d(VOD_TAG, "setupAndDisplayMovies - Creating new CategoryAdapter with movie data.");
-            if (getContext() != null) {
-                categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory, this::openMovieDetails);
-            } else {
-                Log.e(VOD_TAG, "setupAndDisplayMovies - Context is null, cannot create CategoryAdapter with movie data.");
-                showLoading(false);
-                return; // Não podemos prosseguir sem contexto
-            }
+            categoryAdapter = new CategoryAdapter(getContext(), moviesByCategory, this::openMovieDetails);
         } else {
-            Log.d(VOD_TAG, "setupAndDisplayMovies - Updating existing CategoryAdapter with movie data.");
             categoryAdapter.updateData(moviesByCategory);
-            categoryAdapter.setOnMovieClickListener(this::openMovieDetails);
+            categoryAdapter.setOnMovieClickListener(this::openMovieDetails); // Ensure listener is set
         }
 
         if (mainRecyclerView != null) {
-            // Sempre (re)defina o adapter na RecyclerView.
-            // Isso é crucial se a view do fragmento (e, portanto, mainRecyclerView) foi recriada.
             mainRecyclerView.setAdapter(categoryAdapter);
-            Log.d(VOD_TAG, "setupAndDisplayMovies - Adapter with data set/reset on mainRecyclerView.");
-
-            // Garantir que o LayoutManager também esteja presente.
             if (mainRecyclerView.getLayoutManager() == null) {
-                Log.w(VOD_TAG, "setupAndDisplayMovies - LayoutManager was null, re-setting.");
-                if (getContext() != null) {
-                    mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-                } else {
-                    Log.e(VOD_TAG, "setupAndDisplayMovies - Context is null, cannot set LayoutManager.");
-                }
+                mainRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
             }
         } else {
-            Log.e(VOD_TAG, "setupAndDisplayMovies - mainRecyclerView is null! Cannot set adapter with data.");
+            Log.e(VOD_TAG, "setupAndDisplayMovies - mainRecyclerView is null! Cannot set adapter.");
         }
-
         showLoading(false);
     }
 
-    // O método setupCategoryChips não é mais necessário com o novo layout
-    // private void setupCategoryChips(List<Movie> movies) { ... }
 
     private interface CategoryFetchCallback {
         void onCategoriesReceived(Map<String, String> categoryMap);
@@ -386,28 +378,34 @@ public class VodFragment extends Fragment {
 
     private void fetchCategoryNames(String baseUrl, String username, String password, CategoryFetchCallback callback) {
         Log.d(VOD_TAG, "fetchCategoryNames called");
+        if (!isAdded()){ // Early exit
+            Log.w(VOD_TAG, "fetchCategoryNames - Fragment not added. Aborting.");
+            callback.onCategoryFetchFailure("Fragment not available"); // Notify failure
+            return;
+        }
         XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
         apiService.fetchVodCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
             @Override
             public void onSuccess(List<XtreamApiService.CategoryInfo> categoryInfos) {
-                Map<String, String> tempMap = new LinkedHashMap<>(); // Usar LinkedHashMap para manter a ordem
+                if (!isAdded() || getActivity() == null) return;
+                Map<String, String> tempMap = new LinkedHashMap<>();
                 for (XtreamApiService.CategoryInfo catInfo : categoryInfos) {
                     tempMap.put(catInfo.id, catInfo.name);
-                    // Log.d(VOD_TAG, "Fetched category: ID=" + catInfo.id + ", Name=" + catInfo.name); // Pode ser muito verboso
                 }
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        Log.i(VOD_TAG, "fetchCategoryNames - onSuccess, category count: " + tempMap.size());
-                        callback.onCategoriesReceived(tempMap);
-                    });
-                }
+                getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
+                    Log.i(VOD_TAG, "fetchCategoryNames - onSuccess, category count: " + tempMap.size());
+                    callback.onCategoriesReceived(tempMap);
+                });
             }
 
             @Override
             public void onFailure(String error) {
+                if (!isAdded() || getActivity() == null) return;
                 Log.e(VOD_TAG, "fetchCategoryNames - onFailure: " + error);
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> callback.onCategoryFetchFailure(error));
+                getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
+                    callback.onCategoryFetchFailure(error);
                 }
             }
         });
@@ -415,9 +413,14 @@ public class VodFragment extends Fragment {
 
 
     private void showLoading(boolean isLoading) {
-        progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        mainRecyclerView.setVisibility(isLoading ? View.GONE : View.VISIBLE);
-        // chipGroupCategories.setVisibility(isLoading ? View.GONE : View.VISIBLE); // Não será mais usado
+        if (!isAdded() || getView() == null) return; // Check if view is available
+
+        if (progressBar != null) {
+            progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        }
+        if (mainRecyclerView != null) {
+            mainRecyclerView.setVisibility(isLoading ? View.GONE : View.VISIBLE);
+        }
     }
 
     @Override

@@ -588,53 +588,57 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     private void loadInitialData() {
-        Log.d(TV_TAG, "loadInitialData called - FRAGMENT RE-ENTRY OR INITIAL CREATION");
-        showLoading(true);
-        // It\'s important to see if search text is already present here
-        Log.d(TV_TAG, "loadInitialData - Current search text before any clearing: \'" + (searchEditText != null ? searchEditText.getText().toString() : "searchEditText is null") + "\' ");
-        if (searchEditText != null) {
-             // searchEditText.setText(""); // Clearing search text is already in onCreateView. Let\'s log before it.
-             Log.d(TV_TAG, "loadInitialData - Search text after onCreateView\'s potential clear: \'" + searchEditText.getText().toString() + "\' ");
+        Log.d(TV_TAG, "loadInitialData called");
+        if (!isAdded() || getContext() == null) {
+            Log.w(TV_TAG, "loadInitialData - Fragment not added or context is null. Aborting.");
+            return;
         }
+
+        showLoading(true);
+        Log.d(TV_TAG, "loadInitialData - Current search text: \'" + (searchEditText != null ? searchEditText.getText().toString() : "searchEditText is null") + "\' ");
 
         fetchXtreamCredentials(new CredentialsCallback() {
             @Override
             public void onCredentialsReceived(String baseUrl, String username, String password) {
-                // Initialize EPG service with credentials
+                if (!isAdded() || getContext() == null) return;
                 epgService = new EpgService(baseUrl, username, password);
                 Log.d(TV_TAG, "EPG Service initialized with baseUrl: " + baseUrl);
-                
+
                 fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
                     @Override
                     public void onCategoriesReceived(Map<String, String> receivedCategoryMap) {
+                        if (!isAdded() || getContext() == null) return;
                         Log.d(TV_TAG, "loadInitialData - onCategoriesReceived, categoryMap size: " + receivedCategoryMap.size());
-                        mFetchedCategoryMap = receivedCategoryMap; // Armazena o mapa de categorias
-                        // Carrega todos os canais inicialmente (ou a primeira categoria, se preferir)
-                        // Para carregar "Todos", passamos null ou um ID específico como "0"
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0", mFetchedCategoryMap); // Passa o mapa armazenado
+                        mFetchedCategoryMap = receivedCategoryMap;
+                        fetchLiveChannelsFromApi(baseUrl, username, password, "0", mFetchedCategoryMap);
                     }
 
                     @Override
                     public void onCategoryFailure(String error) {
+                        if (!isAdded() || getContext() == null) return;
                         Log.e(TV_TAG, "loadInitialData - onCategoryFailure: " + error);
                         if (getActivity() != null) {
                             getActivity().runOnUiThread(() -> {
-                                Toast.makeText(getContext(), getString(R.string.error_loading_categories, error), Toast.LENGTH_LONG).show();
+                                if (getContext() != null) { // Check context again for Toast
+                                    Toast.makeText(getContext(), getString(R.string.error_loading_categories, error), Toast.LENGTH_LONG).show();
+                                }
                                 showLoading(false);
                             });
                         }
-                        // Tenta carregar canais mesmo se as categorias falharem, talvez com categoryId nulo (todos)
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0");
+                        fetchLiveChannelsFromApi(baseUrl, username, password, "0"); // Try loading all channels
                     }
                 });
             }
 
             @Override
             public void onCredentialsFailure(String error) {
+                if (!isAdded() || getContext() == null) return;
                 Log.e(TV_TAG, "loadInitialData - onCredentialsFailure: " + error);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
+                        if (getContext() != null) { // Check context again for Toast
+                            Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
+                        }
                         showLoading(false);
                     });
                 }
@@ -643,14 +647,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     private void showLoading(boolean isLoading) {
+        if (!isAdded() || getView() == null) return; // Check if view is available
+
         if (playerProgressBar != null) {
             playerProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         }
         if (playerLoadingTextView != null) {
-            // Opcional: mostrar/esconder texto de loading junto com a barra
             // playerLoadingTextView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         }
-        // Log.d(TV_TAG, "showLoading called with: " + isLoading); // Pode ser muito verboso
     }
 
     // Helper para converter estado do player em string para logs
@@ -703,6 +707,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private void fetchXtreamCredentials(CredentialsCallback callback) {
         executor.execute(() -> {
             Log.d(TV_TAG, "fetchXtreamCredentials called");
+            if (!isAdded() || getContext() == null) { // Early exit if fragment not in good state
+                Log.w(TV_TAG, "fetchXtreamCredentials - Fragment not usable, aborting.");
+                // Optionally call callback.onCredentialsFailure on UI thread if needed
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> callback.onCredentialsFailure("Fragment not available"));
+                }
+                return;
+            }
             try {
                 URL url = new URL("http://mybrasiltv.x10.mx/GetLoguin.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -749,25 +761,31 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             apiService.fetchLiveStreamCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
                 @Override
                 public void onSuccess(List<XtreamApiService.CategoryInfo> data) {
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            Log.d(TV_TAG, "fetchLiveCategoriesFromApi - onSuccess, category count: " + data.size());
-                            Map<String, String> categoryMap = new java.util.HashMap<>();
-                            for (XtreamApiService.CategoryInfo categoryInfo : data) {
-                                categoryMap.put(categoryInfo.id, categoryInfo.name);
-                            }
-                            callback.onCategoriesReceived(categoryMap);
+                    if (!isAdded() || getActivity() == null || getContext() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) return; // Check again inside runOnUiThread
+                        Log.d(TV_TAG, "fetchLiveCategoriesFromApi - onSuccess, category count: " + data.size());
+                        Map<String, String> categoryMap = new java.util.HashMap<>();
+                        for (XtreamApiService.CategoryInfo categoryInfo : data) {
+                            categoryMap.put(categoryInfo.id, categoryInfo.name);
+                        }
+                        callback.onCategoriesReceived(categoryMap);
+                        if (recyclerViewCategories != null) {
                             LiveCategoryAdapter categoryAdapter = new LiveCategoryAdapter(getContext(), data, categoryId -> fetchLiveChannelsFromApi(baseUrl, username, password, categoryId));
                             recyclerViewCategories.setAdapter(categoryAdapter);
-                        });
-                    }
+                        } else {
+                            Log.w(TV_TAG, "fetchLiveCategoriesFromApi - recyclerViewCategories is null, cannot set adapter.");
+                        }
+                    });
                 }
 
                 @Override
                 public void onFailure(String error) {
+                    if (!isAdded() || getActivity() == null) return;
                     Log.e(TV_TAG, "fetchLiveCategoriesFromApi - onFailure: " + error);
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> callback.onCategoryFailure(error));
+                    getActivity().runOnUiThread(() -> {
+                         if (!isAdded()) return; // Check again inside runOnUiThread
+                         callback.onCategoryFailure(error);
                     }
                 }
             });
@@ -786,84 +804,73 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             apiService.fetchLiveStreams(new XtreamApiService.XtreamApiCallback<Channel>() {
                 @Override
                 public void onSuccess(List<Channel> data) {
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess START");
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Category ID: " + categoryId);
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Channels from API (data.size()): " + data.size());
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Current search text: \'" + searchEditText.getText().toString() + "\' ");
+                    if (!isAdded() || getActivity() == null || getContext() == null) return;
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) return; // Check again
+                        Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess START");
+                        Log.d(TV_TAG, "fetchLiveChannelsFromApi - Category ID: " + categoryId);
+                        Log.d(TV_TAG, "fetchLiveChannelsFromApi - Channels from API (data.size()): " + data.size());
+                        if (searchEditText != null) {
+                             Log.d(TV_TAG, "fetchLiveChannelsFromApi - Current search text: \'" + searchEditText.getText().toString() + "\' ");
+                        }
 
-                            allChannels.clear();
-                            allChannels.addAll(data); // Armazena todos os canais recebidos
 
-                            List<Channel> filteredChannels = new ArrayList<>();
-                            if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) { // "0" ou nulo pode ser "Todos os canais"
-                                filteredChannels.addAll(allChannels);
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Filtering for \'All Channels\' or initial load.");
-                            } else {
-                                for (Channel channel : allChannels) {
-                                    if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
-                                        filteredChannels.add(channel);
-                                    }
+                        allChannels.clear();
+                        allChannels.addAll(data);
+
+                        List<Channel> filteredChannels = new ArrayList<>();
+                        if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) {
+                            filteredChannels.addAll(allChannels);
+                        } else {
+                            for (Channel channel : allChannels) {
+                                if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
+                                    filteredChannels.add(channel);
                                 }
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Filtering for specific category ID: " + categoryId);
                             }
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Size of filteredChannels (after category filter): " + filteredChannels.size());
+                        }
+                        Log.d(TV_TAG, "fetchLiveChannelsFromApi - Size of filteredChannels: " + filteredChannels.size());
 
-                            if (channelAdapter == null) {
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter is null, creating new adapter.");
-                                channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
-                                // recyclerViewChannels.setAdapter(channelAdapter); // Moved down
-                            } else {
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter exists, calling updateData.");
-                                channelAdapter.updateData(filteredChannels);
-                            }
+                        if (channelAdapter == null) {
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter is null, creating new adapter.");
+                            channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
+                        } else {
+                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - ChannelAdapter exists, calling updateData.");
+                            channelAdapter.updateData(filteredChannels);
+                        }
 
-                            // ALWAYS set or re-set the adapter to the RecyclerView instance from the current view
-                            if (recyclerViewChannels != null && channelAdapter != null) {
-                                recyclerViewChannels.setAdapter(channelAdapter);
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - recyclerViewChannels.setAdapter() called.");
-                            } else {
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - recyclerViewChannels or channelAdapter is null, setAdapter skipped.");
-                            }
+                        if (recyclerViewChannels != null) {
+                            recyclerViewChannels.setAdapter(channelAdapter);
+                        } else {
+                             Log.w(TV_TAG, "fetchLiveChannelsFromApi - recyclerViewChannels is null, cannot set adapter.");
+                        }
 
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after updateData/creation and setAdapter: " + (channelAdapter != null ? channelAdapter.getItemCount() : "null adapter"));
-
+                        if (searchEditText != null && channelAdapter != null) {
                             String currentSearchText = searchEditText.getText().toString();
                             Log.d(TV_TAG, "fetchLiveChannelsFromApi - Re-applying search filter with text: \'" + currentSearchText + "\' ");
-                            if (channelAdapter != null) { // Ensure adapter exists before filtering
-                                channelAdapter.filterList(currentSearchText); // Reaplicar filtro de busca
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - Adapter item count after filterList: " + channelAdapter.getItemCount());
-                            } else {
-                                Log.d(TV_TAG, "fetchLiveChannelsFromApi - channelAdapter is null, filterList skipped.");
-                            }
+                            channelAdapter.filterList(currentSearchText);
+                        }
 
-                            // Atualizar ChannelGridView com os novos dados de canais
-                            if (mChannelGridView != null) {
-                                // Usar o mFetchedCategoryMap armazenado para garantir que a grade sempre tenha todas as categorias
-                                mChannelGridView.setChannelsData(allChannels, mFetchedCategoryMap);
-                            }
+                        if (mChannelGridView != null) {
+                            mChannelGridView.setChannelsData(allChannels, mFetchedCategoryMap);
+                        }
 
-                            // Após carregar os canais, buscar o EPG para cada um
-                            fetchEpgForAllChannels();
-
-                            showLoading(false);
-                            Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess END");
-                        });
-                    }
+                        fetchEpgForAllChannels();
+                        showLoading(false);
+                        Log.d(TV_TAG, "fetchLiveChannelsFromApi - onSuccess END");
+                    });
                 }
 
                 @Override
                 public void onFailure(String error) {
+                    if (!isAdded() || getActivity() == null) return;
                     Log.e(TV_TAG, "fetchLiveChannelsFromApi - onFailure for categoryId: " + categoryId + ", Error: " + error);
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            Toast.makeText(getContext(), getString(R.string.error_loading_channels, error), Toast.LENGTH_LONG).show();
-                            if (channelAdapter != null) {
-                                channelAdapter.updateData(new ArrayList<>()); // Limpa canais em caso de falha
-                            }
-                            showLoading(false);
-                        });
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) return; // Check again
+                        Toast.makeText(getContext(), getString(R.string.error_loading_channels, error), Toast.LENGTH_LONG).show();
+                        if (channelAdapter != null) {
+                            channelAdapter.updateData(new ArrayList<>());
+                        }
+                        showLoading(false);
                     }
                 }
             });
@@ -879,44 +886,44 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         Log.d(TV_TAG, "Fetching EPG for all " + allChannels.size() + " channels.");
         // Usar um executor para não bloquear a UI thread
         executor.execute(() -> {
+            if (!isAdded()) return; // Check if fragment is still added before starting background work
             for (Channel channel : allChannels) {
-                if (channel.getStreamId() != null) {
+                if (!isAdded()) break; // Check before each iteration
+                if (channel.getStreamId() != null && epgService != null) { // Added null check for epgService
                     epgService.fetchShortEpg(channel.getStreamId(), 1, new EpgService.EpgCallback() {
                         @Override
                         public void onSuccess(List<EpgProgram> programs) {
-                            if (getActivity() != null && !programs.isEmpty()) {
-                                getActivity().runOnUiThread(() -> {
-                                    EpgProgram currentProgram = programs.get(0);
-                                    try {
-                                        byte[] data = Base64.decode(currentProgram.getTitle(), Base64.DEFAULT);
-                                        String decodedTitle = new String(data, "UTF-8");
-                                        if (channelAdapter != null) {
-                                            channelAdapter.updateChannelProgram(channel.getStreamId(), decodedTitle);
-                                        }
-                                    } catch (IllegalArgumentException e) {
-                                        Log.e(TV_TAG, "Base64 decoding error for EPG title: " + currentProgram.getTitle(), e);
-                                        if (channelAdapter != null) {
-                                            channelAdapter.updateChannelProgram(channel.getStreamId(), "Erro de decodificação");
-                                        }
-                                    } catch (java.io.UnsupportedEncodingException e) {
-                                        Log.e(TV_TAG, "UTF-8 encoding not supported.", e);
-                                        if (channelAdapter != null) {
-                                            channelAdapter.updateChannelProgram(channel.getStreamId(), "Erro de codificação");
-                                        }
+                            if (!isAdded() || getActivity() == null || programs.isEmpty()) return;
+                            getActivity().runOnUiThread(() -> {
+                                if (!isAdded()) return; // Check again
+                                EpgProgram currentProgram = programs.get(0);
+                                try {
+                                    byte[] data = Base64.decode(currentProgram.getTitle(), Base64.DEFAULT);
+                                    String decodedTitle = new String(data, "UTF-8");
+                                    if (channelAdapter != null) {
+                                        channelAdapter.updateChannelProgram(channel.getStreamId(), decodedTitle);
                                     }
-                                });
-                            }
+                                } catch (IllegalArgumentException e) {
+                                    Log.e(TV_TAG, "Base64 decoding error for EPG title: " + currentProgram.getTitle(), e);
+                                    if (channelAdapter != null) {
+                                        channelAdapter.updateChannelProgram(channel.getStreamId(), "Erro de decodificação");
+                                    }
+                                } catch (java.io.UnsupportedEncodingException e) {
+                                    Log.e(TV_TAG, "UTF-8 encoding not supported.", e);
+                                    if (channelAdapter != null) {
+                                        channelAdapter.updateChannelProgram(channel.getStreamId(), "Erro de codificação");
+                                    }
+                                }
+                            });
                         }
 
                         @Override
                         public void onFailure(String error) {
+                            if (!isAdded() || getActivity() == null) return;
                             Log.e(TV_TAG, "Failed to fetch EPG for channel " + channel.getName() + ": " + error);
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() -> {
-                                    if (channelAdapter != null) {
-                                        channelAdapter.updateChannelProgram(channel.getStreamId(), "Sem programação");
-                                    }
-                                });
+                            getActivity().runOnUiThread(() -> {
+                                if (!isAdded() || channelAdapter == null) return; // Check again
+                                channelAdapter.updateChannelProgram(channel.getStreamId(), "Sem programação");
                             }
                         }
                     });
