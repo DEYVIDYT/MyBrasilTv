@@ -310,11 +310,8 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
             return;
         }
         // videoViewTv.release(); // Releasing and then immediately using is often problematic.
-        // The VideoView should ideally be reset or just have its source changed.
-        // Let's assume setUrl handles resetting if needed, or use stopPlayback if available.
-        if (videoViewTv.isPlaying()) {
-            videoViewTv.stopPlayback(); // Stop current playback before setting new URL
-        }
+        // Based on VideoPlayerActivity, setUrl and start is the way to initiate playback.
+        // The VideoView itself should handle stopping previous playback and resetting when setUrl is called.
         videoViewTv.setUrl(channel.getStreamUrl());
         videoViewTv.start(); // Start playback of the new stream
         if (mTitleViewComponent != null) {
