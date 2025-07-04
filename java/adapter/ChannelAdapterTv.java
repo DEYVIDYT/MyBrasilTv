@@ -36,30 +36,43 @@ public class ChannelAdapterTv extends RecyclerView.Adapter<ChannelAdapterTv.Chan
     @NonNull
     @Override
     public ChannelViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel, parent, false);
+        // Corrigido para inflar o layout item_channel_tv.xml
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel_tv, parent, false);
         return new ChannelViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ChannelViewHolder holder, int position) {
         Channel channel = channelList.get(position);
-        holder.channelName.setText(channel.getName());
-        holder.channelNumber.setText(String.format("%03d", position + 1));
 
-        if (channel.getCurrentProgramTitle() != null && !channel.getCurrentProgramTitle().isEmpty()) {
-            String programTitle = channel.getCurrentProgramTitle();
-            if (!programTitle.equals("Carregando programação...") && 
-                !programTitle.equals("Programação não disponível") &&
-                !programTitle.equals("Recebendo a programação...")) {
-                holder.channelProgram.setText("Agora: " + programTitle);
+        // Verifica se os TextViews não são nulos antes de usar, como boa prática,
+        // embora com o layout correto isso não deva ser um problema.
+        if (holder.channelName != null) {
+            holder.channelName.setText(channel.getName());
+        }
+
+        // channelNumber não existe em item_channel_tv.xml, então removemos a tentativa de usá-lo.
+        // Se precisar de um número, ele teria que ser adicionado ao layout item_channel_tv.xml
+        // e referenciado no ViewHolder.
+        // holder.channelNumber.setText(String.format("%03d", position + 1));
+
+        if (holder.channelProgram != null) {
+            if (channel.getCurrentProgramTitle() != null && !channel.getCurrentProgramTitle().isEmpty()) {
+                String programTitle = channel.getCurrentProgramTitle();
+                if (!programTitle.equals("Carregando programação...") &&
+                    !programTitle.equals("Programação não disponível") &&
+                    !programTitle.equals("Recebendo a programação...")) {
+                    holder.channelProgram.setText("Agora: " + programTitle);
+                } else {
+                    holder.channelProgram.setText(programTitle);
+                }
             } else {
-                holder.channelProgram.setText(programTitle);
+                holder.channelProgram.setText("Carregando programação...");
             }
-        } else {
-            holder.channelProgram.setText("Carregando programação...");
         }
 
         String logoUrl = channel.getLogoUrl();
+        if (holder.channelLogo != null) {
         if (logoUrl != null && !logoUrl.isEmpty()) {
             Glide.with(holder.itemView.getContext())
                     .load(logoUrl)
@@ -86,16 +99,17 @@ public class ChannelAdapterTv extends RecyclerView.Adapter<ChannelAdapterTv.Chan
 
     public static class ChannelViewHolder extends RecyclerView.ViewHolder {
         ImageView channelLogo;
-        TextView channelNumber;
+        // TextView channelNumber; // Removido pois não existe em item_channel_tv.xml
         TextView channelName;
         TextView channelProgram;
 
         public ChannelViewHolder(@NonNull View itemView) {
             super(itemView);
+            // Os IDs devem corresponder aos definidos em item_channel_tv.xml
             channelLogo = itemView.findViewById(R.id.channel_tv_logo);
-            channelNumber = itemView.findViewById(R.id.channel_number); // Assuming this ID is correct or not used
             channelName = itemView.findViewById(R.id.channel_tv_name);
             channelProgram = itemView.findViewById(R.id.channel_tv_program);
+            // channelNumber = itemView.findViewById(R.id.channel_number); // Removido
         }
     }
 
