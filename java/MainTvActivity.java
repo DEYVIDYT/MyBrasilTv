@@ -25,8 +25,9 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     private int currentSideNavPosition = 0;
     
     private final VodFragment vodFragment = new VodFragment();
-    private final TvFragment tvFragment = new TvFragment();
+    // private final TvFragment tvFragment = new TvFragment(); // Mobile version, not needed here
     private final ProfileFragment profileFragment = new ProfileFragment();
+    private final TvFragmentTv tvFragmentTv = new TvFragmentTv(); // TV version for live channels
     
     private TextView bannerTitle;
     private TextView bannerInfo;
@@ -67,12 +68,13 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     
     private void setupSideNavigation() {
         List<TvSideNavItem> navItems = new ArrayList<>();
-        navItems.add(new TvSideNavItem("Search", R.drawable.ic_search));
-        navItems.add(new TvSideNavItem("Home", R.drawable.ic_home_black_24dp));
-        navItems.add(new TvSideNavItem("Favorites", R.drawable.ic_favorite_border));
-        navItems.add(new TvSideNavItem("Downloads", R.drawable.ic_dashboard_black_24dp));
-        navItems.add(new TvSideNavItem("Settings", R.drawable.ic_help_outline));
-        navItems.add(new TvSideNavItem("Profile", R.drawable.ic_notifications_black_24dp));
+        navItems.add(new TvSideNavItem("Search", R.drawable.ic_search)); // Position 0
+        navItems.add(new TvSideNavItem("Home (VOD)", R.drawable.ic_home_black_24dp)); // Position 1
+        navItems.add(new TvSideNavItem("Live TV", R.drawable.ic_tv)); // Position 2 - New Item for Live TV
+        navItems.add(new TvSideNavItem("Favorites", R.drawable.ic_favorite_border)); // Position 3
+        navItems.add(new TvSideNavItem("Downloads", R.drawable.ic_dashboard_black_24dp)); // Position 4
+        navItems.add(new TvSideNavItem("Settings", R.drawable.ic_help_outline)); // Position 5
+        navItems.add(new TvSideNavItem("Profile", R.drawable.ic_notifications_black_24dp)); // Position 6
         
         sideNavAdapter = new TvSideNavAdapter(navItems, new TvSideNavAdapter.OnNavItemClickListener() {
             @Override
@@ -105,21 +107,30 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
                 Intent searchIntent = new Intent(this, SearchActivity.class);
                 startActivity(searchIntent);
                 break;
-            case 1: // Home/VOD
+            case 1: // Home (VOD)
                 selectedFragment = vodFragment;
                 updateBannerContent("Guardians of the Galaxy", "150min • 2014 • IMDb 8.3 • Action | Adventure | Comedy", 
                                    "Set to the backdrop of 'Awesome Mixtape #1,' Marvel's Guardians of the Galaxy introduces an unlikely cast of cosmic misfits who must team up to save the universe from a fanatical warrior who seeks to purge the galaxy of all emotion.");
+                // Consider clearing banner or setting a generic one for TV if banner is not applicable
                 break;
-            case 2: // Favorites
-                selectedFragment = vodFragment; // Por enquanto usar VOD
+            case 2: // Live TV
+                selectedFragment = tvFragmentTv;
+                // Update banner for Live TV or hide it if not applicable
+                updateBannerContent("Live TV Channels", "Select a channel to start watching.", "");
                 break;
-            case 3: // Downloads
-                selectedFragment = vodFragment; // Por enquanto usar VOD
+            case 3: // Favorites
+                selectedFragment = vodFragment; // Por enquanto usar VOD for Favorites
+                // Update banner accordingly
                 break;
-            case 4: // Settings
+            case 4: // Downloads
+                selectedFragment = vodFragment; // Por enquanto usar VOD for Downloads
+                // Update banner accordingly
+                break;
+            case 5: // Settings
                 selectedFragment = profileFragment;
+                // Update banner accordingly or hide
                 break;
-            case 5: // Profile
+            case 6: // Profile
                 selectedFragment = profileFragment;
                 break;
         }
@@ -171,12 +182,16 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
                 
             case KeyEvent.KEYCODE_BACK:
                 // Voltar para seleção de dispositivo ou sair do app
-                finish();
-                return true;
+                // finish(); // Let's not finish the app on back, but rely on fragment's back behavior or super.onBackPressed()
+                // return true;
+                // The default behavior of onBackPressed should handle fragment backstack or activity finish.
+                // If TvFragmentTv consumes back press, it will return true. Otherwise, super.onBackPressed() will be called.
+                onBackPressed(); // Call our onBackPressed to allow fragment to handle it first
+                return true; // We've handled it by calling onBackPressed
                 
             case KeyEvent.KEYCODE_MENU:
                 // Abrir menu ou configurações
-                handleSideNavClick(4); // Settings
+                handleSideNavClick(5); // Settings is now at index 5
                 return true;
                 
             case KeyEvent.KEYCODE_SEARCH:
@@ -214,12 +229,21 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
         FragmentManager fm = getSupportFragmentManager();
         Fragment currentFragment = fm.findFragmentById(R.id.tv_fragment_container);
         
-        if (currentFragment instanceof TvFragment) {
+        // Check for TvFragmentTv first as it's more specific for TV UI
+        if (currentFragment instanceof TvFragmentTv) {
+            if (((TvFragmentTv) currentFragment).onBackPressed()) {
+                Log.d(TAG, "onBackPressed handled by TvFragmentTv");
+                return;
+            }
+        } else if (currentFragment instanceof TvFragment) { // Fallback for other TvFragment if any
             if (((TvFragment) currentFragment).onBackPressed()) {
+                Log.d(TAG, "onBackPressed handled by TvFragment");
                 return;
             }
         }
-        
+        // Add other fragment checks here if they need custom back press handling (e.g., VodFragment, ProfileFragmentTv)
+
+        Log.d(TAG, "onBackPressed: no fragment handled it, calling super.onBackPressed()");
         super.onBackPressed();
     }
 }

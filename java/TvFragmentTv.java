@@ -150,10 +150,11 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
             @Override
             public void onPlayStateChanged(int playState) {
                 Log.d(TV_TV_TAG, "Player state changed: " + playState);
-                if (playerProgressBarTv == null) {
-                    Log.e(TV_TV_TAG, "playerProgressBarTv is null in onPlayStateChanged!");
+                if (!isAdded() || playerProgressBarTv == null) {
+                    Log.w(TV_TV_TAG, "onPlayStateChanged: Fragment not added or playerProgressBarTv is null. State: " + playState);
                     return;
                 }
+
                 if (playState == VideoView.STATE_PREPARING || playState == VideoView.STATE_BUFFERING) {
                     playerProgressBarTv.setVisibility(View.VISIBLE);
                 } else {
@@ -212,9 +213,11 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     @Override
     public void onError(String errorMessage) {
         Log.e(TV_TV_TAG, "DataManager Error: " + errorMessage);
-        if (isAdded() && getContext() != null) {
+        if (isAdded() && getContext() != null) { // getContext() check is good here
             showLoading(false);
             Toast.makeText(getContext(), "Erro ao carregar dados para TV Ao Vivo: " + errorMessage, Toast.LENGTH_LONG).show();
+        } else {
+            Log.w(TV_TV_TAG, "onError: Fragment not added or context is null. Error: " + errorMessage);
         }
     }
 
@@ -297,14 +300,23 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     private void onChannelSelected(Channel channel) {
         Log.d(TV_TV_TAG, "onChannelSelected: " + channel.getName() + " URL: " + channel.getStreamUrl());
+        if (!isAdded() || getContext() == null) {
+            Log.w(TV_TV_TAG, "onChannelSelected: Fragment not added or context is null.");
+            return;
+        }
         if (videoViewTv == null) {
             Log.e(TV_TV_TAG, "videoViewTv is null in onChannelSelected!");
             Toast.makeText(getContext(), "Erro: Player de vídeo não inicializado.", Toast.LENGTH_LONG).show();
             return;
         }
-        videoViewTv.release();
+        // videoViewTv.release(); // Releasing and then immediately using is often problematic.
+        // The VideoView should ideally be reset or just have its source changed.
+        // Let's assume setUrl handles resetting if needed, or use stopPlayback if available.
+        if (videoViewTv.isPlaying()) {
+            videoViewTv.stopPlayback(); // Stop current playback before setting new URL
+        }
         videoViewTv.setUrl(channel.getStreamUrl());
-        videoViewTv.start();
+        videoViewTv.start(); // Start playback of the new stream
         if (mTitleViewComponent != null) {
            mTitleViewComponent.setTitle(channel.getName());
         } else {
@@ -322,8 +334,12 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         dataManager.getXmltvEpgService().fetchChannelEpg(streamId, new EpgService.EpgCallback() {
             @Override
             public void onSuccess(List<EpgProgram> programs) {
-                if (getActivity() != null) {
+                if (getActivity() != null && isAdded()) { // Added isAdded() check
                     getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) { // Double check inside runOnUiThread
+                            Log.w(TV_TV_TAG, "loadEpgForChannel.onSuccess: Fragment not added or context null in UI thread.");
+                            return;
+                        }
                         Log.d(TV_TV_TAG, "XMLTV EPG loaded successfully for EPG tab: " + programs.size() + " programs");
                         if (epgAdapterTv != null) {
                             epgAdapterTv.updateData(programs);
@@ -331,13 +347,19 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
                             Log.e(TV_TV_TAG, "epgAdapterTv is null in loadEpgForChannel.onSuccess!");
                         }
                     });
+                } else {
+                    Log.w(TV_TV_TAG, "loadEpgForChannel.onSuccess: Fragment not attached or activity is null.");
                 }
             }
 
             @Override
             public void onFailure(String error) {
-                if (getActivity() != null) {
+                if (getActivity() != null && isAdded()) { // Added isAdded() check
                     getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) { // Double check inside runOnUiThread
+                            Log.w(TV_TV_TAG, "loadEpgForChannel.onFailure: Fragment not added or context null in UI thread.");
+                            return;
+                        }
                         Log.e(TV_TV_TAG, "Failed to load XMLTV EPG for EPG tab: " + error);
                         Toast.makeText(getContext(), "Erro ao carregar EPG XMLTV: " + error, Toast.LENGTH_LONG).show();
                         if (epgAdapterTv != null) {
@@ -346,6 +368,8 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
                             Log.e(TV_TV_TAG, "epgAdapterTv is null in loadEpgForChannel.onFailure!");
                         }
                     });
+                } else {
+                    Log.w(TV_TV_TAG, "loadEpgForChannel.onFailure: Fragment not attached or activity is null.");
                 }
             }
         });
