@@ -29,6 +29,15 @@
             android:src="@drawable/dkplayer_ic_action_autorenew"
             app:tint="?attr/colorOnSurface" />
 
+        <ImageView
+            android:id="@+id/iv_channel_grid_toggle"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:src="@drawable/ic_menu"
+            app:tint="?attr/colorOnSurface"
+            android:contentDescription="Toggle Channel Grid"/>
+
         <Space
             android:layout_width="0dp"
             android:layout_height="match_parent"

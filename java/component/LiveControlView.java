@@ -30,6 +30,7 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
     private ImageView mFullScreen;
     private LinearLayout mBottomContainer;
     private ImageView mPlayButton;
+    private ImageView mChannelGridToggle; // New button
 
     public LiveControlView(@NonNull Context context) {
         super(context);
@@ -54,6 +55,8 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
         mPlayButton.setOnClickListener(this);
         ImageView refresh = findViewById(R.id.iv_refresh);
         refresh.setOnClickListener(this);
+        mChannelGridToggle = findViewById(R.id.iv_channel_grid_toggle);
+        mChannelGridToggle.setOnClickListener(this);
     }
 
     @Override
@@ -153,6 +156,20 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
             mControlWrapper.togglePlay();
         } else if (id == R.id.iv_refresh) {
             mControlWrapper.replay(true);
+        } else if (id == R.id.iv_channel_grid_toggle) {
+            toggleChannelGrid();
+        }
+    }
+
+    private void toggleChannelGrid() {
+        if (mControlWrapper == null) return;
+        ChannelGridView channelGridView = mControlWrapper.getControlComponent(ChannelGridView.class);
+        if (channelGridView != null) {
+            if (channelGridView.isChannelGridVisible()) {
+                channelGridView.hideChannelGrid();
+            } else {
+                channelGridView.showChannelGrid();
+            }
         }
     }
 

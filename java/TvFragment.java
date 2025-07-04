@@ -188,17 +188,17 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         
         // Configurar GestureView com listener para clique no lado esquerdo
         mGestureView = new GestureView(getContext());
-        mGestureView.setOnLeftSideClickListener(() -> {
-            if (mChannelGridView != null) {
-                if (mChannelGridView.isChannelGridVisible()) {
-                    mChannelGridView.hideChannelGrid();
-                } else {
-                    mChannelGridView.showChannelGrid();
-                }
-            }
-        });
-        mController.addControlComponent(mGestureView);
-        
+        // mGestureView.setOnLeftSideClickListener(() -> { // REMOVED: Left side click listener
+        //     if (mChannelGridView != null) {
+        //         if (mChannelGridView.isChannelGridVisible()) {
+        //             mChannelGridView.hideChannelGrid();
+        //         } else {
+        //             mChannelGridView.showChannelGrid();
+        //         }
+        //     }
+        // });
+        // mController.addControlComponent(mGestureView); // REMOVED: GestureView no longer added if only for left click
+
         // Configurar ChannelGridView
         mChannelGridView = new ChannelGridView(getContext());
         mChannelGridView.setChannelSelectedListener(channel -> {
@@ -225,7 +225,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                         .show();
             }
         });
-        mController.addControlComponent(vodControlView);
+        // mController.addControlComponent(vodControlView); // REPLACED with LiveControlView
+
+        LiveControlView liveControlView = new LiveControlView(getContext()); // ADDED
+        mController.addControlComponent(liveControlView); // ADDED
 
         // Criar e configurar o TitleView, depois armazenar a referência
         mTitleViewComponent = new TitleView(getContext());
