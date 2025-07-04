@@ -108,5 +108,8 @@
     <string name="select_device_description">Choose the type of device you are using for an optimized experience.</string>
     <string name="mobile_device">Mobile / Tablet</string>
     <string name="android_tv">Android TV</string>
+
+    <!-- Profile TV Fragment -->
+    <string name="profile_change_to_mobile_layout_tv">Mudar para Layout Mobile</string>
     
 </resources>

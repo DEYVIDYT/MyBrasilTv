@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- Imagem de fundo do Hero -->
+    <ImageView
+        android:id="@+id/hero_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="480dp"
+        android:scaleType="centerCrop"
+        tools:src="@tools:sample/backgrounds/scenic" />
+
+    <!-- Overlay com gradiente para legibilidade -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="480dp"
+        android:background="@drawable/hero_section_background_gradient" />
+
+    <!-- Conteúdo do Hero -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="480dp"
+        android:padding="32dp">
+
+        <TextView
+            android:id="@+id/hero_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/text_primary"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/hero_metadata_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintWidth_percent="0.6"
+            tools:text="Título Incrível do Filme ou Série Bem Grande" />
+
+        <LinearLayout
+            android:id="@+id/hero_metadata_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
+            app:layout_constraintStart_toStartOf="@id/hero_title"
+            app:layout_constraintTop_toBottomOf="@id/hero_title"
+            app:layout_constraintBottom_toTopOf="@id/hero_description"
+            app:layout_constraintEnd_toEndOf="@id/hero_title">
+
+            <TextView
+                android:id="@+id/hero_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                tools:text="150 min" />
+
+            <TextView
+                android:id="@+id/hero_year"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                tools:text="2023" />
+
+            <TextView
+                android:id="@+id/hero_rating"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:background="@drawable/accent_highlight_rounded_background"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:textColor="@color/app_background"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="8.3" />
+
+            <TextView
+                android:id="@+id/hero_genres"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                tools:text="Ação | Aventura | Comédia" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/hero_description"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:lineSpacingExtra="4dp"
+            app:layout_constraintStart_toStartOf="@id/hero_title"
+            app:layout_constraintTop_toBottomOf="@id/hero_metadata_container"
+            app:layout_constraintBottom_toTopOf="@id/hero_cast"
+            app:layout_constraintEnd_toEndOf="@id/hero_title"
+            tools:text="Uma breve descrição do filme ou série que pode ocupar algumas linhas para dar uma ideia do que se trata a obra cinematográfica em destaque." />
+
+        <TextView
+            android:id="@+id/hero_cast"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_tertiary"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@id/hero_title"
+            app:layout_constraintTop_toBottomOf="@id/hero_description"
+            app:layout_constraintBottom_toTopOf="@id/hero_actions_container"
+            app:layout_constraintEnd_toEndOf="@id/hero_title"
+            tools:text="Chris Pratt, Zoe Saldana, Dave Bautista" />
+
+
+        <LinearLayout
+            android:id="@+id/hero_actions_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="24dp"
+            app:layout_constraintStart_toStartOf="@id/hero_title"
+            app:layout_constraintTop_toBottomOf="@id/hero_cast"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0.0">
+
+            <Button
+                android:id="@+id/hero_button_watch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Assistir"
+                android:backgroundTint="@color/selection_focus"
+                android:textColor="@color/text_primary"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:focusable="true"
+                android:clickable="true"/>
+
+            <ImageButton
+                android:id="@+id/hero_button_favorite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_favorite_border"
+                app:tint="@color/text_primary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="12dp"
+                android:layout_marginStart="16dp"
+                android:focusable="true"
+                android:clickable="true"
+                android:contentDescription="Adicionar aos Favoritos"/>
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

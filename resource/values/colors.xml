@@ -79,4 +79,7 @@
     <color name="tv_nav_icon_color">@color/icon_inactive</color> <!-- Cor padrão, pode precisar de seletor para estado ativo -->
     <color name="tv_nav_text_color">@color/text_secondary</color> <!-- Cor padrão, pode precisar de seletor para estado ativo -->
 
+    <!-- Cor para gradiente da Hero Section -->
+    <color name="app_background_60_percent_transparent">#990F0F1B</color>
+
 </resources>

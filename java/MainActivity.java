@@ -49,6 +49,11 @@ import android.content.SharedPreferences;
 import androidx.appcompat.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.widget.Button;
+import android.widget.ImageView;
+import java.util.Arrays;
+import java.util.List;
+import android.content.pm.ActivityInfo;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -66,11 +71,30 @@ public class MainActivity extends AppCompatActivity {
     // private NotificationHelper notificationHelper; // Removed if only for login progress
 
     private static final String TAG_BACK_MAIN = "MainActivity_Back";
+    private LinearLayout sidenavContainer;
+    private View lastSelectedSidenavItem = null;
+
+
+    // Helper class for Sidenav items
+    private static class NavItem {
+        final String id;
+        @DrawableRes
+        final int iconResId;
+        final Fragment fragment;
+
+        NavItem(String id, @DrawableRes int iconResId, Fragment fragment) {
+            this.id = id;
+            this.iconResId = iconResId;
+            this.fragment = fragment;
+        }
+    }
+
+    private List<NavItem> tvNavItems;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        // setContentView will be called in initializeApp or showLayoutChooserDialog
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean layoutChosen = prefs.getBoolean(KEY_LAYOUT_CHOSEN, false);
@@ -139,49 +163,138 @@ public class MainActivity extends AppCompatActivity {
         // Aqui você pode adicionar lógica para carregar diferentes UIs ou comportamentos
         // com base em getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE)
         Log.d("MainActivity", "Selected layout: " + getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE));
-
-        BottomNavigationView navView = findViewById(R.id.nav_view);
         String selectedLayout = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE);
 
         if (LAYOUT_TV.equals(selectedLayout)) {
-            navView.setVisibility(View.GONE);
-            Log.d("MainActivity", "TV Layout selected. Hiding BottomNavigationView.");
-            Log.w("MainActivity", "TV Navigation needs to be implemented. User will be on the initial fragment.");
-            // TODO: Implement TV-specific navigation (e.g., side drawer, top tabs)
-        } else {
-            navView.setVisibility(View.VISIBLE);
-            Log.d("MainActivity", "Mobile Layout selected. Showing BottomNavigationView.");
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            setContentView(R.layout.activity_main_tv);
+            Log.d("MainActivity", "TV Layout selected. Inflated activity_main_tv.xml. Orientation set to Landscape.");
+            setupTvSidenav(); // Call to setup Sidenav
+            // Load initial TV fragment - will be handled in setupTvSidenav or immediately after
+        } else { // Mobile layout
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+            setContentView(R.layout.activity_main);
+            Log.d("MainActivity", "Mobile Layout selected. Inflated activity_main.xml. Orientation set to Unspecified.");
+            BottomNavigationView navView = findViewById(R.id.nav_view);
+            // navView.setVisibility(View.VISIBLE); // Default in XML
+
+            loadFragment(vodFragment); // Load initial mobile fragment
+
+            navView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
+                @Override
+                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                    Fragment selectedFragment = null;
+                    int itemId = item.getItemId();
+
+                    if (itemId == R.id.navigation_vod) {
+                        selectedFragment = vodFragment;
+                    } else if (itemId == R.id.navigation_tv) {
+                        selectedFragment = tvFragment;
+                    } else if (itemId == R.id.navigation_profile) {
+                        selectedFragment = profileFragment;
+                    }
+
+                    if (selectedFragment != null) {
+                        loadFragment(selectedFragment);
+                        return true;
+                    }
+                    return false;
+                }
+            });
+        }
+    }
+
+    // Placeholder for setupTvSidenav, loadTvFragment, loadFragment, onBackPressed
+    // These will be added in subsequent steps. For now, ensure initializeApp structure is correct.
+
+    private void setupTvSidenav() {
+        sidenavContainer = findViewById(R.id.sidenav_container);
+        if (sidenavContainer == null) {
+            Log.e("MainActivity", "Sidenav container (R.id.sidenav_container) not found in activity_main_tv.xml");
+            return;
         }
 
-        loadFragment(vodFragment); // Load initial fragment
+        // Define TV navigation items using existing fragments as placeholders
+        tvNavItems = Arrays.asList(
+                new NavItem("VOD", R.drawable.ic_home_black_24dp, vodFragment), // Placeholder for VodFragmentTv
+                new NavItem("TV", R.drawable.ic_dashboard_black_24dp, tvFragment), // Placeholder for TvFragmentTv
+                new NavItem("Profile", R.drawable.ic_notifications_black_24dp, profileFragment) // Placeholder for ProfileFragmentTv
+                // TODO: Add Search (R.drawable.ic_search) if it's a top-level nav item
+        );
 
-        navView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                Fragment selectedFragment = null;
-                int itemId = item.getItemId();
+        LayoutInflater inflater = LayoutInflater.from(this);
+        sidenavContainer.removeAllViews(); // Clear any existing views if re-setup
 
-                if (itemId == R.id.navigation_vod) {
-                    selectedFragment = vodFragment;
-                } else if (itemId == R.id.navigation_tv) {
-                    selectedFragment = tvFragment;
-                } else if (itemId == R.id.navigation_profile) {
-                    selectedFragment = profileFragment;
-                }
+        for (int i = 0; i < tvNavItems.size(); i++) {
+            final NavItem navItem = tvNavItems.get(i); // Final for use in lambda
+            View itemView = inflater.inflate(R.layout.item_tv_side_nav, sidenavContainer, false);
+            ImageView iconView = itemView.findViewById(R.id.sidenav_item_icon);
+            // TextView textView = itemView.findViewById(R.id.sidenav_item_text); // If text is used
 
-                if (selectedFragment != null) {
-                    loadFragment(selectedFragment);
-                    return true;
-                }
-                return false;
+            iconView.setImageResource(navItem.iconResId);
+            // textView.setText(navItem.id);
+
+            // itemView.setTag(navItem.id); // Using the view itself for selection tracking
+            itemView.setOnClickListener(v -> {
+                loadTvFragment(navItem.fragment, v);
+            });
+            sidenavContainer.addView(itemView);
+
+            // Select the first item by default
+            if (i == 0) {
+                loadTvFragment(navItem.fragment, itemView);
+                // itemView.setSelected(true); // Selection handled in loadTvFragment
+                // lastSelectedSidenavItem = itemView; // Selection handled in loadTvFragment
             }
-        });
+        }
+    }
+
+    private void loadTvFragment(Fragment fragment, View selectedView) {
+        Log.d("MainActivity", "Loading TV Fragment: " + fragment.getClass().getSimpleName());
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.tv_fragment_container, fragment);
+        fragmentTransaction.commit();
+
+        // Update Sidenav item selection state
+        if (lastSelectedSidenavItem != null) {
+            lastSelectedSidenavItem.setSelected(false);
+        }
+        if (selectedView != null) {
+            selectedView.setSelected(true);
+            lastSelectedSidenavItem = selectedView;
+        } else {
+            lastSelectedSidenavItem = null; // Should not happen if called from sidenav
+        }
+
+        // Basic focus request. More specific focus might be needed within each TV fragment.
+        // Delay focus request slightly to ensure fragment view is fully ready.
+        if (fragment.getView() != null) {
+             fragment.getView().post(() -> {
+                if (fragment.getView() != null) { // Check again as view might be destroyed
+                    fragment.getView().requestFocus();
+                }
+            });
+        } else {
+            // If view is null, try to request focus once it's available
+            fragmentManager.registerFragmentLifecycleCallbacks(new FragmentManager.FragmentLifecycleCallbacks() {
+                @Override
+                public void onFragmentViewCreated(@NonNull FragmentManager fm, @NonNull Fragment f, @NonNull View v, @Nullable Bundle savedInstanceState) {
+                    super.onFragmentViewCreated(fm, f, v, savedInstanceState);
+                    if (f == fragment) { // Only for the target fragment
+                        v.requestFocus();
+                        fm.unregisterFragmentLifecycleCallbacks(this); // Unregister self
+                    }
+                }
+            }, false);
+        }
     }
 
     private void loadFragment(Fragment fragment) {
+        // This is for mobile layout's R.id.fragment_container
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_container, fragment);
+        fragmentTransaction.replace(R.id.fragment_container, fragment); // R.id.fragment_container is from activity_main.xml
         fragmentTransaction.commit();
     }
 
@@ -190,11 +303,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         Log.d(TAG_BACK_MAIN, "onBackPressed called.");
-        FragmentManager fm = getSupportFragmentManager();
-        Fragment currentFragment = fm.findFragmentById(R.id.fragment_container);
-        Log.d(TAG_BACK_MAIN, "Current fragment: " + (currentFragment != null ? currentFragment.getClass().getName() : "null"));
+        String selectedLayout = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE);
+        int containerId = LAYOUT_TV.equals(selectedLayout) ? R.id.tv_fragment_container : R.id.fragment_container;
 
-        if (currentFragment instanceof TvFragment) {
+        FragmentManager fm = getSupportFragmentManager();
+        Fragment currentFragment = fm.findFragmentById(containerId);
+        Log.d(TAG_BACK_MAIN, "Current fragment: " + (currentFragment != null ? currentFragment.getClass().getName() : "null") + " in container " + containerId);
+
+        if (currentFragment instanceof TvFragment) { // This check might need to be more generic for TV fragments
             Log.d(TAG_BACK_MAIN, "CurrentFragment is TvFragment. Calling its onBackPressed...");
             if (((TvFragment) currentFragment).onBackPressed()) {
                 Log.d(TAG_BACK_MAIN, "TvFragment.onBackPressed() returned true. Event consumed by fragment.");
