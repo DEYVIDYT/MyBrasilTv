@@ -84,6 +84,7 @@ public class ChannelAdapterTv extends RecyclerView.Adapter<ChannelAdapterTv.Chan
                  .load(R.drawable.rounded_corner_image_placeholder)
                  .into(holder.channelLogo);
         }
+    } // Fechamento do "if (holder.channelLogo != null)"
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
