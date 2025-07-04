@@ -11,6 +11,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import android.graphics.drawable.Drawable;
+import android.util.Log; // Import Log
 import com.example.iptvplayer.R;
 import com.example.iptvplayer.data.Channel;
 
@@ -22,6 +27,7 @@ public class ChannelAdapterTv extends RecyclerView.Adapter<ChannelAdapterTv.Chan
     private List<Channel> channelList;
     private List<Channel> channelListFull;
     private OnChannelClickListener listener;
+    private static final String TAG = "ChannelAdapterTv"; // Tag para logs
 
     public interface OnChannelClickListener {
         void onChannelClick(Channel channel);
@@ -78,8 +84,23 @@ public class ChannelAdapterTv extends RecyclerView.Adapter<ChannelAdapterTv.Chan
                     .load(logoUrl)
                     .placeholder(R.drawable.rounded_corner_image_placeholder)
                     .error(R.drawable.rounded_corner_image_placeholder)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                            Log.e(TAG, "Glide onLoadFailed for channel: " + channel.getName() + ", URL: " + model, e);
+                            // Importante retornar false para que o error() drawable seja exibido.
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            // Log.d(TAG, "Glide onResourceReady for " + channel.getName()); // Opcional: log de sucesso
+                            return false;
+                        }
+                    })
                     .into(holder.channelLogo);
         } else {
+            // Se logoUrl for nulo ou vazio, carrega o placeholder diretamente
             Glide.with(holder.itemView.getContext())
                  .load(R.drawable.rounded_corner_image_placeholder)
                  .into(holder.channelLogo);
