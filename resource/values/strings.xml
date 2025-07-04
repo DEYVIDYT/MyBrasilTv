@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DKPlayer Strings (English Default) -->
+    <string name="dkplayer_replay">Replay</string>
+    <string name="dkplayer_lock_tip">Please unlock the screen first!</string>
+    <string name="dkplayer_unlocked">Unlocked</string>
+    <string name="dkplayer_locked">Locked</string>
+    <string name="dkplayer_error_message">Something went wrong, please try again later</string>
+    <string name="dkplayer_retry">  Retry  </string>
+    <string name="dkplayer_continue_play">Continue playing</string>
+    <string name="dkplayer_wifi_tip">You are currently using the mobile network, and continuing to play will consume traffic</string>
+
+    <!-- Application Strings -->
+    <string name="app_name">MyBrasilTV</string>
+    <string name="title_vod">VOD</string>
+    <string name="title_tv">Live TV</string>
+    <string name="title_profile">Profile</string>
+
+    <!-- General UI Strings -->
+    <string name="search_hint_vod">Search movies and series...</string>
+    <string name="search_hint_tv">Search channels...</string>
+    <string name="label_categories">Categories</string>
+    <string name="label_channels">Channels</string>
+    <string name="label_favorites">Favorites</string>
+    <string name="loading_message">Loading...</string>
+    <string name="error_generic">An error occurred.</string>
+    <string name="all_categories">All</string>
+    <string name="vod_group_selector_prompt">Select group ▼</string>
+    <string name="label_other_category">Others</string>
+
+    <!-- Notifications and Connection Strings -->
+    <string name="connecting_xtream_title">Connecting</string>
+    <string name="connecting_xtream_message">Connecting to Xtream server...</string>
+    <string name="connected_xtream_title">Connected</string>
+    <string name="connected_xtream_message">Connection with Xtream server established.</string>
+    <string name="error_xtream_connection_title">Connection Error</string>
+    <string name="error_xtream_connection_message">Failed to connect to Xtream server.</string>
+    <string name="error_login_data_message">Error getting login data: %s</string>
+    <string name="notification_channel_name">IPTV Progress Notifications</string>
+    <string name="notification_channel_description">Notifications for IPTV data loading progress.</string>
+    <string name="error_fetching_credentials">Failed to get credentials: %s</string>
+
+    <!-- Player Strings -->
+    <string name="player_option_speed">Speed</string>
+    <string name="player_option_proportion">Proportion</string>
+    <string name="player_container_not_found_error">Error: Player container not found.</string>
+    <string name="player_not_initialized_error">Player not initialized.</string>
+    <string name="pip_action_play">Play</string>
+    <string name="pip_action_pause">Pause</string>
+    <string name="pip_action_replay">Replay</string>
+
+    <!-- Fragment Titles and Placeholders -->
+    <string name="fragment_vod_title">VOD</string>
+    <string name="fragment_tv_title">Live TV</string>
+    <string name="fragment_profile_title">Profile</string>
+    <string name="profile_placeholder_message">Profile features will be implemented here.</string>
+    <string name="tv_player_loading">Loading Channel...</string>
+    <string name="tv_player_error">Error loading channel.</string>
+    <string name="vod_player_loading">Loading Video...</string>
+    <string name="vod_player_error">Error loading video.</string>
+    <string name="category_title_placeholder">Category Name</string>
+    <string name="movie_title_placeholder">Movie Title</string>
+    <string name="channel_name_placeholder">Channel Name</string>
+    <string name="channel_program_placeholder">Program information unavailable</string>
+    <string name="starting_channel_toast">Starting: %s</string>
+    <string name="invalid_channel_url_error">Invalid channel URL.</string>
+    <string name="error_loading_categories">Failed to load categories: %s</string>
+    <string name="error_loading_channels">Failed to load channels: %s</string>
+    <string name="m3u_loaded_success_toast">M3U loaded successfully!</string>
+    <string name="m3u_load_error_toast">Error loading M3U: %s</string>
+    <string name="notification_permission_required_toast">Notification permission is required to see download progress.</string>
+    <string name="error_loading_vod_streams">Failed to load VOD streams: %s</string>
+    <string name="vod_categories_missing_toast">Movies loaded, but category names might be missing.</string>
+    <string name="download_complete_manual_processing_toast">Download complete (manual processing needed).</string>
+    <string name="download_failed_toast">Download failed.</string>
+
+    <!-- Profile Screen Strings -->
+    <string name="profile_avatar_desc">Profile avatar</string>
+    <string name="profile_name_placeholder">MyBrasilTV</string>
+    <string name="profile_info_placeholder">user@example.com</string>
+    <string name="profile_logout_button">Logout</string>
+    <string name="profile_settings_title">Settings</string>
+    <string name="profile_setting_item_placeholder">Example Setting</string>
+    <string name="search_no_data_to_search">There is no movie data loaded. Please visit the VOD section to load the movies and try again.</string>
+    <string name="no_movie_data_loaded_message">There is no movie data loaded. Please visit the VOD section to load the movies and try again.</string>
+    <string name="xtream_url_hint">Xtream Codes List URL</string>
+    <string name="send_xtream_button_text">Send Xtream Codes List</string>
+    <string name="add_xtream_button_text">Add Xtream Codes List</string>
+    <string name="xtream_dialog_title">Add Xtream Codes List</string>
+    <string name="xtream_dialog_description">This will help keep the app active.</string>
+    <string name="send_button_text">Send</string>
+    <string name="cancel_button_text">Cancel</string>
+    <string name="xtream_url_empty_error">Please enter the Xtream Codes List URL.</string>
+
+    <string name="profile_update_list_button">Update List</string>
+    <string name="profile_open_repository_button">Open Repository</string>
+    <string name="profile_update_list_success">Update request sent. Data will be reloaded in TV and VOD tabs.</string>
+    <string name="profile_update_list_error">Error updating list.</string>
+    <string name="profile_updating_list">Updating list...</string>
+    <string name="profile_opening_repository">Opening repository...</string>
+    <string name="epg_loading">Loading program...</string>
+    <string name="epg_not_available">Program not available</string>
+    <string name="epg_current_program">Now: %s</string>
+    <string name="epg_xmltv_error">Error loading XMLTV EPG</string>
+    
+</resources>

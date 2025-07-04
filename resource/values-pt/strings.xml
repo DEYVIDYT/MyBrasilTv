@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings do DKPlayer Traduzidas -->
+    <string name="dkplayer_replay">Reproduzir Novamente</string>
+    <string name="dkplayer_lock_tip">Por favor, desbloqueie a tela primeiro!</string>
+    <string name="dkplayer_unlocked">Desbloqueado</string>
+    <string name="dkplayer_locked">Bloqueado</string>
+    <string name="dkplayer_error_message">Algo deu errado, tente novamente mais tarde</string>
+    <string name="dkplayer_retry"> Tentar Novamente </string>
+    <string name="dkplayer_continue_play">Continuar</string>
+    <string name="dkplayer_wifi_tip">Você está usando a rede móvel, continuar a reprodução consumirá dados</string>
+
+    <!-- Strings da Aplicação -->
+    <string name="app_name">IPTV Player</string>
+    <string name="title_vod">VOD</string>
+    <string name="title_tv">TV Ao Vivo</string>
+    <string name="title_profile">Perfil</string>
+
+    <!-- Strings para UI Geral -->
+    <string name="search_hint_vod">Buscar filmes e séries...</string>
+    <string name="search_hint_tv">Buscar canais...</string>
+    <string name="label_categories">Categorias</string>
+    <string name="label_channels">Canais</string>
+    <string name="label_favorites">Favoritos</string>
+    <string name="loading_message">Carregando...</string>
+    <string name="error_generic">Ocorreu um erro.</string>
+    <string name="all_categories">Todas</string>
+    <string name="vod_group_selector_prompt">Selecione o grupo ▼</string>
+    <string name="label_other_category">Outros</string>
+
+    <!-- Strings para Notificações e Conexão -->
+    <string name="connecting_xtream_title">Conectando</string>
+    <string name="connecting_xtream_message">Conectando ao servidor Xtream...</string>
+    <string name="connected_xtream_title">Conectado</string>
+    <string name="connected_xtream_message">Conexão com o servidor Xtream estabelecida.</string>
+    <string name="error_xtream_connection_title">Erro de Conexão</string>
+    <string name="error_xtream_connection_message">Falha ao conectar ao servidor Xtream.</string>
+    <string name="error_login_data_message">Erro ao obter dados de login: %s</string>
+    <string name="notification_channel_name">Notificações de Progresso IPTV</string>
+    <string name="notification_channel_description">Notificações para progresso de carregamento de dados IPTV.</string>
+    <string name="error_fetching_credentials">Falha ao obter credenciais: %s</string>
+
+    <!-- Strings para Player -->
+    <string name="player_option_speed">Velocidade</string>
+    <string name="player_option_proportion">Proporção</string>
+    <string name="player_container_not_found_error">Erro: Container do player não encontrado.</string>
+    <string name="player_not_initialized_error">Player não inicializado.</string>
+    <string name="pip_action_play">Reproduzir</string>
+    <string name="pip_action_pause">Pausar</string>
+    <string name="pip_action_replay">Repetir</string>
+
+    <!-- Strings para Fragmentos (Títulos e placeholders) -->
+    <string name="fragment_vod_title">VOD</string>
+    <string name="fragment_tv_title">TV Ao Vivo</string>
+    <string name="fragment_profile_title">Perfil</string>
+    <string name="profile_placeholder_message">Funcionalidades do perfil serão implementadas aqui.</string>
+    <string name="tv_player_loading">Carregando Canal...</string>
+    <string name="tv_player_error">Erro ao carregar canal.</string>
+    <string name="vod_player_loading">Carregando Vídeo...</string>
+    <string name="vod_player_error">Erro ao carregar vídeo.</string>
+    <string name="category_title_placeholder">Nome da Categoria</string>
+    <string name="movie_title_placeholder">Título do Filme</string>
+    <string name="channel_name_placeholder">Nome do Canal</string>
+    <string name="channel_program_placeholder">Informação do programa indisponível</string>
+    <string name="epg_loading">Carregando programação...</string>
+    <string name="epg_not_available">Programação não disponível</string>
+    <string name="epg_current_program">Agora: %s</string>
+    <string name="epg_xmltv_error">Erro ao carregar EPG XMLTV</string>
+    <string name="starting_channel_toast">Iniciando: %s</string>
+    <string name="invalid_channel_url_error">URL do canal inválida.</string>
+    <string name="error_loading_categories">Falha ao carregar categorias: %s</string>
+    <string name="error_loading_channels">Falha ao carregar canais: %s</string>
+    <string name="m3u_loaded_success_toast">M3U carregado com sucesso!</string>
+    <string name="m3u_load_error_toast">Erro ao carregar M3U: %s</string>
+    <string name="notification_permission_required_toast">Permissão para notificações é necessária para ver o progresso do download.</string>
+    <string name="error_loading_vod_streams">Falha ao carregar streams VOD: %s</string>
+    <string name="vod_categories_missing_toast">Filmes carregados, mas nomes de categorias podem estar ausentes.</string>
+    <string name="download_complete_manual_processing_toast">Download completo (processamento manual necessário).</string>
+    <string name="download_failed_toast">Download falhou.</string>
+
+    <!-- Strings para a Tela de Perfil -->
+    <string name="profile_avatar_desc">Avatar do perfil</string>
+    <string name="profile_name_placeholder">MyBrasilTV</string>
+    <string name="profile_info_placeholder">info@exemplo.com</string>
+    <string name="profile_logout_button">Sair</string>
+    <string name="profile_settings_title">Configurações</string>
+    <string name="profile_setting_item_placeholder">Exemplo de Configuração</string>
+    <string name="xtream_url_hint">URL da Lista Xtream Codes</string>
+    <string name="send_xtream_button_text">Enviar Lista Xtream Codes</string>
+    <string name="add_xtream_button_text">Adicionar Lista Xtream Codes</string>
+    <string name="xtream_dialog_title">Adicionar Lista Xtream Codes</string>
+    <string name="xtream_dialog_description">Isso vai ajudar o app ficar ativo.</string>
+    <string name="send_button_text">Enviar</string>
+    <string name="cancel_button_text">Cancelar</string>
+    <string name="xtream_url_empty_error">Por favor, insira a URL da Lista Xtream Codes.</string>
+
+    <string name="profile_update_list_button">Atualizar Lista</string>
+    <string name="profile_open_repository_button">Abrir Repositório</string>
+    <string name="profile_update_list_success">Solicitação de atualização enviada. Os dados serão recarregados nas abas de TV e VOD.</string>
+    <string name="profile_update_list_error">Erro ao atualizar lista.</string>
+    <string name="profile_updating_list">Atualizando lista...</string>
+    <string name="profile_opening_repository">Abrindo repositório...</string>
+</resources>
