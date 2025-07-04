@@ -30,6 +30,7 @@ import com.example.iptvplayer.component.PrepareView;
 import com.example.iptvplayer.component.TitleView;
 import com.example.iptvplayer.component.VodControlView;
 import com.example.iptvplayer.component.ChannelGridView;
+import com.example.iptvplayer.component.LiveControlView; // ADDED IMPORT
 import com.lxj.xpopup.XPopup;
 import android.app.PictureInPictureParams;
 import android.app.RemoteAction;
@@ -228,7 +229,11 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         // mController.addControlComponent(vodControlView); // REPLACED with LiveControlView
 
         LiveControlView liveControlView = new LiveControlView(getContext()); // ADDED
+        if (mChannelGridView != null) { // Ensure mChannelGridView is initialized
+            liveControlView.setChannelGridViewRef(mChannelGridView); // Set the reference
+        }
         mController.addControlComponent(liveControlView); // ADDED
+
 
         // Criar e configurar o TitleView, depois armazenar a referência
         mTitleViewComponent = new TitleView(getContext());

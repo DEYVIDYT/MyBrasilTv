@@ -31,6 +31,7 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
     private LinearLayout mBottomContainer;
     private ImageView mPlayButton;
     private ImageView mChannelGridToggle; // New button
+    private ChannelGridView mChannelGridViewRef; // Reference to ChannelGridView
 
     public LiveControlView(@NonNull Context context) {
         super(context);
@@ -162,15 +163,17 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
     }
 
     private void toggleChannelGrid() {
-        if (mControlWrapper == null) return;
-        ChannelGridView channelGridView = mControlWrapper.getControlComponent(ChannelGridView.class);
-        if (channelGridView != null) {
-            if (channelGridView.isChannelGridVisible()) {
-                channelGridView.hideChannelGrid();
+        if (mChannelGridViewRef != null) {
+            if (mChannelGridViewRef.isChannelGridVisible()) {
+                mChannelGridViewRef.hideChannelGrid();
             } else {
-                channelGridView.showChannelGrid();
+                mChannelGridViewRef.showChannelGrid();
             }
         }
+    }
+
+    public void setChannelGridViewRef(ChannelGridView gridView) {
+        this.mChannelGridViewRef = gridView;
     }
 
     /**
