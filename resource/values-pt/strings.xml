@@ -89,4 +89,11 @@
     <string name="send_button_text">Enviar</string>
     <string name="cancel_button_text">Cancelar</string>
     <string name="xtream_url_empty_error">Por favor, insira a URL da Lista Xtream Codes.</string>
+
+    <string name="profile_update_list_button">Atualizar Lista</string>
+    <string name="profile_open_repository_button">Abrir Repositório</string>
+    <string name="profile_update_list_success">Solicitação de atualização enviada. Os dados serão recarregados nas abas de TV e VOD.</string>
+    <string name="profile_update_list_error">Erro ao atualizar lista.</string>
+    <string name="profile_updating_list">Atualizando lista...</string>
+    <string name="profile_opening_repository">Abrindo repositório...</string>
 </resources>

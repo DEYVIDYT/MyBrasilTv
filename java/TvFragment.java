@@ -36,6 +36,7 @@ import android.app.PictureInPictureParams;
 import android.app.RemoteAction;
 import android.app.PendingIntent;
 import android.content.Intent;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager; // ADDED IMPORT
 import android.graphics.drawable.Icon;
 import java.util.ArrayList;
 import android.util.Rational;
@@ -122,6 +123,17 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private static final String TAG_BACK_TV = "TvFragment_Back"; // Tag para logs do onBackPressed
     private static final String TAG_PLAYER_STATE_TV = "TvFragment_PlayerState"; // Tag para logs de estado do player
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private BroadcastReceiver refreshDataReceiver;
+
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        // Register receiver
+        IntentFilter filter = new IntentFilter(ProfileFragment.ACTION_REFRESH_DATA);
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(refreshDataReceiver, filter);
+        Log.d(TV_TAG, "refreshDataReceiver registered.");
+    }
 
     @Nullable
     @Override
@@ -199,6 +211,19 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         //     }
         // });
         // mController.addControlComponent(mGestureView); // REMOVED: GestureView no longer added if only for left click
+
+        // Broadcast receiver for data refresh
+        refreshDataReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (ProfileFragment.ACTION_REFRESH_DATA.equals(intent.getAction())) {
+                    Log.d(TV_TAG, "ACTION_REFRESH_DATA received. Reloading initial data.");
+                    if (isAdded() && getContext() != null) { // Ensure fragment is attached and context is available
+                        loadInitialData();
+                    }
+                }
+            }
+        };
 
         // Configurar ChannelGridView
         mChannelGridView = new ChannelGridView(getContext());
@@ -908,9 +933,28 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             mVideoView.release();
         }
         if (downloadReceiver != null) {
-            requireActivity().unregisterReceiver(downloadReceiver);
+            try { // It's good practice to wrap unregisterReceiver in a try-catch
+                requireActivity().unregisterReceiver(downloadReceiver);
+            } catch (IllegalArgumentException e) {
+                Log.w(TV_TAG, "downloadReceiver not registered or already unregistered.", e);
+            }
         }
     }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        // Unregister receiver
+        if (refreshDataReceiver != null) {
+            try {
+                LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(refreshDataReceiver);
+                Log.d(TV_TAG, "refreshDataReceiver unregistered.");
+            } catch (IllegalArgumentException e) {
+                Log.w(TV_TAG, "refreshDataReceiver not registered or already unregistered.", e);
+            }
+        }
+    }
+
 
     void updatePictureInPictureActions(
             @DrawableRes int iconId, String title, int controlType, int requestCode) {

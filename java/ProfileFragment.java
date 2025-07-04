@@ -27,9 +27,18 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import android.content.Intent;
+import android.net.Uri;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 public class ProfileFragment extends Fragment {
 
     private MaterialButton addXtreamButton;
+    private MaterialButton updateListButton;
+    private MaterialButton openRepositoryButton;
+
+    public static final String ACTION_REFRESH_DATA = "com.example.iptvplayer.ACTION_REFRESH_DATA";
+
 
     @Nullable
     @Override
@@ -39,7 +48,36 @@ public class ProfileFragment extends Fragment {
         addXtreamButton = view.findViewById(R.id.add_xtream_button);
         addXtreamButton.setOnClickListener(v -> showXtreamInputDialog());
 
+        updateListButton = view.findViewById(R.id.button_update_list);
+        updateListButton.setOnClickListener(v -> handleUpdateList());
+
+        openRepositoryButton = view.findViewById(R.id.button_open_repository);
+        openRepositoryButton.setOnClickListener(v -> handleOpenRepository());
+
         return view;
+    }
+
+    private void handleUpdateList() {
+        Toast.makeText(getContext(), getString(R.string.profile_updating_list), Toast.LENGTH_SHORT).show();
+
+        // Clear VOD cache
+        MovieCacheManager.clearCache(requireContext());
+
+        // Send broadcast to trigger data refresh in TV and VOD fragments
+        Intent intent = new Intent(ACTION_REFRESH_DATA);
+        LocalBroadcastManager.getInstance(requireContext()).sendBroadcast(intent);
+
+        Toast.makeText(getContext(), getString(R.string.profile_update_list_success), Toast.LENGTH_LONG).show();
+    }
+
+    private void handleOpenRepository() {
+        Toast.makeText(getContext(), getString(R.string.profile_opening_repository), Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/DEYVIDYT/MyBrasilTv"));
+        if (intent.resolveActivity(requireActivity().getPackageManager()) != null) {
+            startActivity(intent);
+        } else {
+            Toast.makeText(getContext(), "Nenhum aplicativo encontrado para abrir o link.", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showXtreamInputDialog() {

@@ -46,6 +46,7 @@ import java.util.LinkedHashMap; // Usar LinkedHashMap para manter a ordem das ca
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager; // ADDED IMPORT
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,6 +62,7 @@ public class VodFragment extends Fragment {
     private Map<String, String> categoryIdToNameMap = new LinkedHashMap<>(); // Usar LinkedHashMap
     private static final String VOD_TAG = "VOD_DEBUG"; // Tag para logs
     private DownloadReceiver downloadReceiver;
+    private BroadcastReceiver refreshDataReceiver; // For data refresh
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -114,6 +116,20 @@ public class VodFragment extends Fragment {
         }
 
         loadMovies();
+
+        // Broadcast receiver for data refresh
+        refreshDataReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (ProfileFragment.ACTION_REFRESH_DATA.equals(intent.getAction())) {
+                    Log.d(VOD_TAG, "ACTION_REFRESH_DATA received. Reloading movies.");
+                     if (isAdded() && getContext() != null) { // Ensure fragment is attached
+                        loadMovies();
+                    }
+                }
+            }
+        };
+
         return root;
     }
 
@@ -429,6 +445,29 @@ public class VodFragment extends Fragment {
         }
         // Não é necessário nulificar mainRecyclerView ou progressBar aqui, pois são obtidos novamente em onCreateView.
         // categoryAdapter é uma variável de instância e sua persistência (ou não) depende do ciclo de vida do Fragmento em si.
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        // Register refreshDataReceiver
+        IntentFilter filter = new IntentFilter(ProfileFragment.ACTION_REFRESH_DATA);
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(refreshDataReceiver, filter);
+        Log.d(VOD_TAG, "refreshDataReceiver registered.");
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        // Unregister refreshDataReceiver
+        if (refreshDataReceiver != null) {
+            try {
+                LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(refreshDataReceiver);
+                Log.d(VOD_TAG, "refreshDataReceiver unregistered.");
+            } catch (IllegalArgumentException e) {
+                Log.w(VOD_TAG, "refreshDataReceiver not registered or already unregistered.", e);
+            }
+        }
     }
 
     private class DownloadReceiver extends BroadcastReceiver {
