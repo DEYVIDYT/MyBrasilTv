@@ -406,7 +406,7 @@ public class VodFragment extends Fragment {
                 getActivity().runOnUiThread(() -> {
                     if (!isAdded()) return;
                     callback.onCategoryFetchFailure(error);
-                }
+                }); // Corrected: Added );
             }
         });
     }

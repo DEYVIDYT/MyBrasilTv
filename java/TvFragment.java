@@ -786,7 +786,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     getActivity().runOnUiThread(() -> {
                          if (!isAdded()) return; // Check again inside runOnUiThread
                          callback.onCategoryFailure(error);
-                    }
+                    }); // Corrected: Added );
                 }
             });
         });
@@ -871,7 +871,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                             channelAdapter.updateData(new ArrayList<>());
                         }
                         showLoading(false);
-                    }
+                    }); // Corrected: Added );
                 }
             });
         });
@@ -924,7 +924,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                             getActivity().runOnUiThread(() -> {
                                 if (!isAdded() || channelAdapter == null) return; // Check again
                                 channelAdapter.updateChannelProgram(channel.getStreamId(), "Sem programação");
-                            }
+                            }); // Corrected: Added );
                         }
                     });
                 }
