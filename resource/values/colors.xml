@@ -68,4 +68,15 @@
     <color name="my_scrim_color">#990F0F1B</color> <!-- app_background com 60% de opacidade -->
     <color name="md_theme_dark_scrim">#0F0F1B</color> <!-- Cor base do Scrim M3, usando app_background -->
 
+    <!-- Cores para device_button_background.xml e outros componentes potencialmente externos -->
+    <color name="button_focused">@color/selection_focus</color>
+    <color name="accent_color">@color/accent_highlight</color>
+    <color name="button_pressed">@color/selection_focus</color> <!-- Pode ser ajustado para um tom diferente se necessário -->
+    <color name="button_normal">@color/selection_focus</color> <!-- Para botões de ação primária -->
+    <color name="background_dark">@color/app_background</color> <!-- Para activity_device_type.xml -->
+
+    <!-- Cores para item_tv_side_nav.xml -->
+    <color name="tv_nav_icon_color">@color/icon_inactive</color> <!-- Cor padrão, pode precisar de seletor para estado ativo -->
+    <color name="tv_nav_text_color">@color/text_secondary</color> <!-- Cor padrão, pode precisar de seletor para estado ativo -->
+
 </resources>
