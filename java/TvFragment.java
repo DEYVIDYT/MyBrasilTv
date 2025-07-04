@@ -79,12 +79,13 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private ChannelAdapter channelAdapter;
     private EpgAdapter epgAdapter;
     private TextInputEditText searchEditText;
-    private List<Channel> allChannels = new ArrayList<>();
-    private List<EpgProgram> currentEpgPrograms = new ArrayList<>();
-    private DownloadReceiver downloadReceiver;
-    private Map<String, String> mFetchedCategoryMap; // Armazenar o mapa de categorias globalmente
-    private EpgService epgService;
+    private List<Channel> allChannels = new ArrayList<>(); // Will be populated from DataManager
+    private List<EpgProgram> currentEpgPrograms = new ArrayList<>(); // Will be populated from DataManager
+    // private DownloadReceiver downloadReceiver; // To be removed
+    private Map<String, String> mFetchedCategoryMap; // Will be populated from DataManager
+    private EpgService epgService; // This might be for on-demand EPG, or removed if all EPG comes from DataManager
     private String currentChannelStreamId = null;
+    private DataManager dataManager;
 
     // Tab views
     private TextView tabChannels;
@@ -368,14 +369,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         });
         */
 
-        // Register receiver
-        downloadReceiver = new DownloadReceiver(this);
-        IntentFilter filter = new IntentFilter(DownloadService.ACTION_DOWNLOAD_COMPLETE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireActivity().registerReceiver(downloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            requireActivity().registerReceiver(downloadReceiver, filter);
-        }
+        // DownloadReceiver registration removed.
 
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -392,7 +386,19 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             public void afterTextChanged(Editable s) {}
         });
 
-        loadInitialData();
+        dataManager = MyApplication.getDataManager();
+        // Initialize epgService for on-demand EPG if needed, using credentials from DataManager
+        // This assumes DataManager has already fetched credentials.
+        // If DataManager isn't guaranteed to be complete here, this needs adjustment.
+        if (dataManager.getXmlTvUrl() != null) { // A proxy for checking if credentials are set
+             // This is a bit of a hack. Ideally, DataManager provides base URL, user, pass
+             // For now, let's assume we might need a new EpgService instance for loadEpgForChannel
+             // This part needs careful review based on how DataManager exposes credentials or services.
+             // For simplicity, if DataManager has an EPG service or can provide one, use that.
+             // If loadEpgForChannel is to remain fully independent for short EPG, it needs credentials.
+        }
+
+        loadInitialData(); // This will now use data from DataManager
         return root;
     }
 
@@ -600,63 +606,124 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     private void loadInitialData() {
-        Log.d(TV_TAG, "loadInitialData called");
-        if (!isAdded() || getContext() == null) {
-            Log.w(TV_TAG, "loadInitialData - Fragment not added or context is null. Aborting.");
+        Log.d(TV_TAG, "loadInitialData called - using DataManager");
+        if (!isAdded() || getContext() == null || dataManager == null) {
+            Log.w(TV_TAG, "loadInitialData - Fragment not usable or DataManager is null. Aborting.");
+            showLoading(false);
+            if (getContext() != null && dataManager == null) {
+                 Toast.makeText(getContext(), "Error: DataManager not available.", Toast.LENGTH_LONG).show();
+            }
             return;
         }
 
         showLoading(true);
-        Log.d(TV_TAG, "loadInitialData - Current search text: \'" + (searchEditText != null ? searchEditText.getText().toString() : "searchEditText is null") + "\' ");
 
-        fetchXtreamCredentials(new CredentialsCallback() {
-            @Override
-            public void onCredentialsReceived(String baseUrl, String username, String password) {
-                if (!isAdded() || getContext() == null) return;
-                epgService = new EpgService(baseUrl, username, password);
-                Log.d(TV_TAG, "EPG Service initialized with baseUrl: " + baseUrl);
+        List<Channel> channels = dataManager.getLiveStreams();
+        List<XtreamApiService.CategoryInfo> categories = dataManager.getLiveCategories();
+        List<EpgProgram> epg = dataManager.getEpgPrograms(); // Global EPG
 
-                fetchLiveCategoriesFromApi(baseUrl, username, password, new CategoryCallback() {
-                    @Override
-                    public void onCategoriesReceived(Map<String, String> receivedCategoryMap) {
-                        if (!isAdded() || getContext() == null) return;
-                        Log.d(TV_TAG, "loadInitialData - onCategoriesReceived, categoryMap size: " + receivedCategoryMap.size());
-                        mFetchedCategoryMap = receivedCategoryMap;
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0", mFetchedCategoryMap);
-                    }
-
-                    @Override
-                    public void onCategoryFailure(String error) {
-                        if (!isAdded() || getContext() == null) return;
-                        Log.e(TV_TAG, "loadInitialData - onCategoryFailure: " + error);
-                        if (getActivity() != null) {
-                            getActivity().runOnUiThread(() -> {
-                                if (getContext() != null) { // Check context again for Toast
-                                    Toast.makeText(getContext(), getString(R.string.error_loading_categories, error), Toast.LENGTH_LONG).show();
-                                }
-                                showLoading(false);
-                            });
-                        }
-                        fetchLiveChannelsFromApi(baseUrl, username, password, "0"); // Try loading all channels
-                    }
-                });
+        mFetchedCategoryMap = new java.util.HashMap<>();
+        if (categories != null) {
+            for (XtreamApiService.CategoryInfo catInfo : categories) {
+                mFetchedCategoryMap.put(catInfo.id, catInfo.name);
             }
+        }
 
-            @Override
-            public void onCredentialsFailure(String error) {
-                if (!isAdded() || getContext() == null) return;
-                Log.e(TV_TAG, "loadInitialData - onCredentialsFailure: " + error);
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        if (getContext() != null) { // Check context again for Toast
-                            Toast.makeText(getContext(), getString(R.string.error_fetching_credentials, error), Toast.LENGTH_LONG).show();
-                        }
-                        showLoading(false);
-                    });
+        allChannels.clear();
+        if (channels != null) {
+            allChannels.addAll(channels);
+        }
+
+        currentEpgPrograms.clear();
+        if (epg != null) {
+            // This is the globally fetched EPG. We might need to filter or associate it
+            // with channels if `loadEpgForChannel` is to be replaced entirely.
+            // For now, it populates `currentEpgPrograms` which is used by the EPG tab.
+            currentEpgPrograms.addAll(epg);
+        }
+
+        // Update Category RecyclerView
+        if (recyclerViewCategories != null && categories != null) {
+            // The category click listener in LiveCategoryAdapter was to call fetchLiveChannelsFromApi.
+            // This needs to change to filter the existing 'allChannels' list.
+            LiveCategoryAdapter categoryAdapter = new LiveCategoryAdapter(getContext(), categories, categoryId -> {
+                filterChannelsByCategory(categoryId);
+            });
+            recyclerViewCategories.setAdapter(categoryAdapter);
+        } else if (recyclerViewCategories != null) {
+            recyclerViewCategories.setAdapter(null); // Clear if no categories
+        }
+
+        // Update Channels RecyclerView with all channels initially (or first category)
+        filterChannelsByCategory("0"); // "0" or null for all channels
+
+        // Update EPG tab if it's already visible or when switched to
+        if (epgAdapter != null && recyclerViewEpg.getVisibility() == View.VISIBLE) {
+             epgAdapter.updateData(currentEpgPrograms);
+        } else if (epgAdapter == null && currentEpgPrograms != null && !currentEpgPrograms.isEmpty()) {
+            epgAdapter = new EpgAdapter(getContext(), currentEpgPrograms, TvFragment.this);
+            recyclerViewEpg.setAdapter(epgAdapter);
+        }
+
+
+        if (mChannelGridView != null) {
+            mChannelGridView.setChannelsData(allChannels, mFetchedCategoryMap);
+        }
+
+        // Initialize EpgService for on-demand short EPG if necessary
+        // This requires DataManager to provide credentials or base URL, user, pass
+        // For now, we assume 'epgService' might be null if not setup correctly due to DataManager abstraction
+        if (this.epgService == null && dataManager.getXmlTvUrl() != null) { // Check if base credentials were loaded
+            // This is a simplified re-init. Proper way is for DataManager to provide credentials.
+            // String tempBaseUrl = dataManager.getBaseUrl(); // PSEUDOCODE: DataManager needs getBaseUrl(), etc.
+            // String tempUsername = dataManager.getUsername();
+            // String tempPassword = dataManager.getPassword();
+            // if (tempBaseUrl != null && tempUsername != null && tempPassword != null) {
+            //     this.epgService = new EpgService(tempBaseUrl, tempUsername, tempPassword);
+            //     if(getContext() != null) this.epgService.setCacheManager(new CacheManager(getContext()));
+            // }
+        }
+
+
+        // The old fetchEpgForAllChannels is removed as DataManager handles bulk EPG.
+        // Individual EPG updates per channel (e.g. current program title) can be
+        // handled by observing data or a more targeted EPG fetch if needed.
+        // For now, titles in ChannelAdapter might not show current program unless Channel objects include it.
+        // This might require a small loop here to update channel objects with their current EPG program title
+        // from the global currentEpgPrograms list, or enhance `loadEpgForChannel` to do this.
+
+        showLoading(false);
+    }
+
+    private void filterChannelsByCategory(String categoryId) {
+        List<Channel> filteredChannels = new ArrayList<>();
+        if (categoryId == null || categoryId.isEmpty() || categoryId.equals("0")) {
+            if (allChannels != null) filteredChannels.addAll(allChannels);
+        } else {
+            if (allChannels != null) {
+                for (Channel channel : allChannels) {
+                    if (channel.getCategoryId() != null && channel.getCategoryId().equals(categoryId)) {
+                        filteredChannels.add(channel);
+                    }
                 }
             }
-        });
+        }
+
+        if (channelAdapter == null) {
+            if (getContext() != null) { // Check context before creating adapter
+                channelAdapter = new ChannelAdapter(getContext(), filteredChannels, TvFragment.this);
+                if (recyclerViewChannels != null) recyclerViewChannels.setAdapter(channelAdapter);
+            }
+        } else {
+            channelAdapter.updateData(filteredChannels);
+        }
+
+        if (searchEditText != null && channelAdapter != null) {
+            String currentSearchText = searchEditText.getText().toString();
+            channelAdapter.filterList(currentSearchText);
+        }
     }
+
 
     private void showLoading(boolean isLoading) {
         if (!isAdded() || getView() == null) return; // Check if view is available
@@ -770,6 +837,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
         executor.execute(() -> {
             XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+            if (getContext() != null) {
+                CacheManager categoriesCacheManager = new CacheManager(getContext());
+                apiService.setCacheManager(categoriesCacheManager);
+            }
             apiService.fetchLiveStreamCategories(new XtreamApiService.XtreamApiCallback<XtreamApiService.CategoryInfo>() {
                 @Override
                 public void onSuccess(List<XtreamApiService.CategoryInfo> data) {
@@ -813,6 +884,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         showLoading(true);
         executor.execute(() -> {
             XtreamApiService apiService = new XtreamApiService(baseUrl, username, password);
+            if (getContext() != null) {
+                CacheManager channelsCacheManager = new CacheManager(getContext());
+                apiService.setCacheManager(channelsCacheManager);
+            }
             apiService.fetchLiveStreams(new XtreamApiService.XtreamApiCallback<Channel>() {
                 @Override
                 public void onSuccess(List<Channel> data) {

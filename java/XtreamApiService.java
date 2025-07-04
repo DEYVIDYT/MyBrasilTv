@@ -26,11 +26,15 @@ public class XtreamApiService {
     private String password;
     private CacheManager cacheManager;
 
-    public XtreamApiService(String baseUrl, String username, String password, Context context) {
+    public XtreamApiService(String baseUrl, String username, String password) {
         this.baseUrl = baseUrl;
         this.username = username;
         this.password = password;
-        this.cacheManager = new CacheManager(context);
+        // this.cacheManager = new CacheManager(context); // Removed
+    }
+
+    public void setCacheManager(CacheManager cacheManager) {
+        this.cacheManager = cacheManager;
     }
 
     public interface XtreamApiCallback<T> {
@@ -41,11 +45,15 @@ public class XtreamApiService {
     public void fetchVodStreams(XtreamApiCallback<Movie> callback) {
         executor.execute(() -> {
             // Primeiro, verifica se existe cache válido
-            List<Movie> cachedMovies = cacheManager.getCachedMovies();
-            if (cachedMovies != null) {
-                Log.d(API_TAG, "fetchVodStreams - Using cached data: " + cachedMovies.size() + " movies");
-                callback.onSuccess(cachedMovies);
-                return;
+            if (cacheManager != null) {
+                List<Movie> cachedMovies = cacheManager.getCachedMovies();
+                if (cachedMovies != null) {
+                    Log.d(API_TAG, "fetchVodStreams - Using cached data: " + cachedMovies.size() + " movies");
+                    callback.onSuccess(cachedMovies);
+                    return;
+                }
+            } else {
+                Log.w(API_TAG, "fetchVodStreams - CacheManager is null. Proceeding without cache.");
             }
             
             Log.d(API_TAG, "fetchVodStreams called. URL: " + String.format("%s/player_api.php?username=%s&password=%s&action=get_vod_streams", baseUrl, username, "******"));
@@ -125,7 +133,11 @@ public class XtreamApiService {
                     }
                     
                     // Salva no cache
-                    cacheManager.saveMovies(movies);
+                    if (cacheManager != null) {
+                        cacheManager.saveMovies(movies);
+                    } else {
+                        Log.w(API_TAG, "fetchVodStreams - CacheManager is null. Skipping cache save.");
+                    }
                     
                     Log.i(API_TAG, "fetchVodStreams - Successfully parsed " + movies.size() + " movies.");
                     callback.onSuccess(movies);
@@ -144,11 +156,15 @@ public class XtreamApiService {
     public void fetchLiveStreams(XtreamApiCallback<Channel> callback) {
         executor.execute(() -> {
             // Primeiro, verifica se existe cache válido
-            List<Channel> cachedChannels = cacheManager.getCachedChannels();
-            if (cachedChannels != null) {
-                Log.d(API_TAG, "fetchLiveStreams - Using cached data: " + cachedChannels.size() + " channels");
-                callback.onSuccess(cachedChannels);
-                return;
+            if (cacheManager != null) {
+                List<Channel> cachedChannels = cacheManager.getCachedChannels();
+                if (cachedChannels != null) {
+                    Log.d(API_TAG, "fetchLiveStreams - Using cached data: " + cachedChannels.size() + " channels");
+                    callback.onSuccess(cachedChannels);
+                    return;
+                }
+            } else {
+                Log.w(API_TAG, "fetchLiveStreams - CacheManager is null. Proceeding without cache.");
             }
             
             Log.d(API_TAG, "fetchLiveStreams called. URL: " + String.format("%s/player_api.php?username=%s&password=%s&action=get_live_streams", baseUrl, username, "******"));
@@ -199,7 +215,11 @@ public class XtreamApiService {
                     }
                     
                     // Salva no cache
-                    cacheManager.saveChannels(channels);
+                    if (cacheManager != null) {
+                        cacheManager.saveChannels(channels);
+                    } else {
+                        Log.w(API_TAG, "fetchLiveStreams - CacheManager is null. Skipping cache save.");
+                    }
                     
                     Log.i(API_TAG, "fetchLiveStreams - Successfully parsed " + channels.size() + " channels.");
                     callback.onSuccess(channels);

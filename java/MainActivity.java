@@ -50,26 +50,42 @@ public class MainActivity extends AppCompatActivity {
 
     private final VodFragment vodFragment = new VodFragment();
     private final TvFragment tvFragment = new TvFragment();
+    private final VodFragment vodFragment = new VodFragment();
+    private final TvFragment tvFragment = new TvFragment();
     private final ProfileFragment profileFragment = new ProfileFragment();
-    private XtreamLoginService xtreamLoginService;
-    private XtreamApiService xtreamApiService;
-    private NotificationHelper notificationHelper;
-    
-    private static final String TAG_BACK_MAIN = "MainActivity_Back"; // Adicionado aqui
+    // private XtreamLoginService xtreamLoginService; // Removed
+    // private XtreamApiService xtreamApiService; // Removed
+    // private NotificationHelper notificationHelper; // Removed if only for login progress
+
+    private static final String TAG_BACK_MAIN = "MainActivity_Back";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        notificationHelper = new NotificationHelper(this);
-        xtreamLoginService = new XtreamLoginService();
+        // notificationHelper = new NotificationHelper(this); // Removed
+        // xtreamLoginService = new XtreamLoginService(); // Removed
 
-        fetchXtreamLoginData();
+        // Check if data was loaded by DownloadProgressActivity
+        boolean dataLoadedSuccessfully = getIntent().getBooleanExtra("DATA_LOADED_SUCCESSFULLY", false);
+        DataManager dataManager = MyApplication.getDataManager(); // Get singleton instance
+
+        // If data is not loaded (e.g. app started directly) or DataManager is not yet complete,
+        // redirect to DownloadProgressActivity.
+        // This check might need to be more robust, e.g. checking specific data in DataManager.
+        if (!dataLoadedSuccessfully && (dataManager.getLiveStreams() == null || dataManager.getVodStreams() == null)) {
+            Log.d("MainActivity", "Data not loaded, redirecting to DownloadProgressActivity.");
+            Intent intent = new Intent(this, DownloadProgressActivity.class);
+            startActivity(intent);
+            finish(); // Finish MainActivity to prevent user from seeing it without data
+            return;   // Stop further execution of onCreate
+        }
+
+        Log.d("MainActivity", "Data loaded or already available. Proceeding with MainActivity setup.");
 
         BottomNavigationView navView = findViewById(R.id.nav_view);
-
-        loadFragment(vodFragment);
+        loadFragment(vodFragment); // Load initial fragment
 
         navView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
@@ -101,32 +117,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.commit();
     }
 
-    private void fetchXtreamLoginData() {
-        notificationHelper.showProgressNotification(
-                getString(R.string.connecting_xtream_title),
-                getString(R.string.connecting_xtream_message), 0, 0, true);
-        // Passa a instância de DownloadProgressActivity para o serviço de login
-        xtreamLoginService.getLoginData(new XtreamLoginService.LoginCallback() {
-            @Override
-            public void onSuccess(XtreamLoginService.XtreamAccount account) {
-                Log.d("MainActivity", "Login data received: " + account.server + ", " + account.username + ", " + account.password);
-                xtreamApiService = new XtreamApiService(account.server, account.username, account.password, MainActivity.this);
-                notificationHelper.showCompletionNotification(
-                        getString(R.string.connected_xtream_title),
-                        getString(R.string.connected_xtream_message));
-            }
-
-            @Override
-            public void onFailure(String error) {
-                Log.e("MainActivity", "Failed to get login data: " + error);
-                String errorMessage = getString(R.string.error_login_data_message, error);
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show());
-                notificationHelper.showCompletionNotification(
-                        getString(R.string.error_xtream_connection_title),
-                        getString(R.string.error_xtream_connection_message));
-            }
-        });
-    }
+    // Removed fetchXtreamLoginData() method as DataManager now handles this.
 
     @Override
     public void onBackPressed() {

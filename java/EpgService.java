@@ -26,11 +26,15 @@ public class EpgService {
     private String password;
     private CacheManager cacheManager;
 
-    public EpgService(String baseUrl, String username, String password, Context context) {
+    public EpgService(String baseUrl, String username, String password) {
         this.baseUrl = baseUrl;
         this.username = username;
         this.password = password;
-        this.cacheManager = new CacheManager(context);
+        // this.cacheManager = new CacheManager(context); // Removed
+    }
+
+    public void setCacheManager(CacheManager cacheManager) {
+        this.cacheManager = cacheManager;
     }
 
     public interface EpgCallback {
@@ -47,11 +51,15 @@ public class EpgService {
     public void fetchShortEpg(String streamId, int limit, EpgCallback callback) {
         executor.execute(() -> {
             // Primeiro, verifica se existe cache válido
-            List<EpgProgram> cachedEpg = cacheManager.getCachedEpg(streamId);
-            if (cachedEpg != null) {
-                Log.d(EPG_TAG, "fetchShortEpg - Using cached data for stream " + streamId + ": " + cachedEpg.size() + " programs");
-                callback.onSuccess(cachedEpg);
-                return;
+            if (cacheManager != null) {
+                List<EpgProgram> cachedEpg = cacheManager.getCachedEpg(streamId);
+                if (cachedEpg != null) {
+                    Log.d(EPG_TAG, "fetchShortEpg - Using cached data for stream " + streamId + ": " + cachedEpg.size() + " programs");
+                    callback.onSuccess(cachedEpg);
+                    return;
+                }
+            } else {
+                Log.w(EPG_TAG, "fetchShortEpg - CacheManager is null. Proceeding without cache.");
             }
             
             Log.d(EPG_TAG, "fetchShortEpg called for streamId: " + streamId + ", limit: " + limit);
@@ -83,7 +91,11 @@ public class EpgService {
                     List<EpgProgram> programs = parseShortEpgResponse(response.toString(), streamId);
                     
                     // Salva no cache
-                    cacheManager.saveEpg(streamId, programs);
+                    if (cacheManager != null) {
+                        cacheManager.saveEpg(streamId, programs);
+                    } else {
+                        Log.w(EPG_TAG, "fetchShortEpg - CacheManager is null. Skipping cache save.");
+                    }
                     
                     Log.i(EPG_TAG, "fetchShortEpg - Successfully parsed " + programs.size() + " programs for stream " + streamId);
                     callback.onSuccess(programs);

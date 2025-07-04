@@ -25,70 +25,57 @@ public class DownloadProgressActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         progressText = findViewById(R.id.progressText);
         statusText = findViewById(R.id.statusText);
-        mainHandler = new Handler(Looper.getMainLooper());
+        // mainHandler is no longer needed directly here as DataManager handles threading for callbacks
 
-        // Simula o progresso de download
-        simulateDownloadProgress();
-    }
+        // Get the singleton DataManager instance
+        DataManager dataManager = MyApplication.getDataManager();
+        dataManager.setListener(new DataManager.DataManagerListener() {
+            @Override
+            public void onProgressUpdate(DataManager.LoadState state, int percentage, String message) {
+                runOnUiThread(() -> {
+                    progressBar.setProgress(percentage);
+                    progressText.setText("Carregando... " + percentage + "%");
+                    statusText.setText(message); // Displaying the detailed message from DataManager
+                });
+            }
 
-    private void simulateDownloadProgress() {
-        new Thread(() -> {
-            try {
-                // Fase 1: Conectando
-                updateProgress(10, "Conectando ao servidor...");
-                Thread.sleep(1000);
-
-                // Fase 2: Baixando canais
-                updateProgress(30, "Baixando lista de canais...");
-                Thread.sleep(2000);
-
-                // Fase 3: Baixando VOD
-                updateProgress(60, "Baixando lista de filmes/séries...");
-                Thread.sleep(2000);
-
-                // Fase 4: Baixando EPG
-                updateProgress(90, "Baixando guia de programação (EPG)...");
-                Thread.sleep(1500);
-
-                // Fase 5: Finalizando
-                updateProgress(100, "Finalizando...");
-                Thread.sleep(500);
-
-                // Volta para MainActivity
-                mainHandler.post(() -> {
+            @Override
+            public void onDataLoaded() {
+                runOnUiThread(() -> {
+                    statusText.setText("Dados carregados com sucesso!");
+                    progressBar.setProgress(100);
+                    progressText.setText("Carregando... 100%");
+                    // Proceed to MainActivity
                     Intent intent = new Intent(DownloadProgressActivity.this, MainActivity.class);
+                    // Pass a flag or some data to MainActivity to indicate data is ready
+                    intent.putExtra("DATA_LOADED_SUCCESSFULLY", true);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                     finish();
                 });
-
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
-        }).start();
-    }
 
-    private void updateProgress(int progress, String status) {
-        mainHandler.post(() -> {
-            currentProgress = progress;
-            progressBar.setProgress(progress);
-            progressText.setText("Carregando... " + progress + "%");
-            statusText.setText(status);
+            @Override
+            public void onError(String errorMessage) {
+                runOnUiThread(() -> {
+                    statusText.setText("Erro: " + errorMessage);
+                    // Handle error display, maybe allow retry or exit
+                    // For now, just shows the error.
+                    // You might want to add a button to go back or retry.
+                });
+            }
         });
+
+        dataManager.startDataLoading();
     }
 
-    public void setProgress(int progress, String status) {
-        updateProgress(progress, status);
-    }
-
-    public void setStatus(String status) {
-        mainHandler.post(() -> statusText.setText(status));
-    }
+    // The old simulateDownloadProgress, updateProgress, setProgress, setStatus methods are removed.
 
     @Override
     public void onBackPressed() {
         // Impede que o usuário volte durante o download
-        // Pode ser removido se quiser permitir cancelamento
+        // Consider allowing cancellation, which would require a way to signal DataManager to stop.
+        // For now, keeping it as non-cancellable by back press.
     }
 }
 
