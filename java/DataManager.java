@@ -90,6 +90,14 @@ public class DataManager {
         return isDataFullyLoaded;
     }
 
+    private LoadState currentLoadState = LoadState.IDLE; // Adicionar para rastrear estado
+
+    public boolean isLoading() {
+        return currentLoadState != LoadState.IDLE &&
+               currentLoadState != LoadState.COMPLETE &&
+               currentLoadState != LoadState.FAILED;
+    }
+
     public void startDataLoading() {
         Log.d(TAG, "startDataLoading called");
         if (listener != null) {
@@ -268,6 +276,7 @@ public class DataManager {
     }
 
     private void notifyProgress(LoadState state, int percentage, String message) {
+        this.currentLoadState = state; // Atualizar estado atual
         if (listener != null) {
             mainHandler.post(() -> listener.onProgressUpdate(state, percentage, message));
         }
@@ -275,6 +284,7 @@ public class DataManager {
     }
 
     private void notifyComplete() {
+        this.currentLoadState = LoadState.COMPLETE; // Atualizar estado atual
         if (listener != null) {
             mainHandler.post(() -> listener.onDataLoaded());
         }
@@ -282,6 +292,7 @@ public class DataManager {
     }
 
     private void notifyError(String message) {
+        this.currentLoadState = LoadState.FAILED; // Atualizar estado atual
         if (listener != null) {
             mainHandler.post(() -> listener.onError(message));
         }

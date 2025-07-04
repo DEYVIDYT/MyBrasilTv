@@ -18,7 +18,8 @@ import com.example.iptvplayer.data.Channel;
 import com.example.iptvplayer.data.EpgProgram;
 
 import xyz.doikki.videoplayer.player.VideoView; // Assuming DoikkiPlayer
-import xyz.doikki.videoplayer.controller.StandardVideoController; // Or a custom TV controller
+// import xyz.doikki.videoplayer.controller.StandardVideoController; // Or a custom TV controller
+import com.example.iptvplayer.StandardVideoController; // Corrigido para usar o controller do projeto
 
 import java.util.ArrayList;
 import java.util.List;
@@ -154,7 +155,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     @Override
     public void onProgressUpdate(DataManager.LoadState state, int percentage, String message) {
-        if (state == DataManager.LoadState.COMPLETE || state == DataManager.LoadState.ERROR) {
+        if (state == DataManager.LoadState.COMPLETE || state == DataManager.LoadState.FAILED) { // Corrigido para FAILED
             showLoading(false); // Assumindo que showLoading manipula o ProgressBar principal do fragmento
         } else {
             showLoading(true);
@@ -181,16 +182,16 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         } else {
             Log.d(TV_TV_TAG, "Data not loaded for Live TV. Displaying loading indicator.");
             showLoading(true);
-            if (dataManager != null && !dataManager.isLoading()) {
+            if (dataManager != null && !dataManager.isLoading()) { // Agora usa o método isLoading()
                 dataManager.startDataLoading();
             }
         }
     }
 
     private void showLoading(boolean isLoading) {
-        // Este método pode ser usado para um ProgressBar geral do fragmento, se houver.
-        // O ProgressBar do player é controlado separadamente.
-        // Por enquanto, não há ProgressBar geral neste layout, então este método pode não fazer nada.
+        // TODO: Implementar lógica para mostrar/ocultar um indicador de loading geral para o fragmento se necessário.
+        // playerProgressBarTv é para o player.
+        Log.d(TV_TV_TAG, "showLoading called with: " + isLoading + " (Fragment-level, not player)");
     }
 
     private void loadLiveCategories() {
@@ -247,7 +248,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         super.onDetach();
         Log.d(TV_TV_TAG, "onDetach called");
         if (dataManager != null) {
-            dataManager.removeListener(this);
+            dataManager.setListener(null); // Corrigido para setListener(null)
         }
     }
 }

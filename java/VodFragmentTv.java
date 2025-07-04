@@ -99,7 +99,7 @@ public class VodFragmentTv extends Fragment implements DataManager.DataManagerLi
 
     @Override
     public void onProgressUpdate(DataManager.LoadState state, int percentage, String message) {
-        if (state == DataManager.LoadState.COMPLETE || state == DataManager.LoadState.ERROR) {
+        if (state == DataManager.LoadState.COMPLETE || state == DataManager.LoadState.FAILED) { // Corrigido para FAILED
             showLoading(false);
         } else {
             showLoading(true);
@@ -125,7 +125,7 @@ public class VodFragmentTv extends Fragment implements DataManager.DataManagerLi
         } else {
             Log.d(VOD_TV_TAG, "Data not loaded for TV. Displaying loading indicator.");
             showLoading(true);
-            if (dataManager != null && !dataManager.isLoading()) { // Se não estiver carregando, iniciar
+            if (dataManager != null && !dataManager.isLoading()) { // Agora usa o método isLoading()
                 dataManager.startDataLoading();
             }
         }
@@ -227,7 +227,7 @@ public class VodFragmentTv extends Fragment implements DataManager.DataManagerLi
         super.onDetach();
         Log.d(VOD_TV_TAG, "onDetach called");
         if (dataManager != null) {
-            dataManager.removeListener(this); // Remover listener específico
+            dataManager.setListener(null); // Corrigido para setListener(null)
         }
     }
 }

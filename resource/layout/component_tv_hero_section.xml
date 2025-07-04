@@ -26,7 +26,7 @@
         android:padding="32dp">
 
         <TextView
-            android:id="@+id/hero_title"
+            android:id="@+id/banner_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:ellipsize="end"
@@ -34,22 +34,36 @@
             android:textColor="@color/text_primary"
             android:textSize="36sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toTopOf="@id/hero_metadata_container"
+            app:layout_constraintBottom_toTopOf="@id/banner_info"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintWidth_percent="0.6"
             tools:text="Título Incrível do Filme ou Série Bem Grande" />
 
+        <TextView
+            android:id="@+id/banner_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            app:layout_constraintStart_toStartOf="@id/banner_title"
+            app:layout_constraintTop_toBottomOf="@id/banner_title"
+            app:layout_constraintBottom_toTopOf="@id/banner_description"
+            app:layout_constraintEnd_toEndOf="@id/banner_title"
+            tools:text="150 min | 2023 | 8.3 | Ação | Aventura | Comédia" />
+
+        <!-- O LinearLayout hero_metadata_container pode ser removido ou adaptado se banner_info o substituir -->
         <LinearLayout
             android:id="@+id/hero_metadata_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            app:layout_constraintStart_toStartOf="@id/hero_title"
-            app:layout_constraintTop_toBottomOf="@id/hero_title"
-            app:layout_constraintBottom_toTopOf="@id/hero_description"
-            app:layout_constraintEnd_toEndOf="@id/hero_title">
+            android:layout_marginTop="8dp"
+            android:visibility="gone"  <!-- Oculto por enquanto, banner_info pode ser usado -->
+            app:layout_constraintStart_toStartOf="@id/banner_title"
+            app:layout_constraintTop_toBottomOf="@id/banner_info"
+            app:layout_constraintEnd_toEndOf="@id/banner_title">
 
             <TextView
                 android:id="@+id/hero_duration"
@@ -96,7 +110,7 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/hero_description"
+            android:id="@+id/banner_description"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -105,10 +119,10 @@
             android:textColor="@color/text_secondary"
             android:textSize="16sp"
             android:lineSpacingExtra="4dp"
-            app:layout_constraintStart_toStartOf="@id/hero_title"
-            app:layout_constraintTop_toBottomOf="@id/hero_metadata_container"
+            app:layout_constraintStart_toStartOf="@id/banner_title"
+            app:layout_constraintTop_toBottomOf="@id/banner_info" <!-- Ajustado para banner_info -->
             app:layout_constraintBottom_toTopOf="@id/hero_cast"
-            app:layout_constraintEnd_toEndOf="@id/hero_title"
+            app:layout_constraintEnd_toEndOf="@id/banner_title"
             tools:text="Uma breve descrição do filme ou série que pode ocupar algumas linhas para dar uma ideia do que se trata a obra cinematográfica em destaque." />
 
         <TextView
@@ -120,10 +134,10 @@
             android:maxLines="1"
             android:textColor="@color/text_tertiary"
             android:textSize="14sp"
-            app:layout_constraintStart_toStartOf="@id/hero_title"
-            app:layout_constraintTop_toBottomOf="@id/hero_description"
+            app:layout_constraintStart_toStartOf="@id/banner_title"
+            app:layout_constraintTop_toBottomOf="@id/banner_description"
             app:layout_constraintBottom_toTopOf="@id/hero_actions_container"
-            app:layout_constraintEnd_toEndOf="@id/hero_title"
+            app:layout_constraintEnd_toEndOf="@id/banner_title"
             tools:text="Chris Pratt, Zoe Saldana, Dave Bautista" />
 
 
@@ -133,7 +147,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="24dp"
-            app:layout_constraintStart_toStartOf="@id/hero_title"
+            app:layout_constraintStart_toStartOf="@id/banner_title"
             app:layout_constraintTop_toBottomOf="@id/hero_cast"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintVertical_bias="0.0">

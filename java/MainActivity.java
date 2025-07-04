@@ -71,25 +71,29 @@ public class MainActivity extends AppCompatActivity {
     // private NotificationHelper notificationHelper; // Removed if only for login progress
 
     private static final String TAG_BACK_MAIN = "MainActivity_Back";
-    private LinearLayout sidenavContainer;
-    private View lastSelectedSidenavItem = null;
+    // private LinearLayout sidenavContainer; // Agora é RecyclerView
+    private RecyclerView sideNavRecyclerView;
+    private View lastSelectedSidenavItemView = null; // Para o adapter gerenciar seleção visualmente se necessário
+    private TvSideNavAdapter tvSideNavAdapter;
 
 
-    // Helper class for Sidenav items
-    private static class NavItem {
+    // Helper class for Sidenav items (pode ser movida para TvSideNavAdapter ou ficar aqui)
+    public static class NavItem { // Tornar public static para ser acessível pelo Adapter se ele for classe separada
         final String id;
         @DrawableRes
         final int iconResId;
         final Fragment fragment;
+        // boolean isSelected; // O adapter pode gerenciar isso
 
         NavItem(String id, @DrawableRes int iconResId, Fragment fragment) {
             this.id = id;
             this.iconResId = iconResId;
             this.fragment = fragment;
+            // this.isSelected = false;
         }
     }
 
-    private List<NavItem> tvNavItems;
+    private List<NavItem> tvNavItemsList; // Renomeado para clareza
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -169,8 +173,7 @@ public class MainActivity extends AppCompatActivity {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             setContentView(R.layout.activity_main_tv);
             Log.d("MainActivity", "TV Layout selected. Inflated activity_main_tv.xml. Orientation set to Landscape.");
-            setupTvSidenav(); // Call to setup Sidenav
-            // Load initial TV fragment - will be handled in setupTvSidenav or immediately after
+            setupTvSidenav();
         } else { // Mobile layout
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
             setContentView(R.layout.activity_main);
@@ -208,64 +211,81 @@ public class MainActivity extends AppCompatActivity {
     // These will be added in subsequent steps. For now, ensure initializeApp structure is correct.
 
     private void setupTvSidenav() {
-        sidenavContainer = findViewById(R.id.sidenav_container);
-        if (sidenavContainer == null) {
-            Log.e("MainActivity", "Sidenav container (R.id.sidenav_container) not found in activity_main_tv.xml");
+        sideNavRecyclerView = findViewById(R.id.side_nav_recycler);
+        if (sideNavRecyclerView == null) {
+            Log.e("MainActivity", "Sidenav RecyclerView (R.id.side_nav_recycler) not found in activity_main_tv.xml");
             return;
         }
 
-        // Define TV navigation items using existing fragments as placeholders
-        tvNavItems = Arrays.asList(
+        tvNavItemsList = Arrays.asList(
                 new NavItem("VOD", R.drawable.ic_home_black_24dp, vodFragment), // Placeholder for VodFragmentTv
                 new NavItem("TV", R.drawable.ic_dashboard_black_24dp, tvFragment), // Placeholder for TvFragmentTv
                 new NavItem("Profile", R.drawable.ic_notifications_black_24dp, profileFragment) // Placeholder for ProfileFragmentTv
-                // TODO: Add Search (R.drawable.ic_search) if it's a top-level nav item
         );
 
-        LayoutInflater inflater = LayoutInflater.from(this);
-        sidenavContainer.removeAllViews(); // Clear any existing views if re-setup
+        // Interface para o adapter notificar cliques
+        TvSideNavAdapter.OnNavItemClickListener listener = navItem -> {
+            // A view selecionada será gerenciada pelo adapter ou podemos passar o item clicado
+            // Para simplificar, o adapter pode gerenciar a seleção visual e apenas nos dar o fragmento.
+            // Ou, o adapter nos dá a view e o fragmento.
+            // Por agora, apenas carregamos o fragmento. A seleção visual será tratada no loadTvFragment.
+             View itemView = findViewByNavItemId(navItem.id); // Precisamos de uma forma de obter a view
+             loadTvFragment(navItem.fragment, itemView); // Passar a view para gerenciar seleção
+        };
 
-        for (int i = 0; i < tvNavItems.size(); i++) {
-            final NavItem navItem = tvNavItems.get(i); // Final for use in lambda
-            View itemView = inflater.inflate(R.layout.item_tv_side_nav, sidenavContainer, false);
-            ImageView iconView = itemView.findViewById(R.id.sidenav_item_icon);
-            // TextView textView = itemView.findViewById(R.id.sidenav_item_text); // If text is used
+        // Assumindo que TvSideNavAdapter existe e aceita List<NavItem> e um listener
+        // Se TvSideNavAdapter não existir, esta linha causará erro de compilação.
+        // O erro original era sobre IDs DENTRO do adapter, então ele deve existir.
+        tvSideNavAdapter = new TvSideNavAdapter(tvNavItemsList, listener);
+        sideNavRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        sideNavRecyclerView.setAdapter(tvSideNavAdapter);
 
-            iconView.setImageResource(navItem.iconResId);
-            // textView.setText(navItem.id);
-
-            // itemView.setTag(navItem.id); // Using the view itself for selection tracking
-            itemView.setOnClickListener(v -> {
-                loadTvFragment(navItem.fragment, v);
-            });
-            sidenavContainer.addView(itemView);
-
-            // Select the first item by default
-            if (i == 0) {
-                loadTvFragment(navItem.fragment, itemView);
-                // itemView.setSelected(true); // Selection handled in loadTvFragment
-                // lastSelectedSidenavItem = itemView; // Selection handled in loadTvFragment
-            }
+        // Load initial TV fragment
+        if (!tvNavItemsList.isEmpty()) {
+            // Precisamos de uma forma de obter a View do primeiro item para passar para loadTvFragment
+            // Isso é complicado sem ter o adapter gerenciando a seleção ou um callback melhor.
+            // Solução temporária: carregar o fragmento, a seleção visual pode não funcionar perfeitamente no início.
+            loadTvFragment(tvNavItemsList.get(0).fragment, null); // Passar null para selectedView inicialmente
+            // Idealmente, o adapter chamaria o listener para o primeiro item ou teríamos um método selectItem(position)
         }
     }
 
-    private void loadTvFragment(Fragment fragment, View selectedView) {
+    private View findViewByNavItemId(String navItemId) {
+        if (sideNavRecyclerView == null || tvSideNavAdapter == null) return null;
+        for (int i = 0; i < tvNavItemsList.size(); i++) {
+            if (tvNavItemsList.get(i).id.equals(navItemId)) {
+                RecyclerView.ViewHolder holder = sideNavRecyclerView.findViewHolderForAdapterPosition(i);
+                return holder != null ? holder.itemView : null;
+            }
+        }
+        return null;
+    }
+
+
+    private void loadTvFragment(Fragment fragment, @Nullable View selectedItemView) {
         Log.d("MainActivity", "Loading TV Fragment: " + fragment.getClass().getSimpleName());
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.tv_fragment_container, fragment);
         fragmentTransaction.commit();
 
-        // Update Sidenav item selection state
-        if (lastSelectedSidenavItem != null) {
-            lastSelectedSidenavItem.setSelected(false);
+        // Update Sidenav item selection state (visual)
+        // Esta lógica é melhor dentro do Adapter ou via um método no adapter para definir o item selecionado
+        if (lastSelectedSidenavItemView != null) {
+            lastSelectedSidenavItemView.setSelected(false);
         }
-        if (selectedView != null) {
-            selectedView.setSelected(true);
-            lastSelectedSidenavItem = selectedView;
+        if (selectedItemView != null) {
+            selectedItemView.setSelected(true);
+            lastSelectedSidenavItemView = selectedItemView;
         } else {
-            lastSelectedSidenavItem = null; // Should not happen if called from sidenav
+            // Se selectedItemView for null (ex: carregamento inicial sem view específica),
+            // podemos tentar encontrar a view correspondente ao fragmento ou deixar sem seleção visual inicial.
+            // Por enquanto, apenas resetamos.
+            lastSelectedSidenavItemView = null;
         }
+
+        // O adapter deve atualizar seus próprios itens se ele mantiver o estado de seleção.
+        // tvSideNavAdapter.setSelectedItem(fragment); // Exemplo se o adapter tivesse tal método
 
         // Basic focus request. More specific focus might be needed within each TV fragment.
         // Delay focus request slightly to ensure fragment view is fully ready.

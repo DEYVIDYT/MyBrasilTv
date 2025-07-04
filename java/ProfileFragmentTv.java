@@ -61,7 +61,7 @@ public class ProfileFragmentTv extends Fragment {
         View dialogView = inflater.inflate(R.layout.dialog_xtream_input, null);
         builder.setView(dialogView);
 
-        TextInputEditText inputUrl = dialogView.findViewById(R.id.xtream_url_input);
+        TextInputEditText inputUrl = dialogView.findViewById(R.id.dialog_xtream_url_edit_text); // ID Corrigido
         Button sendButton = dialogView.findViewById(R.id.send_xtream_button);
         Button cancelButton = dialogView.findViewById(R.id.cancel_xtream_button);
 
@@ -72,10 +72,10 @@ public class ProfileFragmentTv extends Fragment {
             if (!url.isEmpty()) {
                 Log.d(PROFILE_TV_TAG, "Xtream URL to add: " + url);
                 // TODO: Implementar lógica para salvar/processar a URL Xtream
-                Toast.makeText(getContext(), "URL Xtream: " + url + " (implementar salvamento)", Toast.LENGTH_LONG).show();
-                DataManager dataManager = MyApplication.getDataManager(getContext());
-                dataManager.saveXtreamCredentials(url, "", ""); // Assuming username/password are not needed or derived
-                Toast.makeText(getContext(), "Lista Xtream adicionada. Atualize os dados.", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), "URL Xtream: " + url + " (funcionalidade de salvar pendente)", Toast.LENGTH_LONG).show();
+                // DataManager dataManager = MyApplication.getDataManager(getContext());
+                // dataManager.saveXtreamCredentials(url, "", ""); // Método não existe, funcionalidade precisa ser planejada
+                // Toast.makeText(getContext(), "Lista Xtream adicionada. Atualize os dados.", Toast.LENGTH_LONG).show();
                 dialog.dismiss();
             } else {
                 Toast.makeText(getContext(), R.string.xtream_url_empty_error, Toast.LENGTH_SHORT).show();
@@ -91,10 +91,12 @@ public class ProfileFragmentTv extends Fragment {
         // Enviar broadcast para MainActivity ou diretamente chamar DataManager
         Intent intent = new Intent(ProfileFragment.ACTION_REFRESH_DATA);
         LocalBroadcastManager.getInstance(requireContext()).sendBroadcast(intent);
-        // Adicionalmente, pode-se forçar o DataManager a recarregar
-        MyApplication.getDataManager(requireContext()).forceReloadData();
-        Toast.makeText(getContext(), R.string.profile_update_list_success, Toast.LENGTH_LONG).show();
 
+        DataManager dataManager = MyApplication.getDataManager(requireContext());
+        dataManager.clearAllData(); // Limpa dados e cache
+        dataManager.startDataLoading(); // Inicia o carregamento do zero
+
+        Toast.makeText(getContext(), R.string.profile_update_list_success, Toast.LENGTH_LONG).show();
     }
 
     private void openRepository() {

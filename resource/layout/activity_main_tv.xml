@@ -6,27 +6,17 @@
     android:background="@color/app_background">
 
     <!-- Sidenav Container -->
-    <LinearLayout
-        android:id="@+id/sidenav_container"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/side_nav_recycler"
         android:layout_width="80dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@color/md_theme_dark_surface"
         android:paddingTop="24dp"
         android:paddingBottom="24dp"
-        android:gravity="top|center_horizontal">
-        <!-- Itens da Sidenav serão adicionados aqui programaticamente -->
-        <!-- Exemplo de como poderia ser um item (mas será inflado)
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_home_black_24dp"
-            android:layout_marginBottom="24dp"
-            android:focusable="true"
-            android:clickable="true"
-            android:background="?android:attr/selectableItemBackgroundBorderless" />
-        -->
-    </LinearLayout>
+        android:gravity="top|center_horizontal"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        xmlns:app="http://schemas.android.com/apk/res-auto"/>
 
     <!-- Content Container -->
     <FrameLayout
