@@ -82,8 +82,9 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
         Log.d(TV_TV_TAG, "Calling setupRecyclerViews()");
         setupRecyclerViews();
-        Log.d(TV_TV_TAG, "Calling initializePlayer()");
-        initializePlayer();
+        // initializePlayer() is removed from here. Player will be initialized on first channel selection.
+        // Log.d(TV_TV_TAG, "Calling initializePlayer()");
+        // initializePlayer();
 
         Log.d(TV_TV_TAG, "Views initialized and methods called.");
         return root;
@@ -118,31 +119,46 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         Log.d(TV_TV_TAG, "RecyclerViews setup complete.");
     }
 
-    private void initializePlayer() {
-        Log.d(TV_TV_TAG, "initializePlayer called");
-        if (requireContext() == null) {
-            Log.e(TV_TV_TAG, "Context is null in initializePlayer!");
+    // This method is being replaced by setupVideoPlayerComponents
+    // private void initializePlayer() { ... }
+
+
+    private void setupVideoPlayerComponents(Channel channel) {
+        Log.d(TV_TV_TAG, "setupVideoPlayerComponents for channel: " + channel.getName());
+        if (getContext() == null || playerContainerTv == null) {
+            Log.e(TV_TV_TAG, "Context or playerContainerTv is null in setupVideoPlayerComponents.");
+            if (getContext() != null) {
+                 Toast.makeText(getContext(), "Error initializing player components.", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
-        videoViewTv = new VideoView(requireContext());
+
+        // Create new VideoView instance
+        videoViewTv = new VideoView(requireContext()); // Use requireContext for non-null context
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         );
         videoViewTv.setLayoutParams(params);
-        if (playerContainerTv == null) {
-            Log.e(TV_TV_TAG, "playerContainerTv is null in initializePlayer!");
-            return;
-        }
         playerContainerTv.addView(videoViewTv);
 
+        // Create new StandardVideoController and add components
         videoControllerTv = new StandardVideoController(requireContext());
-        mTitleViewComponent = new TitleView(requireContext()); // Instanciar TitleView
-        videoControllerTv.addControlComponent(mTitleViewComponent); // Adicionar ao controller
 
-        mChannelGridView = new ChannelGridView(requireContext()); // Instanciar ChannelGridView
-        mChannelGridView.setChannelSelectedListener(this::onChannelSelected); // Set listener
-        videoControllerTv.addControlComponent(mChannelGridView); // Adicionar ao controller
+        // TitleView
+        mTitleViewComponent = new TitleView(requireContext());
+        videoControllerTv.addControlComponent(mTitleViewComponent);
+
+        // ChannelGridView (for TV interaction)
+        mChannelGridView = new ChannelGridView(requireContext());
+        mChannelGridView.setChannelSelectedListener(this::onChannelSelected); // Assuming this is correct
+        videoControllerTv.addControlComponent(mChannelGridView);
+
+        // Standard player components (like in VideoPlayerActivity, if needed for TV)
+        // Example: controller.addControlComponent(new CompleteView(requireContext()));
+        // Example: controller.addControlComponent(new ErrorView(requireContext()));
+        // Example: controller.addControlComponent(new PrepareView(requireContext()));
+        // For now, keeping it minimal to TitleView and ChannelGridView as per TvFragmentTv's explicit members
 
         videoViewTv.setVideoController(videoControllerTv);
 
@@ -160,11 +176,11 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
                 } else {
                     playerProgressBarTv.setVisibility(View.GONE);
                 }
-                // Outros tratamentos de estado (erro, completado, etc.)
             }
         });
-        Log.d(TV_TV_TAG, "Player initialization complete.");
+        Log.d(TV_TV_TAG, "Video player components setup complete.");
     }
+
 
     @Override
     public void onResume() {
@@ -300,25 +316,59 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     private void onChannelSelected(Channel channel) {
         Log.d(TV_TV_TAG, "onChannelSelected: " + channel.getName() + " URL: " + channel.getStreamUrl());
-        if (!isAdded() || getContext() == null) {
-            Log.w(TV_TV_TAG, "onChannelSelected: Fragment not added or context is null.");
+        Log.d(TV_TV_TAG, "onChannelSelected: " + channel.getName());
+        if (!isAdded() || getContext() == null || playerContainerTv == null) {
+            Log.e(TV_TV_TAG, "onChannelSelected: Fragment not added, context is null, or playerContainerTv is null.");
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Error selecting channel.", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
+
+        String streamUrl = channel.getStreamUrl();
+        if (streamUrl == null || streamUrl.isEmpty()) {
+            Log.e(TV_TV_TAG, "Stream URL is null or empty for channel: " + channel.getName());
+            Toast.makeText(getContext(), "Invalid stream URL for " + channel.getName(), Toast.LENGTH_LONG).show();
+            // Optionally, clear the player view or show an error message in the player area
+            if (videoViewTv != null) {
+                 playerContainerTv.removeView(videoViewTv);
+                 videoViewTv.release();
+                 videoViewTv = null;
+                 videoControllerTv = null; // Also nullify controller
+            }
+            return;
+        }
+        Log.d(TV_TV_TAG, "Stream URL: " + streamUrl);
+
+        // Release existing player if any
+        if (videoViewTv != null) {
+            Log.d(TV_TV_TAG, "Releasing existing videoViewTv.");
+            playerContainerTv.removeView(videoViewTv);
+            videoViewTv.release();
+            videoViewTv = null;
+            videoControllerTv = null; // Ensure controller is also ready to be recreated
+            mTitleViewComponent = null; // Will be recreated in setupVideoPlayerComponents
+            mChannelGridView = null; // Will be recreated in setupVideoPlayerComponents
+        }
+
+        // Setup new player components for the selected channel
+        setupVideoPlayerComponents(channel); // This will create new videoViewTv, controller, etc.
+
         if (videoViewTv == null) {
-            Log.e(TV_TV_TAG, "videoViewTv is null in onChannelSelected!");
-            Toast.makeText(getContext(), "Erro: Player de vídeo não inicializado.", Toast.LENGTH_LONG).show();
+            Log.e(TV_TV_TAG, "videoViewTv is null after setupVideoPlayerComponents!");
+            Toast.makeText(getContext(), "Failed to initialize player.", Toast.LENGTH_LONG).show();
             return;
         }
-        // videoViewTv.release(); // Releasing and then immediately using is often problematic.
-        // Based on VideoPlayerActivity, setUrl and start is the way to initiate playback.
-        // The VideoView itself should handle stopping previous playback and resetting when setUrl is called.
-        videoViewTv.setUrl(channel.getStreamUrl());
-        videoViewTv.start(); // Start playback of the new stream
-        if (mTitleViewComponent != null) {
-           mTitleViewComponent.setTitle(channel.getName());
+
+        // Set URL and start playback
+        videoViewTv.setUrl(streamUrl);
+        if (mTitleViewComponent != null) { // mTitleViewComponent is re-instantiated in setupVideoPlayerComponents
+            mTitleViewComponent.setTitle(channel.getName());
         } else {
-            Log.e(TV_TV_TAG, "mTitleViewComponent is null in onChannelSelected!");
+            Log.e(TV_TV_TAG, "mTitleViewComponent is null after setup, cannot set title for channel: " + channel.getName());
         }
+        videoViewTv.start();
+
         loadEpgForChannel(channel.getStreamId());
     }
 

@@ -148,9 +148,21 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     }
     
     private void updateBannerContent(String title, String info, String description) {
-        bannerTitle.setText(title);
-        bannerInfo.setText(info);
-        bannerDescription.setText(description);
+        if (bannerTitle != null) {
+            bannerTitle.setText(title);
+        } else {
+            Log.w(TAG, "bannerTitle TextView not found, cannot update banner title.");
+        }
+        if (bannerInfo != null) {
+            bannerInfo.setText(info);
+        } else {
+            Log.w(TAG, "bannerInfo TextView not found, cannot update banner info.");
+        }
+        if (bannerDescription != null) {
+            bannerDescription.setText(description);
+        } else {
+            Log.w(TAG, "bannerDescription TextView not found, cannot update banner description.");
+        }
     }
     
     @Override
