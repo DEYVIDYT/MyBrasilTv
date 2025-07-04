@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="150dp"
+    android:layout_height="225dp"
+    android:layout_margin="8dp"
+    android:focusable="true"
+    android:clickable="true"
+    android:background="@drawable/movie_card_tv_background_selector"
+    android:descendantFocusability="blocksDescendants"> <!-- Impede que os filhos do card recebam foco individualmente -->
+
+    <ImageView
+        android:id="@+id/movie_tv_poster"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        tools:srcCompat="@tools:sample/backgrounds/scenic" />
+
+    <!-- Opcional: Título sobreposto se necessário, mas geralmente para TV, o poster é suficiente com foco -->
+    <!-- <TextView
+        android:id="@+id/movie_tv_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:textColor="@color/text_primary"
+        android:maxLines="2"
+        android:ellipsize="end"
+        tools:text="Título do Filme" /> -->
+
+</FrameLayout>

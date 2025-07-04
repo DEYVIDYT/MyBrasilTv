@@ -1,0 +1,48 @@
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.IPTVPlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Nova Paleta de Cores Aplicada ao Tema -->
+        <item name="colorPrimary">@color/selection_focus</item>
+        <item name="colorOnPrimary">@color/text_primary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_dark_primaryContainer</item> <!-- Mantido M3 ou ajustar -->
+        <item name="colorOnPrimaryContainer">@color/text_primary</item>
+        <item name="colorSecondary">@color/accent_highlight</item>
+        <item name="colorOnSecondary">@color/app_background</item>
+        <item name="colorSecondaryContainer">@color/md_theme_dark_secondaryContainer</item> <!-- Mantido M3 ou ajustar -->
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+        <item name="colorTertiary">@color/accent_highlight</item>
+        <item name="colorOnTertiary">@color/app_background</item>
+        <item name="colorTertiaryContainer">@color/md_theme_dark_tertiaryContainer</item> <!-- Mantido M3 ou ajustar -->
+        <item name="colorOnTertiaryContainer">@color/text_primary</item>
+        <item name="colorError">@color/md_theme_dark_error</item>
+        <item name="colorOnError">@color/md_theme_dark_onError</item>
+        <item name="colorErrorContainer">@color/md_theme_dark_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_theme_dark_onErrorContainer</item>
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorSurface">@color/md_theme_dark_surface</item> <!-- Usando a cor de superfície definida em colors.xml -->
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/md_theme_dark_surfaceVariant</item> <!-- Usando a cor de superfície variante definida em colors.xml -->
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/text_tertiary</item>
+        <item name="colorOnSurfaceInverse">@color/app_background</item>
+        <item name="colorSurfaceInverse">@color/text_primary</item>
+        <item name="colorPrimaryInverse">@color/selection_focus</item>
+
+        <!-- Configurações da barra de status -->
+        <item name="android:statusBarColor">@color/app_background</item>
+        <!-- Para tema escuro, os ícones da status bar devem ser claros -->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        
+        <!-- Configurações da barra de navegação -->
+        <item name="android:navigationBarColor">@color/app_background</item>
+        <!-- Para tema escuro, os ícones da navigation bar devem ser claros -->
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+
+        <!-- Definição do Scrim Background -->
+        <item name="scrimBackground">@color/my_scrim_color</item> <!-- my_scrim_color já usa app_background com opacidade -->
+        <!-- <item name="colorScrim">@color/md_theme_dark_scrim</item> --> <!-- md_theme_dark_scrim agora aponta para app_background -->
+    </style>
+</resources>
+
