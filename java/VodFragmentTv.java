@@ -58,12 +58,12 @@ public class VodFragmentTv extends Fragment implements DataManager.DataManagerLi
 
         // Initialize Hero Section Views
         heroBackgroundImage = root.findViewById(R.id.hero_background_image);
-        heroTitle = root.findViewById(R.id.hero_title);
+        heroTitle = root.findViewById(R.id.banner_title); // Corrigido
         heroDuration = root.findViewById(R.id.hero_duration);
         heroYear = root.findViewById(R.id.hero_year);
         heroRating = root.findViewById(R.id.hero_rating);
         heroGenres = root.findViewById(R.id.hero_genres);
-        heroDescription = root.findViewById(R.id.hero_description);
+        heroDescription = root.findViewById(R.id.banner_description); // Corrigido
         heroCast = root.findViewById(R.id.hero_cast);
         // heroButtonWatch = root.findViewById(R.id.hero_button_watch);
         // heroButtonFavorite = root.findViewById(R.id.hero_button_favorite);

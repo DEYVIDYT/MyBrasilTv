@@ -53,6 +53,8 @@ import android.widget.ImageView;
 import java.util.Arrays;
 import java.util.List;
 import android.content.pm.ActivityInfo;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -241,12 +243,19 @@ public class MainActivity extends AppCompatActivity {
         sideNavRecyclerView.setAdapter(tvSideNavAdapter);
 
         // Load initial TV fragment
-        if (!tvNavItemsList.isEmpty()) {
-            // Precisamos de uma forma de obter a View do primeiro item para passar para loadTvFragment
-            // Isso é complicado sem ter o adapter gerenciando a seleção ou um callback melhor.
-            // Solução temporária: carregar o fragmento, a seleção visual pode não funcionar perfeitamente no início.
-            loadTvFragment(tvNavItemsList.get(0).fragment, null); // Passar null para selectedView inicialmente
-            // Idealmente, o adapter chamaria o listener para o primeiro item ou teríamos um método selectItem(position)
+        if (tvSideNavAdapter != null && !tvNavItemsList.isEmpty()) {
+            // Simula o clique no primeiro item para carregar o fragmento inicial
+            // e garantir que o estado de seleção do adapter seja atualizado.
+            // O listener do adapter chamará loadTvFragment.
+            listener.onNavItemClicked(tvNavItemsList.get(0));
+
+            // Opcional: Forçar foco no primeiro item visível do RecyclerView após a configuração
+            // sideNavRecyclerView.post(() -> {
+            //    RecyclerView.ViewHolder firstViewHolder = sideNavRecyclerView.findViewHolderForAdapterPosition(0);
+            //    if (firstViewHolder != null && firstViewHolder.itemView != null) {
+            //        firstViewHolder.itemView.requestFocus();
+            //    }
+            // });
         }
     }
 
@@ -262,32 +271,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void loadTvFragment(Fragment fragment, @Nullable View selectedItemView) {
+    private void loadTvFragment(Fragment fragment, @Nullable View selectedItemView) { // selectedItemView pode ser usado para focar
         Log.d("MainActivity", "Loading TV Fragment: " + fragment.getClass().getSimpleName());
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.tv_fragment_container, fragment);
         fragmentTransaction.commit();
 
-        // Update Sidenav item selection state (visual)
-        // Esta lógica é melhor dentro do Adapter ou via um método no adapter para definir o item selecionado
-        if (lastSelectedSidenavItemView != null) {
-            lastSelectedSidenavItemView.setSelected(false);
-        }
+        // A seleção visual agora é primariamente gerenciada pelo TvSideNavAdapter.
+        // A Activity apenas precisa garantir que o fragmento correto seja carregado.
+        // Se precisarmos focar na view do item da Sidenav após o clique:
         if (selectedItemView != null) {
-            selectedItemView.setSelected(true);
-            lastSelectedSidenavItemView = selectedItemView;
-        } else {
-            // Se selectedItemView for null (ex: carregamento inicial sem view específica),
-            // podemos tentar encontrar a view correspondente ao fragmento ou deixar sem seleção visual inicial.
-            // Por enquanto, apenas resetamos.
-            lastSelectedSidenavItemView = null;
+            // selectedItemView.requestFocus(); // O adapter já faz isso no onClick
         }
 
-        // O adapter deve atualizar seus próprios itens se ele mantiver o estado de seleção.
-        // tvSideNavAdapter.setSelectedItem(fragment); // Exemplo se o adapter tivesse tal método
-
-        // Basic focus request. More specific focus might be needed within each TV fragment.
+        // Basic focus request para o novo fragmento.
         // Delay focus request slightly to ensure fragment view is fully ready.
         if (fragment.getView() != null) {
              fragment.getView().post(() -> {
