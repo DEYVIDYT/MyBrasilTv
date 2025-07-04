@@ -60,7 +60,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp"
-            android:visibility="gone"  <!-- Oculto por enquanto, banner_info pode ser usado -->
+            android:visibility="gone" <!-- Oculto por enquanto, banner_info pode ser usado. Comentário corrigido. -->
             app:layout_constraintStart_toStartOf="@id/banner_title"
             app:layout_constraintTop_toBottomOf="@id/banner_info"
             app:layout_constraintEnd_toEndOf="@id/banner_title">

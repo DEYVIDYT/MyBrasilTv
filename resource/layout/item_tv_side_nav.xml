@@ -21,7 +21,7 @@
         android:id="@+id/nav_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/tv_nav_text_color" <!-- tv_nav_text_color já definida -->
+        android:textColor="@color/tv_nav_text_color" <!-- Cor do texto para o título da navegação -->
         android:textSize="10sp"
         android:visibility="gone"
         android:layout_marginTop="4dp"/>
