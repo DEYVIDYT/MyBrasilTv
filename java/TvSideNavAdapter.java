@@ -15,7 +15,8 @@ public class TvSideNavAdapter extends RecyclerView.Adapter<TvSideNavAdapter.View
     private OnNavItemClickListener listener;
     private int selectedPosition = 0; // Padrão para o primeiro item selecionado
 
-    public interface OnNavItemClickListener {
+    // Tornada public static para melhor acessibilidade
+    public static interface OnNavItemClickListener {
         void onNavItemClicked(MainActivity.NavItem navItem);
     }
 
