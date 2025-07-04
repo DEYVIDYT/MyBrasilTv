@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/md_theme_dark_surface">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Escolha o Layout do Aplicativo"
+        android:textSize="20sp"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/button_mobile_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Layout Mobile"
+        android:textColor="@color/text_primary"
+        android:backgroundTint="@color/selection_focus"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/button_tv_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_primary"
+        android:backgroundTint="@color/selection_focus"
+        android:text="Layout Android TV"/>
+
+</LinearLayout>

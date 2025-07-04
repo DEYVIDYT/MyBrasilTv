@@ -27,7 +27,7 @@
                 android:text="Título do Programa"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@android:color/primary_text_light"
+                android:textColor="@color/text_primary"
                 android:maxLines="2"
                 android:ellipsize="end" />
 
@@ -37,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:text="120 min"
                 android:textSize="12sp"
-                android:textColor="@android:color/secondary_text_light"
+                android:textColor="@color/app_background"
                 android:background="@drawable/quality_indicator_background"
                 android:padding="4dp"
                 android:layout_marginStart="8dp"
@@ -51,7 +51,7 @@
             android:layout_height="wrap_content"
             android:text="20:00 - 22:00"
             android:textSize="14sp"
-            android:textColor="@android:color/secondary_text_light"
+            android:textColor="@color/text_secondary"
             android:layout_marginTop="4dp" />
 
         <TextView
@@ -60,7 +60,7 @@
             android:layout_height="wrap_content"
             android:text="Categoria"
             android:textSize="12sp"
-            android:textColor="@android:color/secondary_text_light"
+            android:textColor="@color/text_secondary"
             android:background="@drawable/tab_unselected_background"
             android:padding="4dp"
             android:layout_marginTop="4dp"
@@ -72,7 +72,7 @@
             android:layout_height="wrap_content"
             android:text="Descrição do programa..."
             android:textSize="14sp"
-            android:textColor="@android:color/secondary_text_light"
+            android:textColor="@color/text_secondary"
             android:layout_marginTop="8dp"
             android:maxLines="3"
             android:ellipsize="end" />

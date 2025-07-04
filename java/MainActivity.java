@@ -45,8 +45,18 @@ import java.util.List;
 
 import com.example.iptvplayer.data.Movie;
 import com.example.iptvplayer.data.Channel;
+import android.content.SharedPreferences;
+import androidx.appcompat.app.AlertDialog;
+import android.view.LayoutInflater;
+import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String PREFS_NAME = "AppPrefs";
+    private static final String KEY_LAYOUT_CHOSEN = "LayoutChosen";
+    private static final String KEY_SELECTED_LAYOUT = "SelectedLayout";
+    private static final String LAYOUT_MOBILE = "Mobile";
+    private static final String LAYOUT_TV = "TV";
 
     private final VodFragment vodFragment = new VodFragment();
     private final TvFragment tvFragment = new TvFragment();
@@ -62,16 +72,60 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // notificationHelper = new NotificationHelper(this); // Removed
-        // xtreamLoginService = new XtreamLoginService(); // Removed
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean layoutChosen = prefs.getBoolean(KEY_LAYOUT_CHOSEN, false);
 
+        if (!layoutChosen) {
+            showLayoutChooserDialog();
+        } else {
+            // Layout já escolhido, prosseguir com a inicialização normal
+            initializeApp();
+        }
+    }
+
+    private void showLayoutChooserDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_layout_chooser, null);
+        builder.setView(dialogView);
+        builder.setCancelable(false); // Impede o usuário de fechar o diálogo sem escolher
+
+        AlertDialog dialog = builder.create();
+
+        Button mobileButton = dialogView.findViewById(R.id.button_mobile_layout);
+        Button tvButton = dialogView.findViewById(R.id.button_tv_layout);
+
+        mobileButton.setOnClickListener(v -> {
+            saveLayoutPreference(LAYOUT_MOBILE);
+            dialog.dismiss();
+            initializeApp();
+        });
+
+        tvButton.setOnClickListener(v -> {
+            saveLayoutPreference(LAYOUT_TV);
+            dialog.dismiss();
+            initializeApp();
+        });
+
+        dialog.show();
+    }
+
+    private void saveLayoutPreference(String layoutType) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(KEY_LAYOUT_CHOSEN, true);
+        editor.putString(KEY_SELECTED_LAYOUT, layoutType);
+        editor.apply();
+        Log.d("MainActivity", "Layout preference saved: " + layoutType);
+    }
+
+    private void initializeApp() {
         // Check if data was loaded by DownloadProgressActivity
         boolean dataLoadedSuccessfully = getIntent().getBooleanExtra("DATA_LOADED_SUCCESSFULLY", false);
         DataManager dataManager = MyApplication.getDataManager(getApplicationContext()); // Get singleton instance
 
         // If data is not loaded (e.g. app started directly) or DataManager is not yet complete,
         // redirect to DownloadProgressActivity.
-        // This check might need to be more robust, e.g. checking specific data in DataManager.
         if (!dataLoadedSuccessfully && (dataManager.getLiveStreams() == null || dataManager.getVodStreams() == null)) {
             Log.d("MainActivity", "Data not loaded, redirecting to DownloadProgressActivity.");
             Intent intent = new Intent(this, DownloadProgressActivity.class);
@@ -82,7 +136,23 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d("MainActivity", "Data loaded or already available. Proceeding with MainActivity setup.");
 
+        // Aqui você pode adicionar lógica para carregar diferentes UIs ou comportamentos
+        // com base em getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE)
+        Log.d("MainActivity", "Selected layout: " + getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE));
+
         BottomNavigationView navView = findViewById(R.id.nav_view);
+        String selectedLayout = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_SELECTED_LAYOUT, LAYOUT_MOBILE);
+
+        if (LAYOUT_TV.equals(selectedLayout)) {
+            navView.setVisibility(View.GONE);
+            Log.d("MainActivity", "TV Layout selected. Hiding BottomNavigationView.");
+            Log.w("MainActivity", "TV Navigation needs to be implemented. User will be on the initial fragment.");
+            // TODO: Implement TV-specific navigation (e.g., side drawer, top tabs)
+        } else {
+            navView.setVisibility(View.VISIBLE);
+            Log.d("MainActivity", "Mobile Layout selected. Showing BottomNavigationView.");
+        }
+
         loadFragment(vodFragment); // Load initial fragment
 
         navView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {

@@ -27,7 +27,7 @@
             android:layout_weight="1"
             android:text="@string/title_vod"
             android:textAppearance="?attr/textAppearanceHeadline6"
-            android:textColor="?attr/colorPrimary"
+            android:textColor="@color/text_primary"
             android:textStyle="bold" />
 
         <ImageView

@@ -1,47 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material Design 3 Dark Theme Colors -->
-    <color name="md_theme_dark_primary">#D0BCFF</color> <!-- Roxo vibrante -->
-    <color name="md_theme_dark_onPrimary">#381E72</color>
-    <color name="md_theme_dark_primaryContainer">#4A4458</color>
-    <color name="md_theme_dark_onPrimaryContainer">#EADDFF</color>
-    <color name="md_theme_dark_secondary">#CCC2DC</color> <!-- Azul/ciano acinzentado -->
-    <color name="md_theme_dark_onSecondary">#332D41</color>
-    <color name="md_theme_dark_secondaryContainer">#4A4458</color> <!-- Pode ser o mesmo que primaryContainer ou um tom diferente -->
-    <color name="md_theme_dark_onSecondaryContainer">#E8DEF8</color>
-    <color name="md_theme_dark_tertiary">#EFB8C8</color> <!-- Rosa/magenta -->
-    <color name="md_theme_dark_onTertiary">#492532</color>
+    <!-- Nova Paleta de Cores -->
+    <color name="app_background">#0F0F1B</color> <!-- Fundo principal (preto com tom azulado) -->
+    <color name="text_primary">#FFFFFF</color> <!-- Texto principal / ícones ativos (branco puro) -->
+    <color name="text_secondary">#CCCCCC</color> <!-- Texto secundário (cinza claro) -->
+    <color name="text_tertiary">#AAAAAA</color> <!-- Texto terciário (cinza mais escuro, opcional) -->
+    <color name="accent_highlight">#FFD700</color> <!-- Destaques como notas, tags (amarelo ouro) -->
+    <color name="selection_focus">#5C6BC0</color> <!-- Seleção / foco (roxo-azulado) -->
+    <color name="icon_inactive">#777777</color> <!-- Ícones inativos (cinza médio) -->
+
+    <!-- Material Design 3 Dark Theme Colors (Mapeadas para a nova paleta ou removidas/ajustadas) -->
+    <!-- Mantendo algumas cores do Material 3 para componentes que podem depender delas, mas ajustando-as para a nova paleta -->
+    <color name="md_theme_dark_primary">@color/selection_focus</color> <!-- Roxo vibrante -> Usando selection_focus -->
+    <color name="md_theme_dark_onPrimary">@color/text_primary</color> <!-- Branco sobre o primário -->
+    <color name="md_theme_dark_primaryContainer">#3E2723</color> <!-- Um tom escuro para container primário, pode ser ajustado -->
+    <color name="md_theme_dark_onPrimaryContainer">@color/text_primary</color>
+    <color name="md_theme_dark_secondary">@color/accent_highlight</color> <!-- Amarelo para secundário -->
+    <color name="md_theme_dark_onSecondary">#0F0F1B</color> <!-- Preto/Azulado sobre o secundário (amarelo), usando app_background -->
+    <color name="md_theme_dark_secondaryContainer">#4A4458</color>
+    <color name="md_theme_dark_onSecondaryContainer">@color/text_primary</color>
+    <color name="md_theme_dark_tertiary">@color/accent_highlight</color> <!-- Amarelo para terciário também -->
+    <color name="md_theme_dark_onTertiary">#0F0F1B</color> <!-- Usando app_background -->
     <color name="md_theme_dark_tertiaryContainer">#633B48</color>
-    <color name="md_theme_dark_onTertiaryContainer">#FFD8E4</color>
-    <color name="md_theme_dark_error">#F2B8B5</color>
+    <color name="md_theme_dark_onTertiaryContainer">@color/text_primary</color>
+    <color name="md_theme_dark_error">#F2B8B5</color> <!-- Manter cores de erro padrão do M3 ou ajustar se necessário -->
     <color name="md_theme_dark_onError">#601410</color>
     <color name="md_theme_dark_errorContainer">#8C1D18</color>
     <color name="md_theme_dark_onErrorContainer">#F9DEDC</color>
-    <color name="md_theme_dark_background">#1C1B1F</color> <!-- Fundo principal escuro -->
-    <color name="md_theme_dark_onBackground">#E6E1E5</color> <!-- Texto sobre o fundo -->
-    <color name="md_theme_dark_surface">#2A292E</color> <!-- Superfícies (cards, menus) um pouco mais claras que o fundo -->
-    <color name="md_theme_dark_onSurface">#E6E1E5</color> <!-- Texto sobre superfícies -->
-    <color name="md_theme_dark_surfaceVariant">#49454F</color> <!-- Variante de superfície -->
-    <color name="md_theme_dark_onSurfaceVariant">#CAC4D0</color> <!-- Texto sobre variante de superfície -->
-    <color name="md_theme_dark_outline">#938F99</color> <!-- Contornos -->
+    <color name="md_theme_dark_background">@color/app_background</color> <!-- Fundo principal escuro -->
+    <color name="md_theme_dark_onBackground">@color/text_primary</color> <!-- Texto sobre o fundo -->
+    <color name="md_theme_dark_surface">#1A1A2A</color> <!-- Superfícies (cards, menus) um pouco mais claras que o fundo, mas ainda escuras -->
+    <color name="md_theme_dark_onSurface">@color/text_primary</color> <!-- Texto sobre superfícies -->
+    <color name="md_theme_dark_surfaceVariant">#2C2C3A</color> <!-- Variante de superfície -->
+    <color name="md_theme_dark_onSurfaceVariant">@color/text_secondary</color> <!-- Texto secundário sobre variante de superfície -->
+    <color name="md_theme_dark_outline">@color/text_tertiary</color> <!-- Contornos -->
     <color name="md_theme_dark_shadow">#000000</color>
-    <color name="md_theme_dark_inverseSurface">#E6E1E5</color>
-    <color name="md_theme_dark_inverseOnSurface">#313033</color>
-    <color name="md_theme_dark_inversePrimary">#6750A4</color>
+    <color name="md_theme_dark_inverseSurface">@color/text_primary</color> <!-- Inverso da superfície (branco) -->
+    <color name="md_theme_dark_inverseOnSurface">@color/app_background</color> <!-- Inverso do texto na superfície (preto/azulado) -->
+    <color name="md_theme_dark_inversePrimary">@color/selection_focus</color>
 
     <!-- Cores específicas do player atualizadas para o novo tema -->
-    <color name="dkplayer_theme_color">@color/md_theme_dark_primary</color>
-    <color name="dkplayer_theme_color_translucent">#80D0BCFF</color> <!-- md_theme_dark_primary com 50% de opacidade (alpha 80) -->
-    <color name="dkplayer_background_color">@color/md_theme_dark_background</color>
-    <color name="dkplayer_gesture_bg_color">#CC2A292E</color> <!-- md_theme_dark_surface com ~80% alpha -->
+    <color name="dkplayer_theme_color">@color/selection_focus</color>
+    <color name="dkplayer_theme_color_translucent">#805C6BC0</color> <!-- selection_focus com 50% de opacidade -->
+    <color name="dkplayer_background_color">@color/app_background</color>
+    <color name="dkplayer_gesture_bg_color">#CC1A1A2A</color> <!-- md_theme_dark_surface com ~80% alpha -->
 
-    <!-- Cores genéricas -->
-    <color name="black">#000000</color> <!-- Mantida para usos genéricos se houver -->
-    <color name="white">#FFFFFF</color> <!-- Mantida para usos genéricos se houver -->
-    <color name="gray">#808080</color> <!-- Cor cinza para textos secundários -->
+    <!-- Cores genéricas (podem ser substituídas pelas novas cores da paleta) -->
+    <color name="black">#000000</color> <!-- Usar app_background ou um tom específico se necessário -->
+    <color name="white">@color/text_primary</color>
+    <color name="gray">@color/text_secondary</color>
 
-    <!-- Cores do sistema (md_sys_*) atualizadas para refletir o novo tema Material 3 -->
-    <!-- Estas são usadas por alguns componentes Material e devem apontar para as cores do tema M3 -->
+    <!-- Cores do sistema (md_sys_*) atualizadas para refletir o novo tema -->
     <color name="md_sys_color_primary">@color/md_theme_dark_primary</color>
     <color name="md_sys_color_on_primary_container">@color/md_theme_dark_onPrimaryContainer</color>
     <color name="md_sys_color_primary_container">@color/md_theme_dark_primaryContainer</color>
@@ -56,7 +65,7 @@
     <color name="md_sys_color_outline_variant">@color/md_theme_dark_outline</color>
 
     <!-- Cor para Scrim Background -->
-    <color name="my_scrim_color">#99000000</color> <!-- Preto com 60% de opacidade -->
-    <color name="md_theme_dark_scrim">#000000</color> <!-- Cor base do Scrim M3, geralmente é preto puro e a opacidade é aplicada no componente -->
+    <color name="my_scrim_color">#990F0F1B</color> <!-- app_background com 60% de opacidade -->
+    <color name="md_theme_dark_scrim">#0F0F1B</color> <!-- Cor base do Scrim M3, usando app_background -->
 
 </resources>

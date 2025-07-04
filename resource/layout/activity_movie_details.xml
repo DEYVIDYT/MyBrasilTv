@@ -174,9 +174,9 @@
                 android:layout_marginBottom="16dp"
                 app:tabMode="scrollable"
                 app:tabGravity="start"
-                app:tabTextColor="?attr/colorOnSurfaceVariant"
-                app:tabSelectedTextColor="?attr/colorPrimary"
-                app:tabIndicatorColor="?attr/colorPrimary"
+                app:tabTextColor="@color/text_secondary"
+                app:tabSelectedTextColor="@color/accent_highlight"
+                app:tabIndicatorColor="@color/accent_highlight"
                 app:tabBackground="?attr/colorSurface">
 
                 <com.google.android.material.tabs.TabItem
