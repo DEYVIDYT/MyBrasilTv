@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black"
+    android:background="?attr/colorSurface"
     tools:context=".SearchActivity">
 
     <!-- Barra de pesquisa -->
@@ -28,7 +28,7 @@
             android:layout_marginEnd="12dp"
             android:src="@drawable/ic_search"
             android:contentDescription="@string/search_hint_vod"
-            app:tint="@color/gray" />
+            app:tint="?attr/colorControlNormal" />
 
         <EditText
             android:id="@+id/search_edit_text"
@@ -37,8 +37,8 @@
             android:layout_weight="1"
             android:background="@android:color/transparent"
             android:hint="Procurar"
-            android:textColor="@color/white"
-            android:textColorHint="@color/gray"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant"
             android:textSize="16sp"
             android:inputType="text"
             android:imeOptions="actionSearch"
@@ -54,7 +54,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="32dp"
         android:text="pesquisas recentes"
-        android:textColor="@color/white"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="18sp"
         android:textStyle="normal"
         app:layout_constraintStart_toStartOf="parent"
@@ -79,7 +79,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Sem histórico"
-        android:textColor="@color/gray"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="16sp"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
