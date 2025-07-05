@@ -50,7 +50,6 @@
         <!-- For simplicity, let's use separate ones to match VideoPlayerActivity's previous logic if needed -->
         <ImageButton
             android:id="@id/exo_play"
-            style="@style/Widget.ExoPlayer.MediaButton.Play"
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:padding="16dp"
@@ -61,7 +60,6 @@
 
         <ImageButton
             android:id="@id/exo_pause"
-            style="@style/Widget.ExoPlayer.MediaButton.Pause"
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:padding="16dp"
@@ -72,7 +70,6 @@
 
         <ImageButton
             android:id="@+id/exo_custom_replay_button_v2"
-            style="@style/Widget.ExoPlayer.MediaButton"
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:src="@drawable/dkplayer_ic_action_replay"
@@ -220,7 +217,6 @@
 
         <ImageButton
             android:id="@id/exo_fullscreen"
-            style="@style/Widget.ExoPlayer.MediaButton.Fullscreen"
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:padding="@dimen/dkplayer_controller_icon_padding"
