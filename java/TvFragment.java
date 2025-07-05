@@ -73,8 +73,9 @@ import android.util.Base64; // Importar Base64
 import android.os.Handler; // Adicionado para retentativas
 import android.os.Looper; // Adicionado para retentativas
 import android.content.pm.ActivityInfo; // Adicionado para controle de orientação
+import com.example.iptvplayer.component.LiveControlView; // Importar LiveControlView para o listener
 
-public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClickListener, EpgAdapter.OnProgramClickListener, DataManager.DataManagerListener {
+public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClickListener, EpgAdapter.OnProgramClickListener, DataManager.DataManagerListener, LiveControlView.OnProportionButtonClickListener {
 
     private RecyclerView recyclerViewChannels;
     private RecyclerView recyclerViewCategories;
@@ -270,6 +271,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         if (mChannelGridView != null) { // Ensure mChannelGridView is initialized
             liveControlView.setChannelGridViewRef(mChannelGridView); // Set the reference
         }
+        liveControlView.setOnProportionButtonClickListener(this); // Definir o listener
         mController.addControlComponent(liveControlView); // ADDED
 
 
@@ -1266,6 +1268,17 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
         Log.d(TAG_BACK_TV, "Back press not handled by TvFragment (player not fullscreen, or VideoView did not handle). Returning false.");
         return false; // Evento não consumido, MainActivity prosseguirá
+    }
+
+    // Implementação do listener do LiveControlView para o botão de proporção
+    @Override
+    public void onProportionButtonClick() {
+        if (getContext() != null && mVideoView != null) { // Verificar contexto e VideoView
+            new XPopup.Builder(getContext())
+                    .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right) // Ou outra posição desejada
+                    .asCustom(new CustomDrawerPopupView1(getContext())) // Reutilizar o popup de proporção existente
+                    .show();
+        }
     }
 }
 

@@ -31,7 +31,18 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
     private LinearLayout mBottomContainer;
     private ImageView mPlayButton;
     private ImageView mChannelGridToggle; // New button
+    private ImageView mProportionButton; // New button for aspect ratio
     private ChannelGridView mChannelGridViewRef; // Reference to ChannelGridView
+    private OnProportionButtonClickListener mProportionListener;
+
+    // Interface para o callback do botão de proporção
+    public interface OnProportionButtonClickListener {
+        void onProportionButtonClick();
+    }
+
+    public void setOnProportionButtonClickListener(OnProportionButtonClickListener listener) {
+        this.mProportionListener = listener;
+    }
 
     public LiveControlView(@NonNull Context context) {
         super(context);
@@ -58,6 +69,10 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
         refresh.setOnClickListener(this);
         mChannelGridToggle = findViewById(R.id.iv_channel_grid_toggle);
         mChannelGridToggle.setOnClickListener(this);
+        mProportionButton = findViewById(R.id.iv_proportion); // Inflar o novo botão
+        if (mProportionButton != null) { // Verificar se o ID existe no layout
+            mProportionButton.setOnClickListener(this);
+        }
     }
 
     @Override
@@ -159,6 +174,10 @@ public class LiveControlView extends FrameLayout implements IControlComponent, V
             mControlWrapper.replay(true);
         } else if (id == R.id.iv_channel_grid_toggle) {
             toggleChannelGrid();
+        } else if (id == R.id.iv_proportion) {
+            if (mProportionListener != null) {
+                mProportionListener.onProportionButtonClick();
+            }
         }
     }
 
