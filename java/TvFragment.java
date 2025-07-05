@@ -135,6 +135,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private boolean mIsRetrying = false;
     private static final int RETRY_DELAY_MS = 5000; // 5 segundos de delay
 
+    // Variáveis para otimização de buffer em canais lentos
+    private static final int MAX_BUFFERING_TIME_MS = 15000; // 15 segundos
+    private static final int PAUSE_FOR_BUFFER_REBUILD_MS = 7000; // 7 segundos
+    private long mBufferingStartTime = 0;
+    private boolean mIsPausedForBuffering = false;
+    private Handler mBufferOptimizeHandler;
+    private Runnable mCheckBufferingRunnable;
+    private Runnable mResumeAfterBufferRebuildRunnable;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -326,40 +334,91 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                         break;
                     // Outros estados como STATE_PREPARING, STATE_BUFFERING podem ser usados para mostrar/esconder o ProgressBar
                     case VideoView.STATE_PREPARING:
-                    case VideoView.STATE_BUFFERING:
-                        Log.d(TV_TAG, "Player is PREPARING or BUFFERING.");
+                        Log.d(TV_TAG, "Player is PREPARING.");
                         showLoading(true);
+                        mBufferingStartTime = 0; // Resetar início de buffering ao preparar novo stream
+                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+                        mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
+                        mIsPausedForBuffering = false;
                         break;
-                    case VideoView.STATE_PREPARED: // Vídeo preparado, mas ainda não necessariamente tocando
+                    case VideoView.STATE_BUFFERING:
+                        Log.d(TV_TAG, "Player is BUFFERING.");
+                        if (!mIsPausedForBuffering && !mIsRetrying) { // Só iniciar lógica de buffering excessivo se não estiver pausado por nós ou em retentativa de erro
+                            if (mBufferingStartTime == 0) { // Marcar início do buffering
+                                mBufferingStartTime = System.currentTimeMillis();
+                                Log.d(TV_TAG, "Buffering started at: " + mBufferingStartTime);
+                                // Postar verificação inicial, mCheckBufferingRunnable se auto-reagenda depois
+                                mBufferOptimizeHandler.postDelayed(mCheckBufferingRunnable, 1000); // Verificar após 1s
+                            }
+                            // Mostrar "Carregando..." ou similar, mas não a mensagem de "Otimizando buffer" ainda
+                           if (!playerLoadingTextView.getText().equals(getString(R.string.optimizing_buffer_message))) {
+                                showLoading(true); // Usa a mensagem padrão de loading
+                            }
+                        }
+                        break;
+                    case VideoView.STATE_PREPARED: // Vídeo preparado
+                        Log.d(TV_TAG, "Player is PREPARED.");
+                        mBufferingStartTime = 0; // Resetar, pois o buffer foi preparado
+                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+                        // Não esconder loading aqui, esperar PLAYING ou PAUSED
+                        break;
                     case VideoView.STATE_BUFFERED: // Buffering completo
-                        Log.d(TV_TAG, "Player is PREPARED or BUFFERED (finished buffering).");
-                        // showLoading(false); // Não esconder aqui necessariamente, esperar pelo PLAYING ou PAUSED
-                        // showLoading(false); // Ocultar loading apenas quando PLAYING ou se o player não for iniciar automaticamente
+                        Log.d(TV_TAG, "Player is BUFFERED (finished buffering).");
+                        mBufferingStartTime = 0; // Resetar, pois o buffering terminou
+                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+                        // Não esconder loading aqui, esperar PLAYING ou PAUSED
                         break;
                     case VideoView.STATE_ERROR:
                         showLoading(false); // Esconder loading em caso de erro
+                        mBufferingStartTime = 0;
+                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+                        mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
+                        mIsPausedForBuffering = false;
                         // ErrorView já deve estar sendo exibido pelo controller
                         if (mVideoView != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
                             Log.e(TV_TAG, "Error playing channel: " + mCurrentPlayingChannelName + ". Initiating retry mechanism.");
                             mIsRetrying = true;
-                            // Usar showLoadingWithMessage para indicar a retentativa
                             showLoadingWithMessage(getString(R.string.retrying_channel_message, mCurrentPlayingChannelName));
                             mRetryHandler.postDelayed(mRetryRunnable, RETRY_DELAY_MS);
                         }
                         break;
                 }
-                // Assegurar que o loading seja escondido se o vídeo estiver tocando ou pausado (após preparo/buffering)
-                // e não estivermos no meio de uma retentativa por erro anterior.
-                if (!mIsRetrying && (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED)) {
+
+                // Lógica de esconder loading
+                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED) {
+                    if (mIsPausedForBuffering && playState == VideoView.STATE_PAUSED) {
+                        // Se foi pausado por nós para otimizar buffer, manter a mensagem de otimização.
+                        // showLoadingWithMessage(getString(R.string.optimizing_buffer_message)); // Já deve estar setada
+                    } else if (!mIsRetrying) {
+                        // Esconder loading se não estivermos retentando um erro fatal e não estivermos explicitamente pausados para buffer.
+                        showLoading(false);
+                    }
+                     // Se estava pausado para buffer e agora está tocando, resetar flags.
+                    if (mIsPausedForBuffering && playState == VideoView.STATE_PLAYING) {
+                        mIsPausedForBuffering = false;
+                        mBufferingStartTime = 0; // Reset
+                        mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable); // Cancelar se já estiver agendado
+                    }
+                }
+
+
+                // Se começou a tocar e estávamos em retentativa de ERRO, cancelar o estado de retentativa.
+                if (playState == VideoView.STATE_PLAYING && mIsRetrying) {
+                    Log.d(TV_TAG, "Channel " + mCurrentPlayingChannelName + " started playing successfully after ERROR retry.");
+                    mIsRetrying = false;
+                    mRetryHandler.removeCallbacks(mRetryRunnable);
                     showLoading(false);
                 }
 
-                // Se começou a tocar e estávamos em retentativa, cancelar o estado de retentativa.
-                if (playState == VideoView.STATE_PLAYING && mIsRetrying) {
-                    Log.d(TV_TAG, "Channel " + mCurrentPlayingChannelName + " started playing successfully after retry.");
-                    mIsRetrying = false;
-                    mRetryHandler.removeCallbacks(mRetryRunnable); // Cancelar quaisquer retentativas futuras agendadas
-                    showLoading(false); // Garante que o loading é escondido
+                // Se o player for para IDLE (ex: após release), limpar tudo
+                if (playState == VideoView.STATE_IDLE) {
+                    Log.d(TV_TAG, "Player is IDLE. Clearing buffering and retry states.");
+                    mBufferingStartTime = 0;
+                    mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+                    mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
+                    mIsPausedForBuffering = false;
+                    // Não mexer em mIsRetrying aqui, pois o release pode ser parte da retentativa.
+                    // mIsRetrying é resetado em onChannelClick ou quando a retentativa é bem sucedida.
                 }
             }
         });
@@ -401,6 +460,46 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     Log.d(TV_TAG, "Retry condition not met or retry cancelled.");
                     mIsRetrying = false; // Garante que o estado de retentativa seja resetado se não for mais necessário
                     showLoading(false); // Esconde o loading se a retentativa foi cancelada ou não pôde prosseguir
+                }
+            }
+        };
+
+        // Inicializar Handler e Runnables para otimização de buffer
+        mBufferOptimizeHandler = new Handler(Looper.getMainLooper());
+        mCheckBufferingRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mVideoView != null && mVideoView.getCurrentPlayState() == VideoView.STATE_BUFFERING &&
+                    mBufferingStartTime > 0 && !mIsPausedForBuffering) {
+                    long elapsedBufferingTime = System.currentTimeMillis() - mBufferingStartTime;
+                    if (elapsedBufferingTime >= MAX_BUFFERING_TIME_MS) {
+                        Log.d(TV_TAG, "Max buffering time reached. Pausing to rebuild buffer.");
+                        mIsPausedForBuffering = true;
+                        mVideoView.pause();
+                        showLoadingWithMessage(getString(R.string.optimizing_buffer_message)); // NECESSÁRIO ADICIONAR STRING
+                        mBufferOptimizeHandler.postDelayed(mResumeAfterBufferRebuildRunnable, PAUSE_FOR_BUFFER_REBUILD_MS);
+                    } else {
+                        // Re-agendar a verificação se ainda estiver em buffering e o tempo não esgotou
+                        mBufferOptimizeHandler.postDelayed(this, 1000); // Verificar a cada segundo
+                    }
+                } else {
+                     // Se não estiver mais em buffering ou condições não atendidas, para de verificar.
+                    mBufferingStartTime = 0; // Reseta para evitar re-checagem desnecessária
+                }
+            }
+        };
+
+        mResumeAfterBufferRebuildRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mIsPausedForBuffering && mVideoView != null) {
+                    Log.d(TV_TAG, "Resuming playback after buffer rebuild pause.");
+                    // Não precisa mais da mensagem "Otimizando...", o player vai para buffering/playing
+                    // showLoadingWithMessage(getString(R.string.resuming_playback_message)); // NECESSÁRIO ADICIONAR STRING
+                    showLoading(true); // Mostrar loading padrão ao tentar resumir
+                    mVideoView.resume(); // Tentar resumir. O player passará por seus estados normais.
+                    mIsPausedForBuffering = false;
+                    // mBufferingStartTime será resetado quando o estado mudar para PLAYING ou PAUSED (não por nós)
                 }
             }
         };
@@ -587,6 +686,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             // Cancelar retentativas anteriores
             mRetryHandler.removeCallbacks(mRetryRunnable);
             mIsRetrying = false;
+
+            // Resetar e cancelar lógica de otimização de buffer
+            mBufferingStartTime = 0;
+            mIsPausedForBuffering = false;
+            if (mBufferOptimizeHandler != null) { // Adicionar verificação de nulidade para segurança
+                mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+                mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
+            }
 
             // Atualizar informações do canal atual para retentativas
             mCurrentPlayingUrl = channel.getStreamUrl();
@@ -825,6 +932,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             mRetryHandler.removeCallbacks(mRetryRunnable);
         }
         mIsRetrying = false;
+
+        if (mBufferOptimizeHandler != null) {
+            mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
+            mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
+        }
+        mBufferingStartTime = 0;
+        mIsPausedForBuffering = false;
+
         if (mVideoView != null) {
             mVideoView.release();
         }
