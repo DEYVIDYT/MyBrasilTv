@@ -72,6 +72,7 @@ import java.util.concurrent.Executors;
 import android.util.Base64; // Importar Base64
 import android.os.Handler; // Adicionado para retentativas
 import android.os.Looper; // Adicionado para retentativas
+import android.content.pm.ActivityInfo; // Adicionado para controle de orientação
 
 public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClickListener, EpgAdapter.OnProgramClickListener, DataManager.DataManagerListener {
 
@@ -1250,6 +1251,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         if (mVideoView != null && mVideoView.isFullScreen()) {
             Log.d(TAG_BACK_TV, "Player is fullscreen. Calling stopFullScreen().");
             mVideoView.stopFullScreen(); // Tenta sair da tela cheia explicitamente
+            if (getActivity() != null) {
+                Log.d(TAG_BACK_TV, "Restoring portrait orientation after exiting fullscreen.");
+                getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            }
             return true; // Evento consumido, pois saímos da tela cheia
         }
         // Se não estava em tela cheia, ou se stopFullScreen() não foi chamado,
