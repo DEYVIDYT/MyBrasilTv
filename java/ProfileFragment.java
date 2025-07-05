@@ -135,19 +135,28 @@ public class ProfileFragment extends Fragment {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_xtream_input, null);
         builder.setView(dialogView);
 
-        TextInputEditText dialogXtreamUrlEditText = dialogView.findViewById(R.id.dialog_xtream_url_edit_text);
+        final TextInputEditText dialogXtreamUrlEditText = dialogView.findViewById(R.id.dialog_xtream_url_edit_text);
+        MaterialButton sendButton = dialogView.findViewById(R.id.send_xtream_button);
+        MaterialButton cancelButton = dialogView.findViewById(R.id.cancel_xtream_button);
 
-        builder.setPositiveButton(R.string.send_button_text, (dialog, which) -> {
+        // Criar o AlertDialog antes de configurar os listeners dos botões do layout personalizado
+        final AlertDialog dialog = builder.create();
+
+        sendButton.setOnClickListener(v -> {
             String xtreamUrl = dialogXtreamUrlEditText.getText().toString();
             if (xtreamUrl.isEmpty()) {
                 Toast.makeText(getContext(), R.string.xtream_url_empty_error, Toast.LENGTH_SHORT).show();
                 return;
             }
             sendXtreamData(xtreamUrl);
+            dialog.dismiss(); // Fechar o diálogo após enviar
         });
-        builder.setNegativeButton(R.string.cancel_button_text, (dialog, which) -> dialog.dismiss());
 
-        builder.show();
+        cancelButton.setOnClickListener(v -> {
+            dialog.dismiss(); // Fechar o diálogo ao cancelar
+        });
+
+        dialog.show(); // Mostrar o diálogo depois de tudo configurado
     }
 
     private void sendXtreamData(String urlString) {
