@@ -11,7 +11,7 @@
     <string name="dkplayer_wifi_tip">You are currently using the mobile network, and continuing to play will consume traffic</string>
 
     <!-- Application Strings -->
-    <string name="app_name">MyBrasilTV</string>
+    <string name="app_name">MyBrasilTv</string>
     <string name="title_vod">VOD</string>
     <string name="title_tv">Live TV</string>
     <string name="title_profile">Profile</string>
@@ -111,5 +111,10 @@
 
     <!-- Profile TV Fragment -->
     <string name="profile_change_to_mobile_layout_tv">Mudar para Layout Mobile</string>
+
+    <!-- Profile Fragment New Buttons -->
+    <string name="profile_open_telegram_button">Abrir Grupo Telegram</string>
+    <string name="profile_copy_iptv_list_button">Copiar Lista IPTV</string>
+    <string name="profile_iptv_list_copied">URL da lista IPTV copiada!</string>
     
 </resources>

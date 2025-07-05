@@ -1,6 +1,9 @@
 package com.example.iptvplayer;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,6 +39,8 @@ public class ProfileFragment extends Fragment {
     private MaterialButton addXtreamButton;
     private MaterialButton updateListButton;
     private MaterialButton openRepositoryButton;
+    private MaterialButton openTelegramButton;
+    private MaterialButton copyIptvListButton;
 
     public static final String ACTION_REFRESH_DATA = "com.example.iptvplayer.ACTION_REFRESH_DATA";
 
@@ -53,6 +58,12 @@ public class ProfileFragment extends Fragment {
 
         openRepositoryButton = view.findViewById(R.id.button_open_repository);
         openRepositoryButton.setOnClickListener(v -> handleOpenRepository());
+
+        openTelegramButton = view.findViewById(R.id.button_open_telegram);
+        openTelegramButton.setOnClickListener(v -> handleOpenTelegram());
+
+        copyIptvListButton = view.findViewById(R.id.button_copy_iptv_list);
+        copyIptvListButton.setOnClickListener(v -> handleCopyIptvList());
 
         return view;
     }
@@ -79,6 +90,29 @@ public class ProfileFragment extends Fragment {
             Toast.makeText(getContext(), "Nenhum aplicativo encontrado para abrir o link.", Toast.LENGTH_LONG).show();
         }
     }
+
+    private void handleOpenTelegram() {
+        String telegramUrl = "https://t.me/mybrasiltv";
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(telegramUrl));
+        if (intent.resolveActivity(requireActivity().getPackageManager()) != null) {
+            startActivity(intent);
+        } else {
+            Toast.makeText(getContext(), "Nenhum aplicativo encontrado para abrir o link do Telegram.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void handleCopyIptvList() {
+        String iptvListUrl = "http://mybrasiltv.x10.mx/stream.php";
+        ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("IPTV List URL", iptvListUrl);
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(getContext(), getString(R.string.profile_iptv_list_copied), Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getContext(), "Erro ao copiar para a área de transferência.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     private void showXtreamInputDialog() {
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
@@ -163,5 +197,3 @@ public class ProfileFragment extends Fragment {
         }
     }
 }
-
-
