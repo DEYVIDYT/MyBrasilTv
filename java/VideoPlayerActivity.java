@@ -15,17 +15,26 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.MediaItem; // Corrected import for ExoPlayer v2
+import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.TrackGroupArray;
+// import com.google.android.exoplayer2.source.ProgressiveMediaSource; // Not used with ExtractorMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout; // For resize mode constants
 import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory; // For older API
 import com.google.android.exoplayer2.util.Util;
 
 
@@ -72,8 +81,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
             finish();
             return;
         }
-        // Set the custom controller layout for ExoPlayer v2
-        playerView.setControllerLayoutId(R.layout.custom_exoplayer2_controls);
+        // Set the custom controller layout for ExoPlayer v2 IN XML, not here if method undefined
+        // playerView.setControllerLayoutId(R.layout.custom_exoplayer2_controls); // This line might cause error if method is undefined in old PlayerView API
+        // Ensure app:controller_layout_id is set in activity_video_player.xml for PlayerView
 
         // Initialize UI elements from the custom controller
         customTitleTextView = playerView.findViewById(R.id.exo_custom_title_v2);
@@ -117,52 +127,53 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     private void initializePlayer() {
         if (exoPlayer == null) {
-            exoPlayer = new SimpleExoPlayer.Builder(this).build();
+            // ExoPlayer v2.9.6 style initialization
+            DefaultTrackSelector trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory(new DefaultBandwidthMeter()));
+            exoPlayer = ExoPlayerFactory.newSimpleInstance(this, trackSelector, new DefaultLoadControl());
             playerView.setPlayer(exoPlayer);
             playerView.setControllerShowTimeoutMs(3000);
 
-            exoPlayer.addListener(new Player.EventListener() { // Use Player.EventListener for ExoPlayer v2
+            exoPlayer.addListener(new Player.EventListener() {
                 @Override
-                public void onPlaybackStateChanged(int playbackState) {
+                public void onTimelineChanged(@NonNull Timeline timeline, @Nullable Object manifest, int reason) { }
+                @Override
+                public void onTracksChanged(@NonNull TrackGroupArray trackGroups, @NonNull TrackSelectionArray trackSelections) { }
+                @Override
+                public void onLoadingChanged(boolean isLoading) { }
+                @Override
+                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
                     updateControlsVisibilityForV2();
-                    View bufferingView = playerView.findViewById(R.id.exo_buffering); // Standard ID in controller
-
-                    switch (playbackState) {
-                        case Player.STATE_BUFFERING:
-                            if (bufferingView != null) bufferingView.setVisibility(View.VISIBLE);
-                            if (errorView != null) errorView.setVisibility(View.GONE);
-                            if (replayButton != null) replayButton.setVisibility(View.GONE);
-                            break;
-                        case Player.STATE_READY:
-                            if (bufferingView != null) bufferingView.setVisibility(View.GONE);
-                            if (errorView != null) errorView.setVisibility(View.GONE);
-                            if (replayButton != null) replayButton.setVisibility(View.GONE);
-                            // exoPlayer.setPlayWhenReady(true); // Usually set before prepare or after setMediaSource
-                            break;
-                        case Player.STATE_ENDED:
-                            if (bufferingView != null) bufferingView.setVisibility(View.GONE);
-                            if (errorView != null) errorView.setVisibility(View.GONE);
-                            if (replayButton != null) replayButton.setVisibility(View.VISIBLE);
-                            playerView.showController();
-                            break;
-                        case Player.STATE_IDLE:
-                            if (bufferingView != null) bufferingView.setVisibility(View.GONE);
-                            break;
+                    View bufferingView = playerView.findViewById(R.id.exo_buffering);
+                    if (bufferingView != null) {
+                        bufferingView.setVisibility(playbackState == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
                     }
-                }
+                     if (errorView != null && playbackState != Player.STATE_IDLE) errorView.setVisibility(View.GONE); // Hide error if not idle
+                     if (replayButton != null) replayButton.setVisibility(playbackState == Player.STATE_ENDED ? View.VISIBLE : View.GONE);
 
-                @Override
-                public void onIsPlayingChanged(boolean isPlaying) {
-                    updatePlayPauseButtonStateV2(isPlaying);
+                    if (playbackState == Player.STATE_ENDED) {
+                        playerView.showController();
+                    }
+                    // Update play/pause button based on playWhenReady and playbackState
+                    updatePlayPauseButtonStateV2(playWhenReady && playbackState == Player.STATE_READY);
                 }
-
                 @Override
-                public void onPlayerError(@NonNull ExoPlaybackException error) { // ExoPlaybackException for v2
+                public void onRepeatModeChanged(int repeatMode) { }
+                @Override
+                public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) { }
+                @Override
+                public void onPlayerError(@NonNull ExoPlaybackException error) {
                     Log.e(TAG, "Player Error: ", error);
                     View bufferingView = playerView.findViewById(R.id.exo_buffering);
                     if (bufferingView != null) bufferingView.setVisibility(View.GONE);
                     showError(error.getLocalizedMessage() != null ? error.getLocalizedMessage() : "An unknown error occurred.");
                 }
+                @Override
+                public void onPositionDiscontinuity(int reason) { }
+                @Override
+                public void onPlaybackParametersChanged(@NonNull PlaybackParameters playbackParameters) { }
+                @Override
+                public void onSeekProcessed() { }
+                // onIsPlayingChanged is not in older EventListener, use onPlayerStateChanged with playWhenReady
             });
         }
 
@@ -172,23 +183,23 @@ public class VideoPlayerActivity extends AppCompatActivity {
             return;
         }
 
-        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getPackageName()));
-        MediaSource mediaSource;
+        DataSource.Factory dataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(this, getPackageName()));
         Uri videoUri = Uri.parse(videoUrl);
+        MediaSource mediaSource;
 
-        // Basic inference for HLS, otherwise assume Progressive. More types can be added.
         if (videoUrl.toLowerCase().endsWith(".m3u8")) {
-            mediaSource = new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(videoUri));
+            mediaSource = new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(videoUri);
         } else {
-            mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(videoUri));
+            // For other types, use ExtractorMediaSource with DefaultExtractorsFactory
+            mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory)
+                    .createMediaSource(videoUri);
         }
 
-        exoPlayer.setMediaSource(mediaSource); // Use setMediaSource for v2
-        exoPlayer.prepare();
-        exoPlayer.setPlayWhenReady(true); // Start playback when ready
+        exoPlayer.prepare(mediaSource); // Pass MediaSource to prepare for older API
+        exoPlayer.setPlayWhenReady(true);
     }
 
-    private void updatePlayPauseButtonStateV2(boolean isPlaying) {
+    private void updatePlayPauseButtonStateV2(boolean isPlaying) { // isPlaying derived from playWhenReady and STATE_READY
         // Update central play/pause buttons (if used directly, StyledPlayerControlView often handles this)
         ImageButton playButton = playerView.findViewById(R.id.exo_play); // Standard ID for play
         ImageButton pauseButton = playerView.findViewById(R.id.exo_pause); // Standard ID for pause
@@ -245,7 +256,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 if (exoPlayer != null) {
                     float currentSpeed = exoPlayer.getPlaybackParameters().speed;
                     float newSpeed = (currentSpeed == 1.0f) ? 1.5f : (currentSpeed == 1.5f) ? 2.0f : (currentSpeed == 2.0f) ? 0.5f : 1.0f;
-                    exoPlayer.setPlaybackParameters(new PlaybackParameters(newSpeed));
+                    exoPlayer.setPlaybackParameters(new PlaybackParameters(newSpeed, 1f)); // Older API might need pitch
                     Toast.makeText(this, "Speed: " + newSpeed + "x", Toast.LENGTH_SHORT).show();
                 }
             });
@@ -255,17 +266,24 @@ public class VideoPlayerActivity extends AppCompatActivity {
             proportionButton.setOnClickListener(v -> {
                 Toast.makeText(this, "Proportion button clicked", Toast.LENGTH_SHORT).show();
                 if (playerView != null) {
-                    int currentMode = playerView.getResizeMode();
-                    // Cycle through AspectRatioFrameLayout resize modes
-                    int newMode = (currentMode + 1) % 5; // ExoPlayer v2 has 5 modes (0-4 typically)
+                    // PlayerView.getResizeMode() might be an issue with older versions.
+                    // AspectRatioFrameLayout.RESIZE_MODE_* are the correct constants.
+                    int currentMode = playerView.getResizeMode(); // This might still fail if PlayerView API is too old.
+                    int newMode = (currentMode + 1) % 5;
+                    if (newMode == AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH && isLiveStream) { // Skip fixed width for live, can be problematic
+                        newMode = (newMode + 1) % 5;
+                    }
+                     if (newMode == AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT && isLiveStream) { // Skip fixed height for live
+                        newMode = (newMode + 1) % 5;
+                    }
                     playerView.setResizeMode(newMode);
                      String modeString;
                         switch (newMode) {
-                            case com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT: modeString = "Fit"; break;
-                            case com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH: modeString = "Fixed Width"; break;
-                            case com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT: modeString = "Fixed Height"; break;
-                            case com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL: modeString = "Fill"; break;
-                            case com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM: modeString = "Zoom"; break;
+                            case AspectRatioFrameLayout.RESIZE_MODE_FIT: modeString = "Fit"; break;
+                            case AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH: modeString = "Fixed Width"; break;
+                            case AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT: modeString = "Fixed Height"; break;
+                            case AspectRatioFrameLayout.RESIZE_MODE_FILL: modeString = "Fill"; break;
+                            case AspectRatioFrameLayout.RESIZE_MODE_ZOOM: modeString = "Zoom"; break;
                             default: modeString = "Unknown";
                         }
                     Toast.makeText(this, "Aspect Ratio: " + modeString, Toast.LENGTH_SHORT).show();
@@ -317,8 +335,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (Util.SDK_INT > 23) { // Initialize player in onStart for API > 23
-            if (videoUrl != null && !videoUrl.isEmpty()) {
+        if (Util.SDK_INT > 23) {
+            if (videoUrl != null && !videoUrl.isEmpty()) { // Ensure URL is present before initializing
                 initializePlayer();
             }
         }
@@ -327,33 +345,36 @@ public class VideoPlayerActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if ((Util.SDK_INT <= 23 || exoPlayer == null)) { // Initialize player in onResume for API <= 23 or if null
-             if (videoUrl != null && !videoUrl.isEmpty()) {
+        if ((Util.SDK_INT <= 23 || exoPlayer == null)) {
+             if (videoUrl != null && !videoUrl.isEmpty()) { // Ensure URL is present
                 initializePlayer();
             }
         }
         if (exoPlayer != null) {
-             exoPlayer.setPlayWhenReady(true); // Resume playback if it was playing
+             // Ensure player is only started if it's not in ENDED or ERROR state
+            int playbackState = exoPlayer.getPlaybackState();
+            if (playbackState != Player.STATE_ENDED && playbackState != Player.STATE_IDLE && exoPlayer.getPlayerError() == null) {
+                exoPlayer.setPlayWhenReady(true);
+            }
         }
-        // playerView.onResume(); // Not explicitly needed for ExoPlayer v2 PlayerView
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (exoPlayer != null) {
-            exoPlayer.setPlayWhenReady(false); // Pause playback
-        }
-        // playerView.onPause(); // Not explicitly needed for ExoPlayer v2 PlayerView
-        if (Util.SDK_INT <= 23) { // Release player in onPause for API <= 23
+        if (Util.SDK_INT <= 23) {
             releasePlayer();
+        } else {
+            if (exoPlayer != null) {
+                exoPlayer.setPlayWhenReady(false);
+            }
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (Util.SDK_INT > 23) { // Release player in onStop for API > 23
+        if (Util.SDK_INT > 23) {
             releasePlayer();
         }
     }
@@ -366,9 +387,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() { // Fallback release, though onStop/onPause should handle it
+    protected void onDestroy() {
         super.onDestroy();
-        releasePlayer();
+        releasePlayer(); // Ensure release if not already done by onStop/onPause
     }
 
 

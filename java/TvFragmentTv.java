@@ -275,18 +275,18 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     @Override
     public void onProgressUpdate(DataManager.LoadState state, int percentage, String message) {
         Log.d(TV_TV_TAG, "DataManager Progress: " + state + " - " + percentage + "% - " + message);
-        if (state == DataManager.LoadState.COMPLETE || state == DataManager.LoadState.FAILED) { // Corrigido para FAILED
-            showLoading(false); // Assumindo que showLoading manipula o ProgressBar principal do fragmento
-        } else {
-            showLoading(true);
-        }
+        // if (state == DataManager.LoadState.COMPLETE || state == DataManager.LoadState.FAILED) {
+            // showLoading(false);
+        // } else {
+            // showLoading(true);
+        // }
     }
 
     @Override
     public void onError(String errorMessage) {
         Log.e(TV_TV_TAG, "DataManager Error: " + errorMessage);
         if (isAdded() && getContext() != null) { // getContext() check is good here
-            showLoading(false);
+            // showLoading(false);
             Toast.makeText(getContext(), "Erro ao carregar dados para TV Ao Vivo: " + errorMessage, Toast.LENGTH_LONG).show();
         } else {
             Log.w(TV_TV_TAG, "onError: Fragment not added or context is null. Error: " + errorMessage);
@@ -301,7 +301,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         }
         if (dataManager.isDataFullyLoaded()) {
             Log.d(TV_TV_TAG, "Data is fully loaded for Live TV.");
-            showLoading(false);
+            // showLoading(false);
             Log.d(TV_TV_TAG, "Calling loadLiveCategories()");
             loadLiveCategories();
             // Carregar canais da primeira categoria ou todos os canais por padrão
@@ -313,7 +313,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
             }
         } else {
             Log.d(TV_TV_TAG, "Data not loaded for Live TV. Displaying loading indicator.");
-            showLoading(true);
+            // showLoading(true);
             if (!dataManager.isLoading()) { // Agora usa o método isLoading()
                 Log.d(TV_TV_TAG, "DataManager not loading, starting data load.");
                 dataManager.startDataLoading();
