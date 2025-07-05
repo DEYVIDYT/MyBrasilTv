@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000"> <!-- Semi-transparent background like default ExoPlayer controls -->
+
+    <!-- Top Bar: Title -->
+    <LinearLayout
+        android:id="@+id/top_bar_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@drawable/dkplayer_shape_standard_controller_top_bg"> <!-- Reusing existing drawable -->
+
+        <ImageView
+            android:id="@+id/exo_back_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/dkplayer_ic_action_arrow_back"
+            app:tint="?attr/colorOnSurface"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:contentDescription="@string/dkplayer_back" />
+
+        <TextView
+            android:id="@+id/exo_custom_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="18sp"
+            tools:text="Video Title" />
+    </LinearLayout>
+
+    <!-- Center Buttons Area (Play/Pause, Replay) -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <ImageButton
+            android:id="@id/exo_play"
+            style="@style/ExoMediaButton.Play"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:padding="16dp"
+            android:background="@drawable/dkplayer_shape_play_bg"
+            app:tint="?attr/colorOnSurface"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <ImageButton
+            android:id="@id/exo_pause"
+            style="@style/ExoMediaButton.Pause"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:padding="16dp"
+            android:background="@drawable/dkplayer_shape_play_bg"
+            app:tint="?attr/colorOnSurface"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <ImageButton
+            android:id="@+id/exo_custom_replay_button"
+            style="@style/ExoMediaButton"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/dkplayer_ic_action_replay"
+            app:tint="?attr/colorOnSurface"
+            android:background="@drawable/dkplayer_shape_play_bg"
+            android:contentDescription="@string/dkplayer_replay"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+
+    <!-- Loading Indicator -->
+    <ProgressBar
+        android:id="@id/exo_buffering"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true"
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
+    <!-- Error View -->
+    <LinearLayout
+        android:id="@+id/exo_custom_error_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="@drawable/dkplayer_shape_status_view_btn"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/exo_custom_error_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorError"
+            android:textSize="16sp"
+            android:text="@string/dkplayer_error_message"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/exo_custom_retry_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dkplayer_retry"
+            android:textColor="?attr/colorOnError"
+            android:backgroundTint="?attr/colorError" />
+    </LinearLayout>
+
+
+    <!-- Bottom Controls -->
+    <LinearLayout
+        android:id="@+id/bottom_bar_container"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/dkplayer_controller_height"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:background="@drawable/dkplayer_shape_stardard_controller_bottom_bg"> <!-- Reusing existing drawable -->
+
+        <!-- Play/Pause button (small one for bottom bar) -->
+        <!-- Using standard exo_play and exo_pause will make PlayerView manage their visibility -->
+        <!-- We might need to remove the larger central ones if we use these, or ensure they are correctly hidden when controls are visible -->
+        <ImageButton
+            android:id="@+id/exo_play_pause_bottom"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/dkplayer_selector_play_button"
+            app:tint="?attr/colorOnSurface"
+            android:visibility="gone" /> <!-- Visibility managed by code based on VOD/Live -->
+
+
+        <!-- VOD Controls (Time and Seekbar) -->
+        <TextView
+            android:id="@id/exo_position"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="@dimen/dkplayer_controller_time_text_size"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            tools:text="00:00"/>
+
+        <androidx.media3.ui.DefaultTimeBar
+            android:id="@id/exo_progress"
+            android:layout_width="0dp"
+            android:layout_height="26dp"
+            android:layout_weight="1"
+            app:buffered_color="?attr/colorPrimaryContainer"
+            app:played_color="?attr/colorPrimary"
+            app:unplayed_color="?attr/colorSurfaceVariant"
+            app:scrubber_color="?attr/colorPrimary"
+            app:bar_height="4dp"
+            app:touch_target_height="40dp"/>
+
+        <TextView
+            android:id="@id/exo_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="@dimen/dkplayer_controller_time_text_size"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            tools:text="00:00"/>
+
+        <!-- Live Controls (Refresh, Channel Grid) - visibility toggled programmatically -->
+        <ImageButton
+            android:id="@+id/exo_custom_refresh_button"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:src="@drawable/dkplayer_ic_action_autorenew"
+            app:tint="?attr/colorOnSurface"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:contentDescription="Refresh"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/exo_custom_channel_grid_toggle_button"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:src="@drawable/ic_menu"
+            app:tint="?attr/colorOnSurface"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:contentDescription="Toggle Channel Grid"
+            android:visibility="gone" />
+
+        <!-- Common Controls (Proportion, Speed, Fullscreen) -->
+        <ImageButton
+            android:id="@+id/exo_custom_proportion_button"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:src="@drawable/dkplayer_ic_action_portion"
+            app:tint="?attr/colorOnSurface"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:contentDescription="Aspect Ratio"/>
+
+        <ImageButton
+            android:id="@+id/exo_custom_speed_button"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:src="@drawable/dkplayer_ic_action_speed"
+            app:tint="?attr/colorOnSurface"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            android:contentDescription="Playback Speed"/>
+
+        <ImageButton
+            android:id="@id/exo_fullscreen"
+            style="@style/ExoMediaButton.Fullscreen"
+            android:layout_width="@dimen/dkplayer_controller_height"
+            android:layout_height="@dimen/dkplayer_controller_height"
+            android:padding="@dimen/dkplayer_controller_icon_padding"
+            app:tint="?attr/colorOnSurface" />
+
+    </LinearLayout>
+
+    <!-- Bottom ProgressBar (thin one, visible when controls are hidden) -->
+    <!-- ExoPlayer's DefaultTimeBar if used outside the main controls might serve this, or a simple ProgressBar -->
+    <!-- For now, relying on the main TimeBar. Can add a separate thin one if needed. -->
+
+</FrameLayout>

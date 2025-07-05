@@ -4,8 +4,8 @@
     android:layout_height="match_parent"
     android:background="@color/app_background">
 
-    <xyz.doikki.videoplayer.player.VideoView
-        android:id="@+id/video_player"
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/exoplayer_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center" />
