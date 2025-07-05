@@ -146,6 +146,15 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private Runnable mCheckBufferingRunnable;
     private Runnable mResumeAfterBufferRebuildRunnable;
 
+    // Variáveis para monitoramento de estagnação
+    private Handler mStagnationCheckHandler;
+    private Runnable mStagnationCheckRunnable;
+    private long mLastPlaybackPosition = 0;
+    private long mLastPositionCheckTime = 0;
+    private static final int STAGNATION_THRESHOLD_MS = 20000; // 20 segundos
+    private static final int POSITION_CHECK_INTERVAL_MS = 5000; // Verificar a cada 5 segundos
+
+
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
@@ -233,7 +242,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
         mController = new StandardVideoController(getContext());
         mController.addControlComponent(new CompleteView(getContext()));
-        mController.addControlComponent(new ErrorView(getContext()));
+        // mController.addControlComponent(new ErrorView(getContext())); // Removido para que nossa lógica de retentativa seja a única a lidar com erros.
         mController.addControlComponent(new PrepareView(getContext()));
         
         // Configurar GestureView com listener para clique no lado esquerdo
@@ -413,6 +422,24 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     showLoading(false);
                 }
 
+                // Gerenciamento do StagnationCheckRunnable
+                if (playState == VideoView.STATE_PLAYING) {
+                    Log.d(TV_TAG, "Player is PLAYING. Starting/resetting stagnation check.");
+                    mLastPlaybackPosition = mVideoView.getCurrentPosition(); // Iniciar com a posição atual
+                    mLastPositionCheckTime = System.currentTimeMillis();   // Marcar o tempo atual
+                    mStagnationCheckHandler.removeCallbacks(mStagnationCheckRunnable); // Remover callbacks anteriores
+                    mStagnationCheckHandler.postDelayed(mStagnationCheckRunnable, POSITION_CHECK_INTERVAL_MS);
+                } else if (playState == VideoView.STATE_PAUSED ||
+                           playState == VideoView.STATE_PLAYBACK_COMPLETED ||
+                           playState == VideoView.STATE_ERROR ||
+                           playState == VideoView.STATE_IDLE) {
+                    Log.d(TV_TAG, "Player not PLAYING (state: " + playStateToString(playState) + "). Stopping stagnation check.");
+                    mStagnationCheckHandler.removeCallbacks(mStagnationCheckRunnable);
+                    mLastPlaybackPosition = 0; // Resetar para não causar falsa detecção na próxima vez
+                    mLastPositionCheckTime = 0;
+                }
+
+
                 // Se o player for para IDLE (ex: após release), limpar tudo
                 if (playState == VideoView.STATE_IDLE) {
                     Log.d(TV_TAG, "Player is IDLE. Clearing buffering and retry states.");
@@ -422,6 +449,7 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     mIsPausedForBuffering = false;
                     // Não mexer em mIsRetrying aqui, pois o release pode ser parte da retentativa.
                     // mIsRetrying é resetado em onChannelClick ou quando a retentativa é bem sucedida.
+                    // Stagnation check já é parado pela lógica acima.
                 }
             }
         });
@@ -503,6 +531,50 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     mVideoView.resume(); // Tentar resumir. O player passará por seus estados normais.
                     mIsPausedForBuffering = false;
                     // mBufferingStartTime será resetado quando o estado mudar para PLAYING ou PAUSED (não por nós)
+                }
+            }
+        };
+
+        // Inicializar Handler e Runnable para monitoramento de estagnação
+        mStagnationCheckHandler = new Handler(Looper.getMainLooper());
+        mStagnationCheckRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mVideoView != null && (mVideoView.getCurrentPlayState() == VideoView.STATE_PLAYING || mVideoView.getCurrentPlayState() == VideoView.STATE_BUFFERING)) {
+                    long currentPosition = mVideoView.getCurrentPosition();
+                    long currentTime = System.currentTimeMillis();
+
+                    // Log para depuração
+                    // Log.d(TV_TAG, "StagnationCheck: currentPos=" + currentPosition + ", lastPos=" + mLastPlaybackPosition + ", currentTime=" + currentTime + ", lastCheckTime=" + mLastPositionCheckTime);
+
+                    if (mLastPositionCheckTime > 0 && currentPosition == mLastPlaybackPosition) { // Verifica se a posição não mudou desde a última checagem válida
+                        if (currentTime - mLastPositionCheckTime >= STAGNATION_THRESHOLD_MS) {
+                            Log.w(TV_TAG, "Stagnation detected! Current position " + currentPosition + " hasn't changed in " + STAGNATION_THRESHOLD_MS + "ms. Re-initializing stream.");
+                            showLoadingWithMessage(getString(R.string.reestablishing_connection_message)); // NECESSÁRIO ADICIONAR STRING
+
+                            if (mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
+                                mVideoView.release();
+                                mVideoView.setUrl(mCurrentPlayingUrl);
+                                mVideoView.start();
+                            }
+                            // Resetar contadores após tentativa de reinicialização para dar chance ao stream
+                            mLastPlaybackPosition = 0; // Resetar para a próxima vez que PLAYING for atingido
+                            mLastPositionCheckTime = 0; // Resetar para a próxima vez que PLAYING for atingido
+                            // Não reagendar aqui; onPlayStateChanged(STATE_PLAYING) o fará se a reinicialização for bem-sucedida.
+                            return; // Sair do runnable após detectar estagnação e agir
+                        }
+                    } else {
+                        // A posição mudou ou é a primeira verificação útil após o início/retomada
+                        mLastPlaybackPosition = currentPosition;
+                        mLastPositionCheckTime = currentTime;
+                    }
+                    // Reagendar a próxima verificação
+                    mStagnationCheckHandler.postDelayed(this, POSITION_CHECK_INTERVAL_MS);
+                } else {
+                    // O player não está em PLAYING ou BUFFERING, então paramos de verificar.
+                    Log.d(TV_TAG, "StagnationCheck: Player not in PLAYING/BUFFERING state. Stopping checks.");
+                    mLastPlaybackPosition = 0;
+                    mLastPositionCheckTime = 0;
                 }
             }
         };
@@ -697,6 +769,11 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                 mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
                 mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
             }
+            if (mStagnationCheckHandler != null) { // Adicionar verificação de nulidade
+                mStagnationCheckHandler.removeCallbacks(mStagnationCheckRunnable);
+            }
+            mLastPlaybackPosition = 0;
+            mLastPositionCheckTime = 0;
 
             // Atualizar informações do canal atual para retentativas
             mCurrentPlayingUrl = channel.getStreamUrl();
@@ -942,6 +1019,12 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         }
         mBufferingStartTime = 0;
         mIsPausedForBuffering = false;
+
+        if (mStagnationCheckHandler != null) {
+            mStagnationCheckHandler.removeCallbacks(mStagnationCheckRunnable);
+        }
+        mLastPlaybackPosition = 0;
+        mLastPositionCheckTime = 0;
 
         if (mVideoView != null) {
             mVideoView.release();
