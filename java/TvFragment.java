@@ -225,6 +225,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
 
         mVideoView = new xyz.doikki.videoplayer.player.VideoView(getContext());
+        // Aplicar a fábrica de player customizada para usar buffers agressivos
+        mVideoView.setPlayerFactory(new CustomExoPlayerFactory());
+        Log.d(TV_TAG, "CustomExoPlayerFactory set for mVideoView");
+
         FrameLayout playerContainer = root.findViewById(R.id.player_container);
         if (playerContainer != null) {
             // Fazer o VideoView preencher o player_container
