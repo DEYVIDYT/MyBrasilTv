@@ -1,6 +1,7 @@
 package com.example.iptvplayer;
 
-import android.app.AlertDialog;
+// import android.app.AlertDialog; // Removida importação antiga
+import androidx.appcompat.app.AlertDialog; // Adicionada importação correta
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -140,7 +141,8 @@ public class ProfileFragment extends Fragment {
         MaterialButton cancelButton = dialogView.findViewById(R.id.cancel_xtream_button);
 
         // Criar o AlertDialog antes de configurar os listeners dos botões do layout personalizado
-        final AlertDialog dialog = builder.create();
+        // Qualificar explicitamente o tipo para evitar ambiguidade
+        final androidx.appcompat.app.AlertDialog dialog = builder.create();
 
         sendButton.setOnClickListener(v -> {
             String xtreamUrl = dialogXtreamUrlEditText.getText().toString();
