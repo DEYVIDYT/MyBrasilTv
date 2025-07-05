@@ -74,11 +74,25 @@ public class ProfileFragment extends Fragment {
         // Clear VOD cache
         MovieCacheManager.clearCache(requireContext());
 
-        // Send broadcast to trigger data refresh in TV and VOD fragments
-        Intent intent = new Intent(ACTION_REFRESH_DATA);
-        LocalBroadcastManager.getInstance(requireContext()).sendBroadcast(intent);
+        // Clear VOD cache (já estava aqui, mas DataManager.clearAllData() também limpará outros caches)
+        // MovieCacheManager.clearCache(requireContext()); // Comentado pois clearAllData deve abranger isso
 
-        Toast.makeText(getContext(), getString(R.string.profile_update_list_success), Toast.LENGTH_LONG).show();
+        // Obter instância do DataManager
+        DataManager dataManager = MyApplication.getDataManager(requireContext().getApplicationContext());
+
+        // Limpar todos os dados e cache no DataManager
+        dataManager.clearAllData();
+
+        // Toast.makeText(getContext(), getString(R.string.profile_updating_list), Toast.LENGTH_SHORT).show(); // Movido para antes da navegação
+
+        // Navegar para DownloadProgressActivity para forçar a atualização completa
+        Intent intent = new Intent(getActivity(), DownloadProgressActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Limpa a pilha de atividades
+        startActivity(intent);
+        if (getActivity() != null) {
+            getActivity().finish(); // Finaliza a MainActivity (ou a atividade que contém este fragmento)
+        }
+        // Não mostrar Toast de sucesso aqui, pois a tela de progresso dará o feedback
     }
 
     private void handleOpenRepository() {
