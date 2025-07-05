@@ -68,6 +68,9 @@
     <string name="epg_xmltv_error">Erro ao carregar EPG XMLTV</string>
     <string name="starting_channel_toast">Iniciando: %s</string>
     <string name="invalid_channel_url_error">URL do canal inválida.</string>
+    <string name="retrying_channel_message">Tentando reconectar ao canal: %1$s</string>
+    <string name="optimizing_buffer_message">Otimizando buffer, aguarde...</string>
+    <string name="resuming_playback_message">Retomando...</string>
     <string name="error_loading_categories">Falha ao carregar categorias: %s</string>
     <string name="error_loading_channels">Falha ao carregar canais: %s</string>
     <string name="m3u_loaded_success_toast">M3U carregado com sucesso!</string>

@@ -64,6 +64,9 @@
     <string name="channel_program_placeholder">Program information unavailable</string>
     <string name="starting_channel_toast">Starting: %s</string>
     <string name="invalid_channel_url_error">Invalid channel URL.</string>
+    <string name="retrying_channel_message">Attempting to reconnect to channel: %1$s</string>
+    <string name="optimizing_buffer_message">Optimizing buffer, please wait...</string>
+    <string name="resuming_playback_message">Resuming...</string>
     <string name="error_loading_categories">Failed to load categories: %s</string>
     <string name="error_loading_channels">Failed to load channels: %s</string>
     <string name="m3u_loaded_success_toast">M3U loaded successfully!</string>
