@@ -95,8 +95,15 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (!mVideoView.onBackPressed()) {
-            super.onBackPressed();
+        if (mVideoView != null && mVideoView.isFullScreen()) {
+            mVideoView.stopFullScreen(); // Tenta sair da tela cheia explicitamente
+        } else {
+            // Se não estava em tela cheia, ou se stopFullScreen() não lidou com isso,
+            // deixa o VideoView tentar lidar com outros casos (como player flutuante)
+            // ou, por fim, chama o super para fechar a atividade.
+            if (mVideoView == null || !mVideoView.onBackPressed()) {
+                super.onBackPressed();
+            }
         }
     }
 }

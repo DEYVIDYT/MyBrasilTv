@@ -1060,16 +1060,20 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
     public boolean onBackPressed() {
         Log.d(TAG_BACK_TV, "onBackPressed called in TvFragment.");
-        if (mVideoView != null) {
-            boolean isFullScreenCurrently = mVideoView.isFullScreen();
-            Log.d(TAG_BACK_TV, "Player is currently fullscreen: " + isFullScreenCurrently);
-            boolean handledByPlayer = mVideoView.onBackPressed();
-            Log.d(TAG_BACK_TV, "mVideoView.onBackPressed() returned: " + handledByPlayer);
-            Log.d(TAG_BACK_TV, "Player is now fullscreen (after mVideoView.onBackPressed()): " + mVideoView.isFullScreen());
-            return handledByPlayer;
+        if (mVideoView != null && mVideoView.isFullScreen()) {
+            Log.d(TAG_BACK_TV, "Player is fullscreen. Calling stopFullScreen().");
+            mVideoView.stopFullScreen(); // Tenta sair da tela cheia explicitamente
+            return true; // Evento consumido, pois saímos da tela cheia
         }
-        Log.d(TAG_BACK_TV, "mVideoView is null, returning false.");
-        return false;
+        // Se não estava em tela cheia, ou se stopFullScreen() não foi chamado,
+        // deixa o VideoView tentar lidar com outros casos (como player flutuante).
+        if (mVideoView != null && mVideoView.onBackPressed()) {
+            Log.d(TAG_BACK_TV, "mVideoView.onBackPressed() handled the event (e.g., closing channel grid).");
+            return true; // Evento consumido pelo VideoView (ex: fechou a grade de canais)
+        }
+
+        Log.d(TAG_BACK_TV, "Back press not handled by TvFragment (player not fullscreen, or VideoView did not handle). Returning false.");
+        return false; // Evento não consumido, MainActivity prosseguirá
     }
 }
 
