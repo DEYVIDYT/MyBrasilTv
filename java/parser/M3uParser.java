@@ -67,7 +67,8 @@ public class M3uParser {
                 String movieUrl = line.trim();
                 // Adiciona à lista de filmes apenas se o tipo for \'movie\' ou \'series\' (ou se não houver tipo especificado, para compatibilidade)
                 if (type == null || type.equalsIgnoreCase("movie") || type.equalsIgnoreCase("series")) {
-                    movies.add(new Movie(movieName, moviePoster, movieUrl, groupTitle));
+                    // Usando movieUrl como streamId para itens M3U
+                    movies.add(new Movie(movieName, moviePoster, movieUrl, groupTitle, movieUrl));
                 }
                 movieName = null;
                 type = null; // Resetar o tipo para a próxima entrada

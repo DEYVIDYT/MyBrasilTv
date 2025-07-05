@@ -33,6 +33,7 @@ public class MovieCacheManager {
                 movieJson.put("posterUrl", movie.getPosterUrl());
                 movieJson.put("videoUrl", movie.getVideoUrl());
                 movieJson.put("category", movie.getCategory());
+                movieJson.put("streamId", movie.getStreamId()); // Adicionado para salvar streamId
                 movieJson.put("lastRefreshedTimestamp", currentTimestamp); // Save with current time
                 jsonArray.put(movieJson);
             } catch (JSONException e) {
@@ -80,9 +81,10 @@ public class MovieCacheManager {
                 String posterUrl = movieJson.optString("posterUrl", null);
                 String videoUrl = movieJson.getString("videoUrl");
                 String category = movieJson.getString("category");
+                String streamId = movieJson.optString("streamId", null); // Adicionado para ler streamId (optString para retrocompatibilidade)
                 long lastRefreshedTimestamp = movieJson.getLong("lastRefreshedTimestamp");
 
-                cachedMovies.add(new Movie(title, posterUrl, videoUrl, category, lastRefreshedTimestamp));           }
+                cachedMovies.add(new Movie(title, posterUrl, videoUrl, category, streamId, lastRefreshedTimestamp));           }
             Log.i(TAG, "Successfully loaded " + cachedMovies.size() + " non-expired movies from cache.");
 
         } catch (IOException e) {
