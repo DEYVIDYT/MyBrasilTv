@@ -1,0 +1,39 @@
+# Todo
+
+- [x] Analisar `TvSideNavAdapter.java` para encontrar a causa do erro.
+- [x] Analisar `MainTvActivity.java` para entender o contexto do erro.
+- [x] Corrigir o erro de compilação em `MainTvActivity.java`.
+- [x] Analisar `TvSideNavItem.java` e `MainActivity.java` para resolver o problema de tipo.
+- [x] Ajustar os tipos em `TvSideNavAdapter.java` para corresponder à interface `OnNavItemClickListener`.
+- [x] Ajustar a chamada `handleSideNavClick` em `MainTvActivity.java` para usar o tipo correto.
+- [x] Modificar `MainActivity.java` para usar `List<TvSideNavItem>` e ajustar o `OnNavItemClickListener`.
+- [x] Adicionar logs e null checks em `TvFragment.java` para depurar o travamento.
+- [x] Criar `ChannelCategoryAdapterTv.java`.
+- [x] Criar `ChannelAdapterTv.java`.
+- [x] Criar `EpgAdapterTv.java`.
+- [x] Modificar `TvFragmentTv.java`:
+    - [x] Declarar e inicializar os adaptadores (`categoryAdapterTv`, `channelAdapterTv`, `epgAdapterTv`).
+    - [x] Implementar `updateUi()`.
+    - [x] Implementar `loadLiveCategories()`.
+    - [x] Implementar `onCategorySelected()`.
+    - [x] Implementar `onChannelSelected()`.
+    - [x] Implementar `loadEpgForChannel()`.
+    - [x] Implementar `onEpgProgramSelected()`.
+    - [x] Implementar `onBackPressed()`.
+- [x] Adicionar imports ausentes em `TvFragmentTv.java`.
+- [x] Verificar e implementar `DataManager.getLiveStreamsByCategory()`.
+- [x] Corrigir o acesso a `TitleView` em `TvFragmentTv.java`.
+- [x] Modificar `TvFragmentTv.java` para implementar `TvKeyHandler.TvKeyListener`.
+- [x] Declarar `mChannelGridView` em `TvFragmentTv.java`.
+- [x] Instanciar `mChannelGridView` e adicioná-lo ao `videoControllerTv` em `initializePlayer` em `TvFragmentTv.java`.
+- [x] Adicionar `onTvKeyDown` e `onTvKeyUp` métodos a `TvFragmentTv.java`.
+- [x] Modificar `onBackPressed` em `TvFragmentTv.java` para lidar com a visibilidade de `ChannelGridView`.
+- [x] Verificar e implementar `DataManager.getLiveCategoriesMap()`.
+- [x] Adicionar `import java.util.ArrayList;` em `DataManager.java`.
+- [x] Adicionar `import android.view.KeyEvent;` e `import com.example.iptvplayer.component.ChannelGridView;` em `TvFragmentTv.java`.
+- [x] Corrigir chamadas de método `show()` e `hide()` para `showChannelGrid()` e `hideChannelGrid()` em `TvFragmentTv.java`.
+- [x] Adicionar logging detalhado em `TvFragmentTv.java` para depurar o crash.
+- [x] Corrigir IDs em `ChannelCategoryAdapterTv.java`.
+- [x] Corrigir IDs em `ChannelAdapterTv.java`.
+- [x] Corrigir IDs em `EpgAdapterTv.java`.
+- [x] Marcar as tarefas como concluídas no `Todo.md`.

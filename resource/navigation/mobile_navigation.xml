@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation">
+
+    <fragment
+        android:id="@+id/navigation_vod"
+        android:name="com.example.iptvplayer.VodFragment"
+        android:label="VOD"
+        tools:layout="@layout/fragment_vod" />
+
+    <fragment
+        android:id="@+id/navigation_tv"
+        android:name="com.example.iptvplayer.TvFragment"
+        android:label="TV"
+        tools:layout="@layout/fragment_tv" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.iptvplayer.ProfileFragment"
+        android:label="Perfil"
+        tools:layout="@layout/fragment_profile" />
+</navigation>
+
