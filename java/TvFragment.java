@@ -210,6 +210,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         }
         mWidthPixels = getResources().getDisplayMetrics().widthPixels;
         
+        // A configuração do PlayerConfig (incluindo reconnectCount e PlayerFactory com buffer customizado)
+        // agora é feita globalmente em MyApplication.java.
+        // Não é mais necessário configurar localmente aqui, a menos que queiramos
+        // sobrescrever especificamente para esta instância do VideoView.
 
         mController = new StandardVideoController(getContext());
         mController.addControlComponent(new CompleteView(getContext()));
