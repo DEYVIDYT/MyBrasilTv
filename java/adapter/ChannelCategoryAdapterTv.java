@@ -32,7 +32,8 @@ public class ChannelCategoryAdapterTv extends RecyclerView.Adapter<ChannelCatego
     @NonNull
     @Override
     public CategoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel_category, parent, false);
+        // Corrigido para inflar o layout item_channel_category_tv.xml
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_channel_category_tv, parent, false);
         return new CategoryViewHolder(view);
     }
 

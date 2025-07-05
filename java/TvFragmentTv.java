@@ -39,28 +39,28 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     private DataManager dataManager;
 
-    // Views do novo layout new_fragment_tv_tv.xml
-    private RecyclerView recyclerViewCategories; // Renomeado de recyclerViewCategoriesTv
-    private RecyclerView recyclerViewChannels;   // Renomeado de recyclerViewChannelsTv
-    private ProgressBar channelsProgressBar;    // Novo ProgressBar para canais
+    // Views do layout original fragment_tv_tv.xml
+    private RecyclerView recyclerViewCategoriesTv;
+    private RecyclerView recyclerViewChannelsTv;
+    private RecyclerView recyclerViewEpgTv;
+    private FrameLayout playerContainerTv;
+    private ProgressBar playerProgressBarTv; // ProgressBar para o player
+    // private ProgressBar channelsProgressBar; // Removido, usando playerProgressBarTv para o player
 
-    // Adapters (nomes mantidos, mas EPG removido)
+    // Componentes do Player Embutido
+    private VideoView videoViewTv;
+    private StandardVideoController videoControllerTv;
+    private TitleView mTitleViewComponent;
+    private ChannelGridView mChannelGridView;
+
+    // Adapters
     private ChannelCategoryAdapterTv categoryAdapterTv;
     private ChannelAdapterTv channelAdapterTv;
-    // private EpgAdapterTv epgAdapterTv; // Removido pois EPG não está mais neste layout
+    private EpgAdapterTv epgAdapterTv; // Reintroduzido
 
-    // Variáveis de estado (EPG removido)
-    // private List<Channel> currentChannels = new ArrayList<>(); // Não é mais necessário aqui se o adapter gerencia sua própria lista
-    // private List<EpgProgram> currentEpgPrograms = new ArrayList<>(); // Removido
-    // private Map<String, String> currentCategoryMap; // Pode não ser necessário se não houver ChannelGridView
-
-    // Componentes do player embutido removidos:
-    // private FrameLayout playerContainerTv;
-    // private VideoView videoViewTv;
-    // private StandardVideoController videoControllerTv;
-    // private ProgressBar playerProgressBarTv; // Antigo ProgressBar do player
-    // private TitleView mTitleViewComponent;
-    // private ChannelGridView mChannelGridView;
+    // Listas de dados (se necessário manter no fragmento)
+    // private List<Channel> currentChannels = new ArrayList<>();
+    // private List<EpgProgram> currentEpgPrograms = new ArrayList<>();
 
 
     @Override
@@ -79,52 +79,149 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        Log.d(TV_TV_TAG, "onCreateView called - New Layout");
-        // Inflar o novo layout
-        View root = inflater.inflate(R.layout.new_fragment_tv_tv, container, false);
+        Log.d(TV_TV_TAG, "onCreateView called - Restoring Original TV Layout");
+        // 1a. Inflar o layout original da TV
+        View root = inflater.inflate(R.layout.fragment_tv_tv, container, false);
 
-        // Inicializar views do novo layout
-        recyclerViewCategories = root.findViewById(R.id.recycler_view_tv_categories);
-        recyclerViewChannels = root.findViewById(R.id.recycler_view_tv_channels);
-        channelsProgressBar = root.findViewById(R.id.channels_progress_bar_tv);
+        // 1b & 1c. Encontrar views do layout original
+        playerContainerTv = root.findViewById(R.id.tv_player_container_tv);
+        playerProgressBarTv = root.findViewById(R.id.tv_player_progress_bar_tv); // ProgressBar do Player
 
-        Log.d(TV_TV_TAG, "Calling setupRecyclerViews() for new layout");
-        setupRecyclerViews(); // Método será ajustado para os novos IDs e sem EPG
+        recyclerViewCategoriesTv = root.findViewById(R.id.recycler_view_tv_categories_tv);
+        recyclerViewChannelsTv = root.findViewById(R.id.recycler_view_tv_channels_tv);
+        recyclerViewEpgTv = root.findViewById(R.id.recycler_view_tv_epg_tv); // EPG RecyclerView
 
-        Log.d(TV_TV_TAG, "Views initialized for new layout.");
+        Log.d(TV_TV_TAG, "Calling setupRecyclerViews() for original layout");
+        setupRecyclerViews(); // Ajustar para os IDs corretos e reintroduzir EPG
+
+        // 1f. Inicializar a base do player (VideoView e seu listener de estado)
+        initializePlayerView();
+
+        Log.d(TV_TV_TAG, "Views initialized for original TV layout.");
         return root;
     }
 
     private void setupRecyclerViews() {
-        Log.d(TV_TV_TAG, "setupRecyclerViews called for new layout");
+        Log.d(TV_TV_TAG, "setupRecyclerViews called for original layout");
         if (getContext() == null) {
             Log.e(TV_TV_TAG, "Context is null in setupRecyclerViews!");
             return;
         }
         // Configurar RecyclerView de Categorias
-        recyclerViewCategories.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerViewCategoriesTv.setLayoutManager(new LinearLayoutManager(getContext()));
         categoryAdapterTv = new ChannelCategoryAdapterTv(getContext(), new ArrayList<>(), this::onCategorySelected);
-        recyclerViewCategories.setAdapter(categoryAdapterTv);
-        recyclerViewCategories.setFocusable(true); // Manter focabilidade para D-Pad
+        recyclerViewCategoriesTv.setAdapter(categoryAdapterTv);
+        recyclerViewCategoriesTv.setFocusable(true);
 
         // Configurar RecyclerView de Canais
-        recyclerViewChannels.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerViewChannelsTv.setLayoutManager(new LinearLayoutManager(getContext()));
         channelAdapterTv = new ChannelAdapterTv(getContext(), new ArrayList<>(), this::onChannelSelected);
-        recyclerViewChannels.setAdapter(channelAdapterTv);
-        recyclerViewChannels.setFocusable(true); // Manter focabilidade para D-Pad
+        recyclerViewChannelsTv.setAdapter(channelAdapterTv);
+        recyclerViewChannelsTv.setFocusable(true);
         
-        // EPG RecyclerView e adapter foram removidos
-        Log.d(TV_TV_TAG, "RecyclerViews setup complete for new layout.");
+        // Configurar RecyclerView de EPG (1c)
+        recyclerViewEpgTv.setLayoutManager(new LinearLayoutManager(getContext()));
+        epgAdapterTv = new EpgAdapterTv(getContext(), new ArrayList<>(), this::onEpgProgramSelected);
+        recyclerViewEpgTv.setAdapter(epgAdapterTv);
+        recyclerViewEpgTv.setFocusable(true);
+
+        Log.d(TV_TV_TAG, "RecyclerViews setup complete for original layout.");
     }
 
-    // Métodos relacionados ao player embutido (setupVideoPlayerComponents, onResume, onPause, onDestroyView referentes ao videoViewTv)
-    // serão removidos ou ajustados drasticamente pois o player será em outra Activity.
+    private void initializePlayerView() {
+        Log.d(TV_TV_TAG, "initializePlayerView called");
+        if (getContext() == null || playerContainerTv == null) {
+            Log.e(TV_TV_TAG, "Context or playerContainerTv is null in initializePlayerView.");
+            return;
+        }
 
+        videoViewTv = new VideoView(requireContext());
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        );
+        videoViewTv.setLayoutParams(params);
+        playerContainerTv.addView(videoViewTv);
+
+        videoViewTv.addOnStateChangeListener(new VideoView.SimpleOnStateChangeListener() {
+            @Override
+            public void onPlayStateChanged(int playState) {
+                Log.d(TV_TV_TAG, "Player state changed: " + playState);
+                if (!isAdded() || playerProgressBarTv == null) {
+                    Log.w(TV_TV_TAG, "onPlayStateChanged: Fragment not added or playerProgressBarTv is null. State: " + playState);
+                    return;
+                }
+                if (playState == VideoView.STATE_PREPARING || playState == VideoView.STATE_BUFFERING) {
+                    playerProgressBarTv.setVisibility(View.VISIBLE);
+                } else {
+                    playerProgressBarTv.setVisibility(View.GONE);
+                }
+            }
+        });
+        Log.d(TV_TV_TAG, "Base VideoView initialized and added to container.");
+    }
+
+    private void setupControllerAndComponents(Channel channelToPlay) {
+        Log.d(TV_TV_TAG, "setupControllerAndComponents for channel: " + channelToPlay.getName());
+        if (getContext() == null || videoViewTv == null) {
+            Log.e(TV_TV_TAG, "Context or videoViewTv is null in setupControllerAndComponents.");
+            return;
+        }
+
+        // 2.b.i. Anular referência ao controller antigo. O VideoView lida com a limpeza do controller anterior ao setar um novo.
+        videoControllerTv = null;
+
+        // 2.b.ii. Criar uma nova instância de StandardVideoController.
+        videoControllerTv = new StandardVideoController(requireContext());
+
+        // 2.b.iii. Criar novas instâncias de TitleView e ChannelGridView.
+        mTitleViewComponent = new TitleView(requireContext());
+        mChannelGridView = new ChannelGridView(requireContext());
+
+        // 2.b.iv. Adicionar o novo TitleView e o novo ChannelGridView ao novo videoControllerTv.
+        videoControllerTv.addControlComponent(mTitleViewComponent);
+        videoControllerTv.addControlComponent(mChannelGridView);
+
+        // Adicionar outros componentes de controle padrão se necessário para TV (ex: ErrorView, PrepareView)
+        // controller.addControlComponent(new ErrorView(requireContext()));
+        // controller.addControlComponent(new PrepareView(requireContext()));
+
+
+        // 2.b.v. Popular o mChannelGridView com a lista de canais relevante.
+        if (dataManager != null && dataManager.getLiveStreams() != null && dataManager.getLiveCategoriesMap() != null) {
+            Log.d(TV_TV_TAG, "Populating ChannelGridView with " + dataManager.getLiveStreams().size() + " channels.");
+            mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
+        } else {
+            Log.e(TV_TV_TAG, "DataManager or its data is null when trying to set ChannelGridView data!");
+            // Opcional: popular com uma lista vazia ou mostrar um estado de erro na grade
+            mChannelGridView.setChannelsData(new ArrayList<>(), new java.util.HashMap<>());
+        }
+
+        // 2.b.vi. Configurar o listener do mChannelGridView.
+        mChannelGridView.setChannelSelectedListener(selectedChannelFromGrid -> {
+            Log.d(TV_TV_TAG, "Channel selected from ChannelGridView: " + selectedChannelFromGrid.getName());
+            onChannelSelected(selectedChannelFromGrid); // Chama o mesmo método para trocar o canal
+        });
+
+        // 2.b.vii. Definir o novo videoControllerTv no videoViewTv.
+        videoViewTv.setVideoController(videoControllerTv);
+
+        // 2.b.viii. Atualizar o título no mTitleViewComponent.
+        if (mTitleViewComponent != null) {
+            mTitleViewComponent.setTitle(channelToPlay.getName());
+        }
+        Log.d(TV_TV_TAG, "Controller and components re-initialized and set for: " + channelToPlay.getName());
+    }
+
+
+    // 1e. Ajustar ciclo de vida para o player embutido
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(TV_TV_TAG, "onResume called - New Layout");
-        // Não há player embutido para resumir aqui
+        Log.d(TV_TV_TAG, "onResume called - Original TV Layout");
+        if (videoViewTv != null) {
+            videoViewTv.resume();
+        }
         Log.d(TV_TV_TAG, "Calling updateUi() from onResume");
         updateUi();
     }
@@ -132,15 +229,21 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TV_TV_TAG, "onPause called - New Layout");
-        // Não há player embutido para pausar aqui
+        Log.d(TV_TV_TAG, "onPause called - Original TV Layout");
+        if (videoViewTv != null) {
+            videoViewTv.pause();
+        }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        Log.d(TV_TV_TAG, "onDestroyView called - New Layout");
-        // Não há player embutido para liberar aqui
+        Log.d(TV_TV_TAG, "onDestroyView called - Original TV Layout");
+        if (videoViewTv != null) {
+            videoViewTv.release();
+            videoViewTv = null; // Limpar referência
+        }
+        // Outras limpezas se necessário (ex: videoControllerTv = null)
     }
 
     @Override
@@ -206,12 +309,16 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     }
 
     private void showLoading(boolean isLoading) {
-        // Este método agora controlará channelsProgressBar
-        Log.d(TV_TV_TAG, "showLoading (channels list): " + isLoading);
-        if (channelsProgressBar != null) {
-            channelsProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        }
-        // O playerProgressBarTv antigo foi removido.
+        // Este método controlava o channelsProgressBar, que foi removido.
+        // O playerProgressBarTv é controlado pelo listener de estado do player.
+        // Se for necessário um ProgressBar geral para carregamento de categorias/canais,
+        // ele precisaria ser adicionado ao layout e referenciado aqui.
+        // Por enquanto, este método não fará nada ou controlará um ProgressBar geral se adicionado.
+        Log.d(TV_TV_TAG, "showLoading (geral): " + isLoading);
+        // Exemplo se tivéssemos um progressBarGeral:
+        // if (progressBarGeral != null) {
+        //     progressBarGeral.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        // }
     }
 
     private void loadLiveCategories() {
@@ -237,50 +344,36 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     private void onCategorySelected(XtreamApiService.CategoryInfo category) {
         Log.d(TV_TV_TAG, "onCategorySelected: " + category.name);
-        if (channelsProgressBar != null) {
-            channelsProgressBar.setVisibility(View.VISIBLE); // Mostrar ProgressBar
-        }
-        recyclerViewChannels.setVisibility(View.GONE); // Esconder lista de canais enquanto carrega
+        // A ProgressBar geral (showLoading) pode ser usada aqui se a busca for longa
+        // showLoading(true);
 
-        // Simular um pequeno atraso para o carregamento ou usar um Handler/Executor se a busca for demorada.
-        // Por enquanto, vamos buscar diretamente.
         List<Channel> channels = dataManager.getLiveStreamsByCategory(category.id);
-
-        if (channelsProgressBar != null) {
-            channelsProgressBar.setVisibility(View.GONE); // Esconder ProgressBar
-        }
-        recyclerViewChannels.setVisibility(View.VISIBLE); // Mostrar lista de canais
+        // showLoading(false);
 
         if (channels != null) {
             Log.d(TV_TV_TAG, "Updating channelAdapterTv with " + channels.size() + " channels for category: " + category.name);
             if (channelAdapterTv != null) {
                 channelAdapterTv.updateData(channels);
                 if (channels.isEmpty()) {
-                    Toast.makeText(getContext(), "Nenhum canal nesta categoria.", Toast.LENGTH_SHORT).show();
+                    if (getContext() != null) Toast.makeText(getContext(), "Nenhum canal nesta categoria.", Toast.LENGTH_SHORT).show();
                 } else {
-                    // Opcional: focar no primeiro canal da lista para melhor navegação na TV
-                    recyclerViewChannels.requestFocus();
+                    if (recyclerViewChannelsTv != null) recyclerViewChannelsTv.requestFocus();
                 }
             } else {
                 Log.e(TV_TV_TAG, "channelAdapterTv is null in onCategorySelected!");
             }
-            // Não selecionar automaticamente o primeiro canal para reprodução aqui.
-            // O usuário deve explicitamente selecionar um canal da lista.
-            // if(!channels.isEmpty()) {
-            //     Log.d(TV_TV_TAG, "Selecting first channel: " + channels.get(0).getName());
-            //     onChannelSelected(channels.get(0));
-            // }
         } else {
             Log.w(TV_TV_TAG, "No channels found for category: " + category.name);
             if (channelAdapterTv != null) {
                 channelAdapterTv.updateData(new ArrayList<>()); // Limpar lista
             }
-            Toast.makeText(getContext(), "Nenhum canal encontrado para: " + category.name, Toast.LENGTH_SHORT).show();
+            if (getContext() != null) Toast.makeText(getContext(), "Nenhum canal encontrado para: " + category.name, Toast.LENGTH_SHORT).show();
         }
     }
 
+    // 1d. Modificar onChannelSelected para player embutido (lógica completa no Passo 3)
     private void onChannelSelected(Channel channel) {
-        Log.d(TV_TV_TAG, "onChannelSelected: " + channel.getName() + ", URL: " + channel.getStreamUrl());
+        Log.d(TV_TV_TAG, "onChannelSelected for embedded player: " + channel.getName() + ", URL: " + channel.getStreamUrl());
 
         if (!isAdded() || getContext() == null) {
             Log.e(TV_TV_TAG, "onChannelSelected: Fragment not added or context is null.");
@@ -290,56 +383,157 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         String streamUrl = channel.getStreamUrl();
         if (streamUrl == null || streamUrl.isEmpty()) {
             Log.e(TV_TV_TAG, "Stream URL is null or empty for channel: " + channel.getName());
-            Toast.makeText(getContext(), "URL de stream inválida para " + channel.getName(), Toast.LENGTH_LONG).show();
+            if (getContext() != null) Toast.makeText(getContext(), "URL de stream inválida para " + channel.getName(), Toast.LENGTH_LONG).show();
+            // Limpar o player se estiver tocando algo
+            if (videoViewTv != null) {
+                videoViewTv.release();
+            }
             return;
         }
 
-        // Criar um objeto Movie simples para passar para VideoPlayerActivity
-        // VideoPlayerActivity espera um 'Movie' serializable com 'name' e 'videoUrl'.
-        // Usaremos o nome do canal e a URL do stream. Outros campos de Movie podem ser nulos ou padrão.
-        com.example.iptvplayer.data.Movie movieToPlay = new com.example.iptvplayer.data.Movie();
-        movieToPlay.setName(channel.getName());
-        movieToPlay.setVideoUrl(streamUrl);
-        // Se Channel tivesse um ID numérico ou outros campos que Movie tem, poderíamos mapeá-los aqui.
-        // Por agora, apenas nome e URL são essenciais para VideoPlayerActivity.
+        // Lógica de re-inicialização do player e controller virá no Passo 2 e 3 do plano.
+        // Por enquanto, apenas log e uma chamada básica se videoViewTv existir.
+        if (videoViewTv == null) {
+            Log.e(TV_TV_TAG, "videoViewTv is null in onChannelSelected. Player not fully initialized yet by this new flow.");
+            // Isso pode acontecer se onChannelSelected for chamado antes do player estar pronto
+            // (ex: na primeira carga de dados). O Passo 2 e 3 cuidarão da inicialização completa.
+            initializePlayerView(); // Garante que o videoViewTv base exista
+        }
 
-        Intent intent = new Intent(getActivity(), VideoPlayerActivity.class);
-        intent.putExtra("movie", movieToPlay); // VideoPlayerActivity espera "movie"
-        intent.putExtra("isLiveStream", true); // Indicar que é um stream ao vivo
-        startActivity(intent);
+        // 3a. Chamar videoViewTv.release() para parar e limpar o stream atual.
+        // Isso limpa o player interno. A instância VideoView (videoViewTv) permanece.
+        if (videoViewTv.getCurrentPlayState() != VideoView.STATE_IDLE) { // Só liberar se não estiver idle (evita liberar se já liberado)
+            videoViewTv.release(); // Limpa o player interno, para a reprodução, etc.
+        }
 
-        // Não há mais EPG embutido nesta tela para carregar
-        // loadEpgForChannel(channel.getStreamId());
+        // 3b. Chamar o novo método setupControllerAndComponents(channel).
+        // Isso irá (re)criar e configurar videoControllerTv, mTitleViewComponent, mChannelGridView
+        // e definir o novo controller no videoViewTv.
+        setupControllerAndComponents(channel);
+
+        // 3c. Definir a URL no videoViewTv.
+        videoViewTv.setUrl(streamUrl);
+
+        // 3d. Iniciar a reprodução.
+        videoViewTv.start();
+
+        Log.d(TV_TV_TAG, "Playback started for: " + channel.getName());
+
+        // 3f. (Opcional por enquanto) Chamar loadEpgForChannel.
+        // Vamos reativar isso pois a UI do EPG foi restaurada.
+        loadEpgForChannel(channel.getStreamId());
     }
 
-    // Método loadEpgForChannel e onEpgProgramSelected podem ser removidos
-    // pois o RecyclerView de EPG e seu adapter foram removidos do layout e da lógica.
-    // private void loadEpgForChannel(String streamId) { ... }
-    // public void onEpgProgramSelected(EpgProgram program) { ... }
+    // 1c. Reintroduzir lógica de EPG
+    private void loadEpgForChannel(String streamId) {
+        Log.d(TV_TV_TAG, "loadEpgForChannel called for streamId: " + streamId);
+        if (dataManager == null || dataManager.getXmltvEpgService() == null) {
+            Log.e(TV_TV_TAG, "DataManager or XmltvEpgService is null in loadEpgForChannel!");
+            return;
+        }
+        // Mostrar um indicador de carregamento para o EPG se houver um específico
+        dataManager.getXmltvEpgService().fetchChannelEpg(streamId, new EpgService.EpgCallback() {
+            @Override
+            public void onSuccess(List<EpgProgram> programs) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) {
+                            Log.w(TV_TV_TAG, "loadEpgForChannel.onSuccess: Fragment not added or context null in UI thread.");
+                            return;
+                        }
+                        Log.d(TV_TV_TAG, "XMLTV EPG loaded successfully: " + programs.size() + " programs for streamId " + streamId);
+                        if (epgAdapterTv != null) {
+                            epgAdapterTv.updateData(programs);
+                        } else {
+                            Log.e(TV_TV_TAG, "epgAdapterTv is null in loadEpgForChannel.onSuccess!");
+                        }
+                    });
+                } else {
+                    Log.w(TV_TV_TAG, "loadEpgForChannel.onSuccess: Fragment not attached or activity is null.");
+                }
+            }
 
+            @Override
+            public void onFailure(String error) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded() || getContext() == null) {
+                            Log.w(TV_TV_TAG, "loadEpgForChannel.onFailure: Fragment not added or context null in UI thread.");
+                            return;
+                        }
+                        Log.e(TV_TV_TAG, "Failed to load XMLTV EPG: " + error);
+                        if (getContext() != null) Toast.makeText(getContext(), "Erro ao carregar EPG XMLTV: " + error, Toast.LENGTH_LONG).show();
+                        if (epgAdapterTv != null) {
+                            epgAdapterTv.updateData(new ArrayList<>());
+                        } else {
+                            Log.e(TV_TV_TAG, "epgAdapterTv is null in loadEpgForChannel.onFailure!");
+                        }
+                    });
+                } else {
+                    Log.w(TV_TV_TAG, "loadEpgForChannel.onFailure: Fragment not attached or activity is null.");
+                }
+            }
+        });
+    }
 
-    // onTvKeyDown e onTvKeyUp não são mais necessários aqui se mChannelGridView foi removido.
+    public void onEpgProgramSelected(EpgProgram program) {
+        Log.d(TV_TV_TAG, "onEpgProgramSelected: " + program.getTitle());
+        // Implementar o que acontece quando um programa EPG é clicado.
+        // Ex: Mostrar detalhes do programa em um Toast ou Dialog.
+        if (getContext() != null) {
+            String details = "Programa: " + program.getTitle() + "\nDescrição: " + program.getDescription();
+            Toast.makeText(getContext(), details, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // onTvKeyDown e onTvKeyUp serão restaurados no Passo 4.
     // Se a navegação por D-Pad precisar de tratamento especial para os RecyclerViews,
     // isso seria feito de forma diferente, geralmente pelo foco do sistema.
     @Override
     public boolean onTvKeyDown(int keyCode, KeyEvent event) {
-        // Log.d(TV_TV_TAG, "onTvKeyDown: keyCode=" + keyCode);
-        // Se mChannelGridView foi removido, esta lógica não se aplica mais.
-        // Retornar false para permitir que o sistema manipule.
-        return false;
+        Log.d(TV_TV_TAG, "onTvKeyDown: keyCode=" + keyCode);
+        // 4a. Restaurar lógica para mostrar/esconder mChannelGridView
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_BUTTON_SELECT) {
+            if (mChannelGridView != null && videoViewTv != null && videoViewTv.isPlaying()) { // Só mostrar se o player estiver ativo
+                if (mChannelGridView.isShown()) {
+                    Log.d(TV_TV_TAG, "Hiding ChannelGridView via DPAD_CENTER");
+                    mChannelGridView.hideChannelGrid();
+                } else {
+                    Log.d(TV_TV_TAG, "Showing ChannelGridView via DPAD_CENTER");
+                    // Popular dados antes de mostrar, caso DataManager tenha sido atualizado
+                    if (dataManager != null && dataManager.getLiveStreams() != null && dataManager.getLiveCategoriesMap() != null) {
+                         mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
+                    }
+                    mChannelGridView.showChannelGrid();
+                }
+                return true; // Evento consumido
+            }
+        }
+        // Considerar adicionar navegação para cima/baixo na lista de canais se o foco estiver no player
+        // ou outras interações de D-Pad específicas do player.
+        return false; // Deixar o sistema tratar outros eventos de D-Pad
     }
 
     @Override
     public boolean onTvKeyUp(int keyCode, KeyEvent event) {
-        // Log.d(TV_TV_TAG, "onTvKeyUp: keyCode=" + keyCode);
+        // Log.d(TV_TV_TAG, "onTvKeyUp: keyCode=" + keyCode); // Geralmente não necessário
         return false;
     }
 
     public boolean onBackPressed() {
-        Log.d(TV_TV_TAG, "onBackPressed called - New Layout");
-        // Não há player embutido ou ChannelGridView para tratar aqui.
-        // Deixar a Activity pai (MainTvActivity) lidar com o back press.
-        return false;
+        Log.d(TV_TV_TAG, "onBackPressed called - Restored Logic");
+        // 4b. Restaurar lógica de tela cheia e ChannelGridView
+        if (videoViewTv != null && videoViewTv.isFullScreen()) {
+            Log.d(TV_TV_TAG, "Handling back press: Exiting fullscreen video.");
+            return videoViewTv.onBackPressed(); // DoikkiPlayer lida com saída de tela cheia
+        }
+        if (mChannelGridView != null && mChannelGridView.isShown()) {
+            Log.d(TV_TV_TAG, "Handling back press: Hiding ChannelGridView.");
+            mChannelGridView.hideChannelGrid();
+            return true; // Evento consumido
+        }
+        Log.d(TV_TV_TAG, "Back press not handled by TvFragmentTv, allowing activity to handle.");
+        return false; // Permitir que a Activity (MainTvActivity) lide com o back press
     }
 
     @Override

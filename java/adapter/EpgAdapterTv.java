@@ -33,7 +33,8 @@ public class EpgAdapterTv extends RecyclerView.Adapter<EpgAdapterTv.EpgViewHolde
     @NonNull
     @Override
     public EpgViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_epg_program, parent, false);
+        // Corrigido para inflar o layout item_epg_program_tv.xml
+        View view = LayoutInflater.from(context).inflate(R.layout.item_epg_program_tv, parent, false);
         return new EpgViewHolder(view);
     }
 
