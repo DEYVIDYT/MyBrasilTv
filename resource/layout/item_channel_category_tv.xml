@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/category_name_text_view_tv"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:textSize="18sp"
+    android:textColor="@color/selector_category_text_tv"
+    android:background="@drawable/category_item_tv_selector"
+    android:focusable="true"
+    android:clickable="true"
+    android:gravity="center_vertical"
+    tools:text="Nome da Categoria"
+    xmlns:tools="http://schemas.android.com/tools"/>

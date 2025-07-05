@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/list_item_tv_selector"
+    android:focusable="true"
+    android:clickable="true">
+
+    <ImageView
+        android:id="@+id/channel_tv_logo"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="12dp"
+        android:scaleType="centerInside"
+        tools:srcCompat="@tools:sample/avatars"
+        android:tint="@color/channel_logo_tv_tint_selector" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/channel_tv_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Nome do Canal HD"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="@color/list_item_text_tv_selector"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/channel_tv_program"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Programa Atual do Canal"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:textColor="@color/list_item_text_secondary_tv_selector"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+    </LinearLayout>
+
+</LinearLayout>

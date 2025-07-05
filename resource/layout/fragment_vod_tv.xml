@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/app_background"
+    android:focusable="true"
+    android:descendantFocusability="afterDescendants"
+    tools:context=".VodFragmentTv">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Seção Hero no Topo -->
+        <include layout="@layout/component_tv_hero_section"
+            android:id="@+id/hero_section_vod_tv"/>
+
+        <!-- ProgressBar para carregamento de categorias/filmes -->
+        <ProgressBar
+            android:id="@+id/progress_bar_vod_tv"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            android:indeterminateTint="@color/selection_focus" />
+
+        <!-- RecyclerView para Categorias de Filmes (lista vertical de linhas) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_vod_categories_tv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingTop="16dp"
+            android:clipToPadding="false"
+            android:focusable="true"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_movie_category_row_tv" /> <!-- Usará um novo item_movie_category_row_tv -->
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

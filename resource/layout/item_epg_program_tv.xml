@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/list_item_tv_selector"
+    android:focusable="true"
+    android:clickable="true">
+
+    <TextView
+        android:id="@+id/epg_item_tv_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Título do Programa Atual"
+        android:textAppearance="?attr/textAppearanceSubtitle1"
+        android:textColor="@color/list_item_text_tv_selector"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/epg_item_tv_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="20:00 - 22:00"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:textColor="@color/list_item_text_secondary_tv_selector"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/epg_item_tv_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Breve descrição do programa que está passando ou vai passar no canal selecionado."
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="@color/list_item_text_secondary_tv_selector"
+        android:layout_marginTop="4dp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:visibility="gone"/> <!-- Descrição pode ser opcional ou mostrada ao expandir -->
+
+</LinearLayout>

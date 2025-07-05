@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/app_background"
+    tools:context=".ProfileFragmentTv">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="48dp">
+
+        <TextView
+            android:id="@+id/profile_tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Perfil &amp; Configurações"
+            android:textAppearance="?attr/textAppearanceHeadline5"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Botão Adicionar Xtream (se ainda relevante para TV) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/add_xtream_button_tv"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/add_xtream_button_text"
+            android:textColor="@color/text_primary"
+            app:strokeColor="@color/selection_focus"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:textSize="18sp"
+            android:layout_marginBottom="16dp"
+            android:focusable="true"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_update_list_tv"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_update_list_button"
+            android:textColor="@color/text_primary"
+            app:strokeColor="@color/selection_focus"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:textSize="18sp"
+            android:layout_marginBottom="16dp"
+            android:focusable="true"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_open_repository_tv"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_open_repository_button"
+            android:textColor="@color/text_primary"
+            app:strokeColor="@color/selection_focus"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:textSize="18sp"
+            android:layout_marginBottom="16dp"
+            android:focusable="true"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_change_layout_tv"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_change_to_mobile_layout_tv"
+            android:textColor="@color/text_primary"
+            app:strokeColor="@color/text_secondary"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:textSize="18sp"
+            android:layout_marginBottom="24dp"
+            android:focusable="true"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/profile_logout_button_tv"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profile_logout_button"
+            android:textColor="@color/md_theme_dark_error"
+            android:textSize="18sp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:focusable="true"/>
+
+    </LinearLayout>
+</ScrollView>
