@@ -77,21 +77,14 @@
         android:layout_weight="0.65"
         android:orientation="vertical">
 
-        <FrameLayout
-            android:id="@+id/tv_player_container_tv"
+        <com.google.android.exoplayer2.ui.PlayerView
+            android:id="@+id/player_view_tv_fragment_tv_v2"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="0.6"
-            android:background="@color/black">
-            <!-- VideoView será adicionado programaticamente ou via <include> se for um componente reutilizável -->
-            <ProgressBar
-                android:id="@+id/tv_player_progress_bar_tv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                android:indeterminateTint="@color/selection_focus"/>
-        </FrameLayout>
+            android:background="@color/black"
+            app:controller_layout_id="@layout/custom_exoplayer2_controls"
+            app:use_controller="true" />
 
         <TextView
             android:id="@+id/tv_epg_title_tv"

@@ -105,37 +105,16 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Player Container -->
-    <FrameLayout
-        android:id="@+id/player_container"
+    <com.google.android.exoplayer2.ui.PlayerView
+        android:id="@+id/player_view_tv_fragment_v2"
         android:layout_width="0dp"
         android:layout_height="224dp"
         android:background="@color/app_background"
+        app:controller_layout_id="@layout/custom_exoplayer2_controls"
         app:layout_constraintTop_toBottomOf="@id/header_layout"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <!-- androidx.media3.ui.PlayerView foi removido para evitar conflito com o VideoView do DoikkiPlayer adicionado programaticamente -->
-
-        <ProgressBar
-            android:id="@+id/player_progress_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"
-            android:indeterminateTint="?attr/colorPrimary"
-            tools:visibility="visible"/>
-
-        <TextView
-            android:id="@+id/player_loading_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/tv_player_loading"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:layout_gravity="center"
-            android:visibility="gone" /> <!-- Control visibility via code -->
-
-    </FrameLayout>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:use_controller="true" />
 
     <!-- Player Controls Layout Removido -->
     <!-- O StandardVideoController do DoikkiPlayer (com VodControlView/LiveControlView) -->

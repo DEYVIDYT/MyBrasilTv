@@ -10,30 +10,50 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View; // Added
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ProgressBar;
+// import android.widget.ProgressBar; // REMOVED - player_progress_bar from XML is removed
 import android.widget.Toast;
+import android.widget.TextView; // Added
+import android.widget.Button; // Added
+import android.widget.ImageButton; // Added
+
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.DrawableRes;
 import androidx.fragment.app.Fragment;
-import xyz.doikki.videoplayer.player.VideoView;
-import com.example.iptvplayer.StandardVideoController;
+// xyz.doikki.videoplayer.player.VideoView; // REMOVED
+// import com.example.iptvplayer.StandardVideoController; // REMOVED
 import android.widget.LinearLayout;
 import android.content.BroadcastReceiver;
-import com.example.iptvplayer.component.CompleteView;
-import com.example.iptvplayer.component.ErrorView;
-import com.example.iptvplayer.component.GestureView;
-import com.example.iptvplayer.component.PrepareView;
-import com.example.iptvplayer.component.TitleView;
-import com.example.iptvplayer.component.VodControlView;
-import com.example.iptvplayer.component.ChannelGridView;
-import com.example.iptvplayer.component.LiveControlView; // ADDED IMPORT
+// import com.example.iptvplayer.component.CompleteView; // REMOVED
+// import com.example.iptvplayer.component.ErrorView; // REMOVED
+// import com.example.iptvplayer.component.GestureView; // REMOVED
+// import com.example.iptvplayer.component.PrepareView; // REMOVED
+// import com.example.iptvplayer.component.TitleView; // REMOVED
+// import com.example.iptvplayer.component.VodControlView; // REMOVED
+// import com.example.iptvplayer.component.ChannelGridView; // REMOVED dkplayer component
+import com.example.iptvplayer.component.LiveControlView; // Kept for interface, dkplayer view removed
 import com.lxj.xpopup.XPopup;
 import android.app.PictureInPictureParams;
 import android.app.RemoteAction;
+
+// --- ExoPlayer v2 Imports ---
+import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.util.Util;
+// --- End ExoPlayer v2 Imports ---
 import android.app.PendingIntent;
 import android.content.Intent;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager; // ADDED IMPORT
@@ -95,17 +115,23 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private TextView tabEpg;
     private TextView tabFavorites;
 
-    private ProgressBar playerProgressBar; // Conectado ao XML
-    private TextView playerLoadingTextView; // Para a mensagem "Carregando"
+    // private ProgressBar playerProgressBar; // REMOVED
+    // private TextView playerLoadingTextView; // REMOVED
 
-    private VideoView mVideoView;
-    private StandardVideoController mController;
-    private TitleView mTitleViewComponent; // Referência ao componente TitleView
-    private ChannelGridView mChannelGridView; // Componente da grade de canais
-    private GestureView mGestureView; // Componente de gestos
-    private int mWidthPixels;
-    private PictureInPictureParams.Builder mPictureInPictureParamsBuilder;
-    private BroadcastReceiver mReceiver;
+    // --- ExoPlayer v2 specific ---
+    private PlayerView playerView;
+    private SimpleExoPlayer exoPlayer;
+    // --- End ExoPlayer v2 specific ---
+
+    // private VideoView mVideoView; // REMOVED
+    // private StandardVideoController mController; // REMOVED
+    // private TitleView mTitleViewComponent; // REMOVED
+    // private ChannelGridView mChannelGridView; // REMOVED - dkplayer component
+    // private GestureView mGestureView; // REMOVED
+
+    private int mWidthPixels; // Still used for PiP
+    private PictureInPictureParams.Builder mPictureInPictureParamsBuilder; // Still used for PiP
+    private BroadcastReceiver mReceiver; // Still used for PiP actions
 
     // Sinalizador para controle do PiP durante a troca de canais
     private boolean mIsSwitchingChannels = false;
@@ -119,9 +145,9 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private static final int REQUEST_PAUSE = 2;
     private static final int REQUEST_REPLAY = 3;
 
-    private String speed = "1.0";
-    private String proportion = "默认";
-    private String title = "测试标题";
+    // private String speed = "1.0"; // Will be managed by ExoPlayer's PlaybackParameters
+    // private String proportion = "默认"; // Will be managed by PlayerView's resizeMode
+    // private String title = "测试标题"; // Title will be set on the TextView in custom controls
 
     private static final String TV_TAG = "TV_DEBUG"; // Tag para logs
     private static final String TAG_BACK_TV = "TvFragment_Back"; // Tag para logs do onBackPressed
@@ -182,8 +208,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         recyclerViewEpg = root.findViewById(R.id.recycler_view_epg);
         searchEditText = root.findViewById(R.id.search_edit_text);
         searchEditText.setText(""); // Limpar o texto de busca na criação da view
-        playerProgressBar = root.findViewById(R.id.player_progress_bar); // Conectar ProgressBar
-        playerLoadingTextView = root.findViewById(R.id.player_loading_text); // Conectar TextView de Loading
+        // playerProgressBar = root.findViewById(R.id.player_progress_bar); // REMOVED
+        // playerLoadingTextView = root.findViewById(R.id.player_loading_text); // REMOVED
 
         // Initialize tab views
         tabChannels = root.findViewById(R.id.tab_channels);
@@ -212,219 +238,65 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         }
     }
 
-        // New player initialization
-        mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder();
+        // ExoPlayer Initialization for TvFragment
+        mPictureInPictureParamsBuilder = new PictureInPictureParams.Builder(); // Still needed for PiP
+        mWidthPixels = getResources().getDisplayMetrics().widthPixels; // Still needed for PiP
 
-        mVideoView = new xyz.doikki.videoplayer.player.VideoView(getContext());
-        FrameLayout playerContainer = root.findViewById(R.id.player_container);
-        if (playerContainer != null) {
-            // Fazer o VideoView preencher o player_container
-            FrameLayout.LayoutParams videoViewParams = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT);
-            mVideoView.setLayoutParams(videoViewParams);
-            playerContainer.addView(mVideoView); // Adicionar ao FrameLayout
+        playerView = root.findViewById(R.id.player_view_tv_fragment_v2); // Use new ID
+        if (playerView == null) {
+            Log.e(TV_TAG, "PlayerView (player_view_tv_fragment_v2) not found in fragment_tv.xml");
+            Toast.makeText(getContext(), "PlayerView not found error", Toast.LENGTH_LONG).show();
         } else {
-            Log.e(TV_TAG, "player_container FrameLayout not found in fragment_tv.xml");
-            Toast.makeText(getContext(), getString(R.string.player_container_not_found_error), Toast.LENGTH_LONG).show();
-        }
-        mWidthPixels = getResources().getDisplayMetrics().widthPixels;
-        
+            if (getContext() != null) {
+                exoPlayer = new SimpleExoPlayer.Builder(requireContext()).build();
+                playerView.setPlayer(exoPlayer);
+                playerView.setControllerLayoutId(R.layout.custom_exoplayer2_controls); // Set custom controls
+                playerView.setControllerShowTimeoutMs(3000);
 
-        mController = new StandardVideoController(getContext());
-        mController.addControlComponent(new CompleteView(getContext()));
-        mController.addControlComponent(new ErrorView(getContext()));
-        mController.addControlComponent(new PrepareView(getContext()));
-        
-        // Configurar GestureView com listener para clique no lado esquerdo
-        mGestureView = new GestureView(getContext());
+                setupControllerClickListenersV2(); // Setup for ExoPlayer v2 controls
 
-        // Configurar ChannelGridView
-        mChannelGridView = new ChannelGridView(getContext());
-        mChannelGridView.setChannelSelectedListener(channel -> {
-            // Quando um canal é selecionado na grade, reproduzi-lo
-            onChannelClick(channel);
-        });
-        mController.addControlComponent(mChannelGridView);
-        VodControlView vodControlView = new VodControlView(getContext());
-        vodControlView.findViewById(R.id.speed).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new XPopup.Builder(getContext())
-                        .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right)
-                        .asCustom(new CustomDrawerPopupView(getContext()))
-                        .show();
-            }
-        });
-        vodControlView.findViewById(R.id.proportion).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new XPopup.Builder(getContext())
-                        .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right)
-                        .asCustom(new CustomDrawerPopupView1(getContext()))
-                        .show();
-            }
-        });
-        // mController.addControlComponent(vodControlView); // REPLACED with LiveControlView
+                exoPlayer.addListener(new Player.EventListener() {
+                    @Override
+                    public void onPlaybackStateChanged(int playbackState) {
+                        updatePiPIfNeededV2(playbackState, exoPlayer.isPlaying());
+                        updateControllerUiOnErrorStateV2(null);
+                        updateControllerUiOnEndedStateV2(playbackState == Player.STATE_ENDED);
+                        updateControllerUiOnBufferingStateV2(playbackState == Player.STATE_BUFFERING);
 
-        LiveControlView liveControlView = new LiveControlView(getContext()); // ADDED
-        if (mChannelGridView != null) { // Ensure mChannelGridView is initialized
-            liveControlView.setChannelGridViewRef(mChannelGridView); // Set the reference
-        }
-        liveControlView.setOnProportionButtonClickListener(this); // Definir o listener
-        mController.addControlComponent(liveControlView); // ADDED
-
-
-        // Criar e configurar o TitleView, depois armazenar a referência
-        mTitleViewComponent = new TitleView(getContext());
-        mTitleViewComponent.findViewById(R.id.pip).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Rational aspectRatio = new Rational(16, 9);
-                mPictureInPictureParamsBuilder.setAspectRatio(aspectRatio); // Corrigido: .build() removido daqui
-                if (getActivity() != null) {
-                    getActivity().enterPictureInPictureMode(mPictureInPictureParamsBuilder.build());
-                }
-            }
-        });
-        mTitleViewComponent.setTitle(title); // Define um título inicial
-        mController.addControlComponent(mTitleViewComponent);
-
-        mVideoView.setVideoController(mController);
-        mVideoView.addOnStateChangeListener(new VideoView.SimpleOnStateChangeListener() {
-            @Override
-
-            public void onPlayStateChanged(int playState) {
-                String currentPlayStateString = playStateToString(playState);
-                boolean isFullScreen = (mVideoView != null && mVideoView.isFullScreen());
-                Log.d(TAG_PLAYER_STATE_TV, "Player state event: " + currentPlayStateString + ". IsFullScreen: " + isFullScreen + ". SwitchingChannels: " + mIsSwitchingChannels + ". PiP: " + (getActivity() != null && getActivity().isInPictureInPictureMode()));
-
-                // Se um novo vídeo começou a tocar ou está pronto (ou erro), a troca terminou.
-                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PREPARED || playState == VideoView.STATE_ERROR) {
-                    if(mIsSwitchingChannels) {
-                        Log.d(TV_TAG, "Transition to PLAYING/PREPARED/ERROR, resetting mIsSwitchingChannels for new stream.");
-                    }
-                    mIsSwitchingChannels = false;
-                }
-
-                // Não atualize as ações PiP se for um evento de pausa do vídeo antigo durante uma troca de canal.
-                if (mIsSwitchingChannels && playState == VideoView.STATE_PAUSED) {
-                    Log.d(TV_TAG, "PAUSED state during channel switch, likely old stream. PiP actions update SKIPPED.");
-                    return;
-                }
-                 if (mIsSwitchingChannels && (playState == VideoView.STATE_IDLE || playState == VideoView.STATE_PREPARING)) {
-                    Log.d(TV_TAG, "IDLE/PREPARING state during channel switch. PiP actions update SKIPPED.");
-                    // Não faz sentido atualizar PiP se o player está idle ou preparando DURANTE uma troca.
-                    // Isso pode acontecer se release() for chamado, e o player passar por IDLE.
-                    return;
-                }
-
-
-                switch (playState) {
-                    case VideoView.STATE_PAUSED:
-                        updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_play_arrow, getString(R.string.pip_action_play), CONTROL_TYPE_PLAY, REQUEST_PLAY);
-                        break;
-                    case VideoView.STATE_PLAYING:
-                        // Quando estiver tocando, e não trocando de canal, reseta o flag (segurança extra).
-                        // mIsSwitchingChannels = false; // Já tratado acima, mas pode ser uma garantia.
-                        updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_pause, getString(R.string.pip_action_pause), CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
-                        break;
-                    case VideoView.STATE_PLAYBACK_COMPLETED:
-                        updatePictureInPictureActions(
-                                R.drawable.dkplayer_ic_action_replay, getString(R.string.pip_action_replay), CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
-                        break;
-                    // Outros estados como STATE_PREPARING, STATE_BUFFERING podem ser usados para mostrar/esconder o ProgressBar
-                    case VideoView.STATE_PREPARING:
-                        Log.d(TV_TAG, "Player is PREPARING.");
-                        showLoading(true);
-                        mBufferingStartTime = 0; // Resetar início de buffering ao preparar novo stream
-                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-                        mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
-                        mIsPausedForBuffering = false;
-                        break;
-                    case VideoView.STATE_BUFFERING:
-                        Log.d(TV_TAG, "Player is BUFFERING.");
-                        if (!mIsPausedForBuffering && !mIsRetrying) { // Só iniciar lógica de buffering excessivo se não estiver pausado por nós ou em retentativa de erro
-                            if (mBufferingStartTime == 0) { // Marcar início do buffering
-                                mBufferingStartTime = System.currentTimeMillis();
-                                Log.d(TV_TAG, "Buffering started at: " + mBufferingStartTime);
-                                // Postar verificação inicial, mCheckBufferingRunnable se auto-reagenda depois
-                                mBufferOptimizeHandler.postDelayed(mCheckBufferingRunnable, 1000); // Verificar após 1s
+                        if (playbackState == Player.STATE_READY && mIsRetrying && exoPlayer.getPlayWhenReady()) {
+                             Log.d(TV_TAG, "Channel " + mCurrentPlayingChannelName + " started playing with ExoPlayer v2 after ERROR retry.");
+                             mIsRetrying = false;
+                             mRetryHandler.removeCallbacks(mRetryRunnable);
+                        }
+                        if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+                            if(mIsSwitchingChannels && playbackState == Player.STATE_READY) {
+                                Log.d(TV_TAG, "ExoPlayer v2 Ready after channel switch, resetting mIsSwitchingChannels.");
                             }
-                            // Mostrar "Carregando..." ou similar, mas não a mensagem de "Otimizando buffer" ainda
-                           if (!playerLoadingTextView.getText().equals(getString(R.string.optimizing_buffer_message))) {
-                                showLoading(true); // Usa a mensagem padrão de loading
+                            if (playbackState != Player.STATE_IDLE) {
+                               mIsSwitchingChannels = false;
                             }
                         }
-                        break;
-                    case VideoView.STATE_PREPARED: // Vídeo preparado
-                        Log.d(TV_TAG, "Player is PREPARED.");
-                        mBufferingStartTime = 0; // Resetar, pois o buffer foi preparado
-                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-                        // Não esconder loading aqui, esperar PLAYING ou PAUSED
-                        break;
-                    case VideoView.STATE_BUFFERED: // Buffering completo
-                        Log.d(TV_TAG, "Player is BUFFERED (finished buffering).");
-                        mBufferingStartTime = 0; // Resetar, pois o buffering terminou
-                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-                        // Não esconder loading aqui, esperar PLAYING ou PAUSED
-                        break;
-                    case VideoView.STATE_ERROR:
-                        showLoading(false); // Esconder loading em caso de erro
-                        mBufferingStartTime = 0;
-                        mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-                        mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
-                        mIsPausedForBuffering = false;
-                        // ErrorView já deve estar sendo exibido pelo controller
-                        if (mVideoView != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
-                            Log.e(TV_TAG, "Error playing channel: " + mCurrentPlayingChannelName + ". Initiating retry mechanism.");
+                    }
+
+                    @Override
+                    public void onIsPlayingChanged(boolean isPlaying) {
+                        updatePiPIfNeededV2(exoPlayer.getPlaybackState(), isPlaying);
+                        updatePlayPauseButtonsV2(isPlaying);
+                    }
+
+                    @Override
+                    public void onPlayerError(@NonNull ExoPlaybackException error) {
+                        Log.e(TV_TAG, "ExoPlayer v2 Error: ", error);
+                        updateControllerUiOnErrorStateV2(error);
+                        if (exoPlayer != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
+                            Log.e(TV_TAG, "Error playing channel with ExoPlayer v2: " + mCurrentPlayingChannelName + ". Initiating retry.");
                             mIsRetrying = true;
-                            showLoadingWithMessage(getString(R.string.retrying_channel_message, mCurrentPlayingChannelName));
                             mRetryHandler.postDelayed(mRetryRunnable, RETRY_DELAY_MS);
                         }
-                        break;
-                }
-
-                // Lógica de esconder loading
-                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED) {
-                    if (mIsPausedForBuffering && playState == VideoView.STATE_PAUSED) {
-                        // Se foi pausado por nós para otimizar buffer, manter a mensagem de otimização.
-                        // showLoadingWithMessage(getString(R.string.optimizing_buffer_message)); // Já deve estar setada
-                    } else if (!mIsRetrying) {
-                        // Esconder loading se não estivermos retentando um erro fatal e não estivermos explicitamente pausados para buffer.
-                        showLoading(false);
                     }
-                     // Se estava pausado para buffer e agora está tocando, resetar flags.
-                    if (mIsPausedForBuffering && playState == VideoView.STATE_PLAYING) {
-                        mIsPausedForBuffering = false;
-                        mBufferingStartTime = 0; // Reset
-                        mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable); // Cancelar se já estiver agendado
-                    }
-                }
-
-
-                // Se começou a tocar e estávamos em retentativa de ERRO, cancelar o estado de retentativa.
-                if (playState == VideoView.STATE_PLAYING && mIsRetrying) {
-                    Log.d(TV_TAG, "Channel " + mCurrentPlayingChannelName + " started playing successfully after ERROR retry.");
-                    mIsRetrying = false;
-                    mRetryHandler.removeCallbacks(mRetryRunnable);
-                    showLoading(false);
-                }
-
-                // Se o player for para IDLE (ex: após release), limpar tudo
-                if (playState == VideoView.STATE_IDLE) {
-                    Log.d(TV_TAG, "Player is IDLE. Clearing buffering and retry states.");
-                    mBufferingStartTime = 0;
-                    mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-                    mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
-                    mIsPausedForBuffering = false;
-                    // Não mexer em mIsRetrying aqui, pois o release pode ser parte da retentativa.
-                    // mIsRetrying é resetado em onChannelClick ou quando a retentativa é bem sucedida.
-                }
+                });
             }
-        });
+        }
 
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -452,71 +324,38 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         mRetryRunnable = new Runnable() {
             @Override
             public void run() {
-                if (mIsRetrying && mVideoView != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
-                    Log.d(TV_TAG, "Retrying channel: " + mCurrentPlayingChannelName + " URL: " + mCurrentPlayingUrl);
-                    showLoadingWithMessage(getString(R.string.retrying_channel_message, mCurrentPlayingChannelName));
-                    mVideoView.release(); // Libera recursos do player anterior
-                    mVideoView.setUrl(mCurrentPlayingUrl);
-                    mVideoView.start();
-                    // O listener onPlayStateChanged lidará com o próximo estado (PREPARING, PLAYING ou ERROR novamente)
+                if (mIsRetrying && exoPlayer != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
+                    Log.d(TV_TAG, "Retrying channel with ExoPlayer v2: " + mCurrentPlayingChannelName + " URL: " + mCurrentPlayingUrl);
+                    // showLoadingWithMessage is removed, rely on controller's buffering indicator
+                    updateControllerUiOnErrorStateV2(null); // Hide error
+                    updateControllerUiOnBufferingStateV2(true); // Show buffering
+
+                    exoPlayer.stop();
+                    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(requireContext(), Util.getUserAgent(requireContext(), requireContext().getPackageName()));
+                    MediaSource mediaSource = videoUrl.toLowerCase().endsWith(".m3u8") ?
+                            new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(mCurrentPlayingUrl)) :
+                            new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(mCurrentPlayingUrl));
+                    exoPlayer.setMediaSource(mediaSource);
+                    exoPlayer.prepare();
+                    exoPlayer.setPlayWhenReady(true);
                 } else {
-                    Log.d(TV_TAG, "Retry condition not met or retry cancelled.");
-                    mIsRetrying = false; // Garante que o estado de retentativa seja resetado se não for mais necessário
-                    showLoading(false); // Esconde o loading se a retentativa foi cancelada ou não pôde prosseguir
+                    Log.d(TV_TAG, "ExoPlayer v2 retry condition not met or retry cancelled.");
+                    mIsRetrying = false;
+                    updateControllerUiOnBufferingStateV2(false);
                 }
             }
         };
 
-        // Inicializar Handler e Runnables para otimização de buffer
-        mBufferOptimizeHandler = new Handler(Looper.getMainLooper());
-        mCheckBufferingRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (mVideoView != null && mVideoView.getCurrentPlayState() == VideoView.STATE_BUFFERING &&
-                    mBufferingStartTime > 0 && !mIsPausedForBuffering) {
-                    long elapsedBufferingTime = System.currentTimeMillis() - mBufferingStartTime;
-                    if (elapsedBufferingTime >= MAX_BUFFERING_TIME_MS) {
-                        Log.d(TV_TAG, "Max buffering time reached. Pausing to rebuild buffer.");
-                        mIsPausedForBuffering = true;
-                        mVideoView.pause();
-                        showLoadingWithMessage(getString(R.string.optimizing_buffer_message)); // NECESSÁRIO ADICIONAR STRING
-                        mBufferOptimizeHandler.postDelayed(mResumeAfterBufferRebuildRunnable, PAUSE_FOR_BUFFER_REBUILD_MS);
-                    } else {
-                        // Re-agendar a verificação se ainda estiver em buffering e o tempo não esgotou
-                        mBufferOptimizeHandler.postDelayed(this, 1000); // Verificar a cada segundo
-                    }
-                } else {
-                     // Se não estiver mais em buffering ou condições não atendidas, para de verificar.
-                    mBufferingStartTime = 0; // Reseta para evitar re-checagem desnecessária
-                }
-            }
-        };
-
-        mResumeAfterBufferRebuildRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (mIsPausedForBuffering && mVideoView != null) {
-                    Log.d(TV_TAG, "Resuming playback after buffer rebuild pause.");
-                    // Não precisa mais da mensagem "Otimizando...", o player vai para buffering/playing
-                    // showLoadingWithMessage(getString(R.string.resuming_playback_message)); // NECESSÁRIO ADICIONAR STRING
-                    showLoading(true); // Mostrar loading padrão ao tentar resumir
-                    mVideoView.resume(); // Tentar resumir. O player passará por seus estados normais.
-                    mIsPausedForBuffering = false;
-                    // mBufferingStartTime será resetado quando o estado mudar para PLAYING ou PAUSED (não por nós)
-                }
-            }
-        };
+        // Custom buffer optimization logic (mBufferOptimizeHandler, etc.) is removed for ExoPlayer v2.
+        // Rely on ExoPlayer's default buffering mechanisms.
         return root;
     }
 
     @Override
     public void onProgressUpdate(DataManager.LoadState state, int percentage, String message) {
         Log.d(TV_TAG, "DataManager Progress: " + state + " - " + percentage + "% - " + message);
-        if (state == DataManager.LoadState.COMPLETE) {
-            showLoading(false);
-        } else {
-            showLoading(true);
-        }
+        // showLoading() and showLoadingWithMessage() are removed.
+        // UI updates for loading are now handled by PlayerView's controller or specific UI elements if needed.
     }
 
     @Override
@@ -676,57 +515,53 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
     @Override
     public void onChannelClick(Channel channel) {
-        Log.d(TV_TAG, "onChannelClick: " + channel.getName() + " URL: " + channel.getStreamUrl());
-        if (mVideoView == null) {
-            Log.e(TV_TAG, "Player not initialized in onChannelClick");
-            Toast.makeText(getContext(), getString(R.string.player_not_initialized_error), Toast.LENGTH_SHORT).show();
+        Log.d(TV_TAG, "onChannelClick (ExoPlayer v2): " + channel.getName() + " URL: " + channel.getStreamUrl());
+        if (exoPlayer == null || playerView == null) {
+            Log.e(TV_TAG, "ExoPlayer v2 or PlayerView not initialized in onChannelClick");
+            Toast.makeText(getContext(), "ExoPlayer v2 not initialized error", Toast.LENGTH_SHORT).show();
             return;
         }
         if (channel.getStreamUrl() != null && !channel.getStreamUrl().isEmpty()) {
-            mIsSwitchingChannels = true; // Sinaliza o início da troca de canal
-            showLoading(true); // Mostrar loading imediatamente ao clicar
+            mIsSwitchingChannels = true;
+            // showLoading(true); // PlayerView will show its own buffering indicator
 
-            // Cancelar retentativas anteriores
             mRetryHandler.removeCallbacks(mRetryRunnable);
             mIsRetrying = false;
 
-            // Resetar e cancelar lógica de otimização de buffer
-            mBufferingStartTime = 0;
-            mIsPausedForBuffering = false;
-            if (mBufferOptimizeHandler != null) { // Adicionar verificação de nulidade para segurança
-                mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-                mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
-            }
+            // Custom buffer optimization logic is removed for ExoPlayer v2.
 
-            // Atualizar informações do canal atual para retentativas
             mCurrentPlayingUrl = channel.getStreamUrl();
             mCurrentPlayingChannelName = channel.getName();
+            currentChannelStreamId = channel.getStreamId();
+            Log.d(TV_TAG, "Current channel stream ID set for ExoPlayer v2: " + currentChannelStreamId);
 
-            // Extract stream ID from channel for EPG
-            currentChannelStreamId = channel.getStreamId(); // Usar o streamId já disponível no objeto Channel
-            Log.d(TV_TAG, "Current channel stream ID set to: " + currentChannelStreamId);
-
-            // Parar e liberar o player anterior completamente para evitar problemas de estado.
-            mVideoView.release();
-
-            // Definir nova URL e iniciar.
-            mVideoView.setUrl(mCurrentPlayingUrl);
-            mVideoView.start();
-
-            // Atualizar título no controller usando a referência mTitleViewComponent
-            if (mTitleViewComponent != null) {
-                mTitleViewComponent.setTitle(mCurrentPlayingChannelName);
+            exoPlayer.stop(); // Stop any current playback
+            DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(requireContext(), Util.getUserAgent(requireContext(), requireContext().getPackageName()));
+            Uri videoUri = Uri.parse(mCurrentPlayingUrl);
+            MediaSource mediaSource;
+             if (mCurrentPlayingUrl.toLowerCase().endsWith(".m3u8")) {
+                mediaSource = new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(videoUri));
             } else {
-                Log.e(TV_TAG, "mTitleViewComponent is null in onChannelClick. Title not updated.");
+                mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(videoUri));
+            }
+            exoPlayer.setMediaSource(mediaSource);
+            exoPlayer.prepare();
+            exoPlayer.setPlayWhenReady(true);
+
+            TextView titleTextView = playerView.findViewById(R.id.exo_custom_title_v2); // ID from custom_exoplayer2_controls
+            if (titleTextView != null) {
+                titleTextView.setText(mCurrentPlayingChannelName);
+            } else {
+                Log.e(TV_TAG, "exo_custom_title_v2 TextView not found in controller for ExoPlayer v2.");
             }
 
             Toast.makeText(getContext(), getString(R.string.starting_channel_toast, channel.getName()), Toast.LENGTH_SHORT).show();
-            Log.d(TV_TAG, "Playback initiated for: " + mCurrentPlayingChannelName);
+            Log.d(TV_TAG, "ExoPlayer v2 playback initiated for: " + mCurrentPlayingChannelName);
         } else {
-            Log.e(TV_TAG, "Channel stream URL is null or empty for channel: " + channel.getName());
-            mCurrentPlayingUrl = null; // Limpar URL se inválida
+            Log.e(TV_TAG, "Channel stream URL is null or empty for channel (ExoPlayer v2): " + channel.getName());
+            mCurrentPlayingUrl = null;
             mCurrentPlayingChannelName = null;
-            showLoading(false); // Esconder loading se a URL for inválida
+            // showLoading(false); // Hide custom loading if used
             Toast.makeText(getContext(), getString(R.string.invalid_channel_url_error), Toast.LENGTH_SHORT).show();
         }
     }
@@ -736,22 +571,17 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         Log.d(TV_TAG, "loadInitialData called - using DataManager");
         if (!isAdded() || getContext() == null || dataManager == null) {
             Log.w(TV_TAG, "loadInitialData - Fragment not usable or DataManager is null. Aborting.");
-            showLoading(false);
+            // showLoading(false); // If custom loading is used for this phase
             if (getContext() != null && dataManager == null) {
                  Toast.makeText(getContext(), "Error: DataManager not available.", Toast.LENGTH_LONG).show();
             }
             return;
         }
 
-        // Ensure DataManager has finished loading data before attempting to retrieve it
-        // This is a simplified check; a more robust solution would involve DataManagerListener
-        // or observing LiveData if using Architecture Components.
         if (dataManager.getLiveStreams() == null || dataManager.getLiveCategories() == null) {
             Log.d(TV_TAG, "DataManager has not finished loading data. Waiting...");
-            // If data is not yet loaded, ensure DataManager starts loading it.
-            // The onDataLoaded callback will then update the UI.
             dataManager.startDataLoading();
-            showLoading(true);
+            // showLoading(true); // If custom loading is used for this phase
             return;
         }
 
@@ -796,9 +626,9 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         // EPG tab is now handled by loadEpgForChannel which uses DataManager's XmltvEpgService
         // No need to update epgAdapter here directly with global EPG
 
-        if (mChannelGridView != null) {
-            mChannelGridView.setChannelsData(allChannels, mFetchedCategoryMap);
-        }
+        // if (mChannelGridView != null) { // ChannelGridView was a dkplayer component.
+        //     mChannelGridView.setChannelsData(allChannels, mFetchedCategoryMap);
+        // }
 
         // Start continuous EPG updates from DataManager
         if (dataManager.getXmltvEpgService() != null && allChannels != null && !allChannels.isEmpty()) {
@@ -817,10 +647,124 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             });
         }
 
-        showLoading(false);
+        // showLoading(false); // If custom loading for this phase
     }
 
-    
+    private void setupControllerClickListenersV2() { // Renamed for v2
+        if (playerView == null) return;
+
+        ImageButton controllerBackButton = playerView.findViewById(R.id.exo_custom_back_button_v2);
+        if (controllerBackButton != null) {
+            controllerBackButton.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                     // TODO: Add actual fullscreen exit logic if custom fullscreen is implemented
+                    getActivity().onBackPressed();
+                }
+            });
+        }
+
+        Button controllerRetryButton = playerView.findViewById(R.id.exo_custom_retry_button_v2);
+        if (controllerRetryButton != null) {
+            controllerRetryButton.setOnClickListener(v -> {
+                updateControllerUiOnErrorStateV2(null); // Hide error
+                updateControllerUiOnBufferingStateV2(true); // Show buffering
+
+                if (exoPlayer != null && mCurrentPlayingUrl != null) {
+                    exoPlayer.stop();
+                    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(requireContext(), Util.getUserAgent(requireContext(), requireContext().getPackageName()));
+                    MediaSource mediaSource = mCurrentPlayingUrl.toLowerCase().endsWith(".m3u8") ?
+                            new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(mCurrentPlayingUrl)) :
+                            new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(mCurrentPlayingUrl));
+                    exoPlayer.setMediaSource(mediaSource);
+                    exoPlayer.prepare();
+                    exoPlayer.setPlayWhenReady(true);
+                } else {
+                     updateControllerUiOnBufferingStateV2(false);
+                     Toast.makeText(getContext(), "No stream to retry.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        ImageButton controllerReplayButton = playerView.findViewById(R.id.exo_custom_replay_button_v2);
+        if (controllerReplayButton != null) {
+            controllerReplayButton.setOnClickListener(v -> {
+                if (exoPlayer != null) {
+                    exoPlayer.seekTo(0);
+                    exoPlayer.setPlayWhenReady(true);
+                    controllerReplayButton.setVisibility(View.GONE);
+                }
+            });
+        }
+
+        ImageButton controllerPlayPauseBottom = playerView.findViewById(R.id.exo_play_pause_bottom_v2);
+        if (controllerPlayPauseBottom != null) {
+            controllerPlayPauseBottom.setOnClickListener(v -> {
+                if (exoPlayer != null) {
+                    exoPlayer.setPlayWhenReady(!exoPlayer.getPlayWhenReady());
+                }
+            });
+        }
+
+        ImageButton controllerSpeedButton = playerView.findViewById(R.id.exo_custom_speed_button_v2);
+        if (controllerSpeedButton != null) {
+            controllerSpeedButton.setOnClickListener(v -> {
+                 if (getContext() != null) {
+                    new XPopup.Builder(getContext())
+                            .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right)
+                            .asCustom(new CustomDrawerPopupView(getContext()))
+                            .show();
+                }
+            });
+        }
+
+        ImageButton controllerProportionButton = playerView.findViewById(R.id.exo_custom_proportion_button_v2);
+        if (controllerProportionButton != null) {
+            controllerProportionButton.setOnClickListener(v -> {
+                if (getContext() != null) {
+                     new XPopup.Builder(getContext())
+                            .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right)
+                            .asCustom(new CustomDrawerPopupView1(getContext()))
+                            .show();
+                }
+            });
+        }
+
+        ImageButton controllerRefreshButton = playerView.findViewById(R.id.exo_custom_refresh_button_v2);
+        if (controllerRefreshButton != null) {
+            controllerRefreshButton.setOnClickListener(v -> {
+                 Toast.makeText(getContext(), "Refresh clicked (ExoPlayer v2)", Toast.LENGTH_SHORT).show();
+                 if (exoPlayer != null && mCurrentPlayingUrl != null) {
+                     exoPlayer.stop();
+                    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(requireContext(), Util.getUserAgent(requireContext(), requireContext().getPackageName()));
+                    MediaSource mediaSource = mCurrentPlayingUrl.toLowerCase().endsWith(".m3u8") ?
+                            new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(mCurrentPlayingUrl)) :
+                            new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(mCurrentPlayingUrl));
+                    exoPlayer.setMediaSource(mediaSource);
+                    exoPlayer.prepare();
+                    exoPlayer.setPlayWhenReady(true);
+                 }
+            });
+        }
+
+        ImageButton controllerChannelGridToggleButton = playerView.findViewById(R.id.exo_custom_channel_grid_toggle_button_v2);
+        if (controllerChannelGridToggleButton != null) {
+            controllerChannelGridToggleButton.setOnClickListener(v -> {
+                 Toast.makeText(getContext(), "Channel Grid Toggle Clicked (ExoPlayer v2)", Toast.LENGTH_SHORT).show();
+                 // ChannelGridView dkplayer component was removed. This button's new action needs definition.
+            });
+        }
+
+        ImageButton fullscreenButton = playerView.findViewById(R.id.exo_fullscreen); // Standard ID
+        if (fullscreenButton != null) {
+            // ExoPlayer v2's StyledPlayerControlView usually handles fullscreen toggle itself
+            // by calling an internal FullscreenCallback. If custom logic is needed (e.g. orientation),
+            // it would be more involved. For now, rely on its default or simple Toast.
+            fullscreenButton.setOnClickListener(v -> {
+                Toast.makeText(getContext(), "Fullscreen toggled (ExoPlayer v2 default behavior)", Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
 
     private void filterChannelsByCategory(String categoryId) {
         List<Channel> filteredChannels = new ArrayList<>();
@@ -852,49 +796,23 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
 
-    private void showLoading(boolean isLoading) {
-        if (!isAdded() || getView() == null) return; // Check if view is available
+    // private void showLoading(boolean isLoading) { // REMOVED - PlayerView handles its own indicator
+    // }
 
-        if (playerProgressBar != null) {
-            playerProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        }
-        if (playerLoadingTextView != null) {
-            playerLoadingTextView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-            if (!isLoading) { // Limpar texto se não estiver carregando
-                playerLoadingTextView.setText("");
-            }
-        }
-    }
+    // private void showLoadingWithMessage(String message) { // REMOVED
+    // }
 
-    private void showLoadingWithMessage(String message) {
-        if (!isAdded() || getView() == null) return;
-
-        if (playerProgressBar != null) {
-            playerProgressBar.setVisibility(View.VISIBLE);
-        }
-        if (playerLoadingTextView != null) {
-            playerLoadingTextView.setVisibility(View.VISIBLE);
-            playerLoadingTextView.setText(message);
-            Log.d(TV_TAG, "showLoadingWithMessage: " + message);
-        }
-    }
-
-    // Helper para converter estado do player em string para logs
-    private String playStateToString(int playState) {
+    // Helper para converter estado do player em string para logs (ExoPlayer v2 version)
+    private String exoPlayStateToStringV2(int playState) {
         switch (playState) {
-            case VideoView.STATE_ERROR: return "STATE_ERROR";
-            case VideoView.STATE_IDLE: return "STATE_IDLE";
-            case VideoView.STATE_PREPARING: return "STATE_PREPARING";
-            case VideoView.STATE_PREPARED: return "STATE_PREPARED";
-            case VideoView.STATE_PLAYING: return "STATE_PLAYING";
-            case VideoView.STATE_PAUSED: return "STATE_PAUSED";
-            case VideoView.STATE_PLAYBACK_COMPLETED: return "STATE_PLAYBACK_COMPLETED";
-            case VideoView.STATE_BUFFERING: return "STATE_BUFFERING";
-            case VideoView.STATE_BUFFERED: return "STATE_BUFFERED";
-            case VideoView.STATE_START_ABORT: return "STATE_START_ABORT";
+            case Player.STATE_IDLE: return "STATE_IDLE";
+            case Player.STATE_BUFFERING: return "STATE_BUFFERING";
+            case Player.STATE_READY: return "STATE_READY";
+            case Player.STATE_ENDED: return "STATE_ENDED";
             default: return "STATE_UNKNOWN (" + playState + ")";
         }
     }
+    // Original playStateToString for dkplayer is removed.
 
     public void parseM3uFile(String filePath) {
         executor.execute(() -> {
@@ -936,18 +854,20 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
         }
         mIsRetrying = false;
 
-        if (mBufferOptimizeHandler != null) {
-            mBufferOptimizeHandler.removeCallbacks(mCheckBufferingRunnable);
-            mBufferOptimizeHandler.removeCallbacks(mResumeAfterBufferRebuildRunnable);
-        }
-        mBufferingStartTime = 0;
-        mIsPausedForBuffering = false;
+        // Custom buffer optimization logic for dkplayer is removed.
+        // if (mBufferOptimizeHandler != null) { ... }
+        // mBufferingStartTime = 0;
+        // mIsPausedForBuffering = false;
 
-        if (mVideoView != null) {
-            mVideoView.release();
+        if (exoPlayer != null) {
+            exoPlayer.release();
+            exoPlayer = null;
+        }
+        if (playerView != null) {
+            playerView.setPlayer(null);
         }
         if (dataManager != null) {
-            dataManager.setListener(null); // Remove listener to prevent leaks
+            dataManager.setListener(null);
         }
    }
 
@@ -1029,69 +949,56 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
             findViewById(R.id.cardview1).setOnClickListener(new OnClickListener() {
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setSpeed(0.75f);
-                    speed = "0.75";
-                    txt1.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+            public void onClick(View v1) {
+                if (exoPlayer != null) exoPlayer.setPlaybackParameters(new PlaybackParameters(0.75f));
+                updateSpeedPopupSelectionV2(txt1, txt2, txt3, txt4, txt5);
+                dismiss();
                 }
             });
 
             findViewById(R.id.cardview2).setOnClickListener(new OnClickListener() {
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setSpeed(1.0f);
-                    speed = "1.0";
-                    txt2.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+            public void onClick(View v1) {
+                if (exoPlayer != null) exoPlayer.setPlaybackParameters(new PlaybackParameters(1.0f));
+                updateSpeedPopupSelectionV2(txt2, txt1, txt3, txt4, txt5);
+                dismiss();
                 }
             });
 
             findViewById(R.id.cardview3).setOnClickListener(new OnClickListener() {
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setSpeed(1.25f);
-                    speed = "1.25";
-                    txt3.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+            public void onClick(View v1) {
+                if (exoPlayer != null) exoPlayer.setPlaybackParameters(new PlaybackParameters(1.25f));
+                updateSpeedPopupSelectionV2(txt3, txt1, txt2, txt4, txt5);
+                dismiss();
                 }
             });
 
             findViewById(R.id.cardview4).setOnClickListener(new OnClickListener() {
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setSpeed(1.5f);
-                    speed = "1.5";
-                    txt4.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+            public void onClick(View v1) {
+                if (exoPlayer != null) exoPlayer.setPlaybackParameters(new PlaybackParameters(1.5f));
+                updateSpeedPopupSelectionV2(txt4, txt1, txt2, txt3, txt5);
+                dismiss();
                 }
             });
 
             findViewById(R.id.cardview5).setOnClickListener(new OnClickListener() {
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setSpeed(2.0f);
-                    speed = "2.0";
-                    txt5.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
+            public void onClick(View v1) {
+                if (exoPlayer != null) exoPlayer.setPlaybackParameters(new PlaybackParameters(2.0f));
+                updateSpeedPopupSelectionV2(txt5, txt1, txt2, txt3, txt4);
+                dismiss();
                 }
             });
         }
+
+    private void updateSpeedPopupSelectionV2(TextView selected, TextView... others) {
+        selected.setTextColor(Color.parseColor("#FF39C5BC"));
+        for (TextView other : others) {
+            other.setTextColor(Color.parseColor("#ffffff"));
+        }
+    }
     }
 
     public class CustomDrawerPopupView1 extends com.lxj.xpopup.core.DrawerPopupView {
@@ -1112,94 +1019,71 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             final TextView txt4 = (TextView) findViewById(R.id.textview4);
             final TextView txt5 = (TextView) findViewById(R.id.textview5);
 
-            if (proportion.equals("默认")) {
-                txt1.setTextColor(Color.parseColor("#FF39C5BC"));
-            }
-            if (proportion.equals("16:9")) {
-                txt2.setTextColor(Color.parseColor("#FF39C5BC"));
-            }
-            if (proportion.equals("原始大小")) {
-                txt3.setTextColor(Color.parseColor("#FF39C5BC"));
-            }
-            if (proportion.equals("填充")) {
-                txt4.setTextColor(Color.parseColor("#FF39C5BC"));
-            }
-            if (proportion.equals("居中裁剪")) {
-                txt5.setTextColor(Color.parseColor("#FF39C5BC"));
+            if (playerView != null) {
+                int currentMode = playerView.getResizeMode();
+                updateProportionPopupSelectionVisualsV2(currentMode, txt1, txt2, txt3, txt4, txt5);
             }
 
-            findViewById(R.id.cardview1).setOnClickListener(new OnClickListener() {
+            findViewById(R.id.cardview1).setOnClickListener(new OnClickListener() { // Default
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setScreenScaleType(VideoView.SCREEN_SCALE_DEFAULT);
-                    proportion = "默认";
-                    txt1.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+                public void onClick(View v1) {
+                    if (playerView != null) playerView.setResizeMode(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT);
+                    updateProportionPopupSelectionVisualsV2(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT, txt1, txt2, txt3, txt4, txt5);
+                    dismiss();
                 }
             });
 
-            findViewById(R.id.cardview2).setOnClickListener(new OnClickListener() {
+            findViewById(R.id.cardview2).setOnClickListener(new OnClickListener() { // 16:9 -> Fixed Width
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setScreenScaleType(VideoView.SCREEN_SCALE_16_9);
-                    proportion = "16:9";
-                    txt2.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+                public void onClick(View v1) {
+                    if (playerView != null) playerView.setResizeMode(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH);
+                    updateProportionPopupSelectionVisualsV2(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH, txt1, txt2, txt3, txt4, txt5);
+                    dismiss();
                 }
             });
 
-            findViewById(R.id.cardview3).setOnClickListener(new OnClickListener() {
+            findViewById(R.id.cardview3).setOnClickListener(new OnClickListener() { // Original -> FIT
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setScreenScaleType(VideoView.SCREEN_SCALE_ORIGINAL);
-                    proportion = "原始大小";
-                    txt3.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+                public void onClick(View v1) {
+                    if (playerView != null) playerView.setResizeMode(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT);
+                    updateProportionPopupSelectionVisualsV2(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT, txt1, txt2, txt3, txt4, txt5);
+                    dismiss();
                 }
             });
 
-            findViewById(R.id.cardview4).setOnClickListener(new OnClickListener() {
+            findViewById(R.id.cardview4).setOnClickListener(new OnClickListener() { // Fill
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setScreenScaleType(VideoView.SCREEN_SCALE_MATCH_PARENT);
-                    proportion = "填充";
-                    txt4.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
-                    txt5.setTextColor(Color.parseColor("#ffffff"));
+                public void onClick(View v1) {
+                    if (playerView != null) playerView.setResizeMode(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL);
+                    updateProportionPopupSelectionVisualsV2(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL, txt1, txt2, txt3, txt4, txt5);
+                    dismiss();
                 }
             });
 
-            findViewById(R.id.cardview5).setOnClickListener(new OnClickListener() {
+            findViewById(R.id.cardview5).setOnClickListener(new OnClickListener() { // Center Crop -> Zoom
                 @Override
-                public void onClick(View v) {
-                    mVideoView.setScreenScaleType(VideoView.SCREEN_SCALE_CENTER_CROP);
-                    proportion = "居中裁剪";
-                    txt5.setTextColor(Color.parseColor("#FF39C5BC"));
-                    txt2.setTextColor(Color.parseColor("#ffffff"));
-                    txt3.setTextColor(Color.parseColor("#ffffff"));
-                    txt4.setTextColor(Color.parseColor("#ffffff"));
-                    txt1.setTextColor(Color.parseColor("#ffffff"));
+                public void onClick(View v1) {
+                    if (playerView != null) playerView.setResizeMode(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
+                    updateProportionPopupSelectionVisualsV2(com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM, txt1, txt2, txt3, txt4, txt5);
+                    dismiss();
                 }
             });
+        }
+
+        private void updateProportionPopupSelectionVisualsV2(int currentMode, TextView txt1, TextView txt2, TextView txt3, TextView txt4, TextView txt5) {
+            txt1.setTextColor(Color.parseColor(currentMode == com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT ? "#FF39C5BC" : "#ffffff"));
+            txt2.setTextColor(Color.parseColor(currentMode == com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH ? "#FF39C5BC" : "#ffffff"));
+            txt3.setTextColor(Color.parseColor(currentMode == com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT ? "#FF39C5BC" : "#ffffff")); // Assuming "Original" maps to FIT
+            txt4.setTextColor(Color.parseColor(currentMode == com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL ? "#FF39C5BC" : "#ffffff"));
+            txt5.setTextColor(Color.parseColor(currentMode == com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM ? "#FF39C5BC" : "#ffffff"));
         }
     }
 
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        if (mVideoView != null) {
-            
+        if (playerView != null) {
+            // ExoPlayer v2 PlayerView typically handles this.
         }
         if (getActivity() != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (newConfig.smallestScreenWidthDp >= 600) { // Example: Check for tablet layout
@@ -1218,20 +1102,28 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TV_TAG, "onPause called");
-        // Não cancelar retentativas aqui, pois o PiP pode estar ativo ou o usuário pode voltar logo.
-        // Apenas pausar o vídeo.
-        if (mVideoView != null) {
-            mVideoView.pause();
+        Log.d(TV_TAG, "onPause called (ExoPlayer v2)");
+        if (playerView != null && Util.SDK_INT <= 23) { // For API <= 23, release resources in onPause
+             releasePlayerV2();
+        } else if (exoPlayer != null) {
+            exoPlayer.setPlayWhenReady(false); // For API > 23, just pause
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(TV_TAG, "onResume called");
-        if (mVideoView != null) {
-            mVideoView.resume();
+        Log.d(TV_TAG, "onResume called (ExoPlayer v2)");
+        if (playerView != null && (Util.SDK_INT <= 23 || exoPlayer == null)) {
+            // For API <=23 or if player is null (e.g. after onStop), initialize player here
+            // This might need a check if videoUrl is available if initialization depends on it
+            // For now, assuming initializePlayerV2 handles null checks or is called appropriately
+            initializePlayerV2();
+        }
+        if (exoPlayer != null) {
+             if (exoPlayer.getPlaybackState() != Player.STATE_IDLE && exoPlayer.getPlaybackState() != Player.STATE_ENDED) {
+                 exoPlayer.setPlayWhenReady(true);
+             }
         }
         // Always attempt to load initial data when fragment resumes
         if (dataManager != null) {
@@ -1249,37 +1141,136 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     }
 
     public boolean onBackPressed() {
-        Log.d(TAG_BACK_TV, "onBackPressed called in TvFragment.");
-        if (mVideoView != null && mVideoView.isFullScreen()) {
-            Log.d(TAG_BACK_TV, "Player is fullscreen. Calling stopFullScreen().");
-            mVideoView.stopFullScreen(); // Tenta sair da tela cheia explicitamente
-            if (getActivity() != null) {
-                Log.d(TAG_BACK_TV, "Restoring portrait orientation after exiting fullscreen.");
-                getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            }
-            return true; // Evento consumido, pois saímos da tela cheia
-        }
-        // Se não estava em tela cheia, ou se stopFullScreen() não foi chamado,
-        // deixa o VideoView tentar lidar com outros casos (como player flutuante).
-        if (mVideoView != null && mVideoView.onBackPressed()) {
-            Log.d(TAG_BACK_TV, "mVideoView.onBackPressed() handled the event (e.g., closing channel grid).");
-            return true; // Evento consumido pelo VideoView (ex: fechou a grade de canais)
-        }
-
-        Log.d(TAG_BACK_TV, "Back press not handled by TvFragment (player not fullscreen, or VideoView did not handle). Returning false.");
-        return false; // Evento não consumido, MainActivity prosseguirá
+        Log.d(TAG_BACK_TV, "onBackPressed called in TvFragment (ExoPlayer v2).");
+        // Fullscreen logic for ExoPlayer v2 needs careful implementation if custom behavior beyond
+        // what PlayerControlView offers is needed.
+        // For now, returning false to let activity handle it.
+        Log.d(TAG_BACK_TV, "Back press not explicitly handled by TvFragment (ExoPlayer v2). Returning false.");
+        return false;
     }
 
-    // Implementação do listener do LiveControlView para o botão de proporção
+    // This interface implementation was for dkplayer's LiveControlView.
+    // The proportion button is now part of custom_exoplayer2_controls.xml.
+    // Its click listener is set up in setupControllerClickListenersV2.
     @Override
     public void onProportionButtonClick() {
-        if (getContext() != null && mVideoView != null) { // Verificar contexto e VideoView
+        if (getContext() != null && playerView != null) {
             new XPopup.Builder(getContext())
-                    .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right) // Ou outra posição desejada
-                    .asCustom(new CustomDrawerPopupView1(getContext())) // Reutilizar o popup de proporção existente
+                    .popupPosition(com.lxj.xpopup.enums.PopupPosition.Right)
+                    .asCustom(new CustomDrawerPopupView1(getContext()))
                     .show();
         }
     }
+
+    // +++ ExoPlayer v2 Helper Methods for UI and Lifecycle +++
+    private void initializePlayerV2() {
+        if (exoPlayer == null && getContext() != null) {
+            exoPlayer = new SimpleExoPlayer.Builder(requireContext()).build();
+            playerView.setPlayer(exoPlayer);
+            // Listener and other setup done in onCreateView or when URL is available
+        }
+        // If mCurrentPlayingUrl is set, you might want to auto-play it here
+        // or ensure onChannelClick is called if a channel should be active.
+    }
+
+    private void releasePlayerV2() {
+        if (exoPlayer != null) {
+            exoPlayer.release();
+            exoPlayer = null;
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (Util.SDK_INT > 23) {
+            initializePlayerV2();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (Util.SDK_INT > 23) {
+            releasePlayerV2();
+        }
+    }
+
+
+    private void updatePlayPauseButtonsV2(boolean isPlaying) {
+        if (playerView == null) return;
+        ImageButton playButton = playerView.findViewById(R.id.exo_play);
+        ImageButton pauseButton = playerView.findViewById(R.id.exo_pause);
+        ImageButton playPauseBottom = playerView.findViewById(R.id.exo_play_pause_bottom_v2);
+
+        if (playButton != null) playButton.setVisibility(isPlaying ? View.GONE : View.VISIBLE);
+        if (pauseButton != null) pauseButton.setVisibility(isPlaying ? View.VISIBLE : View.GONE);
+        if (playPauseBottom != null) {
+            playPauseBottom.setImageResource(isPlaying ? R.drawable.dkplayer_ic_action_pause : R.drawable.dkplayer_ic_action_play_arrow);
+            // Content description for v2 is usually handled by StyledPlayerControlView
+        }
+    }
+
+    private void updateControllerUiOnErrorStateV2(ExoPlaybackException error) {
+        if (playerView == null) return;
+        View loadingIndicator = playerView.findViewById(R.id.exo_buffering);
+        View errorViewFromController = playerView.findViewById(R.id.exo_custom_error_view_v2);
+        TextView errorMessageTextView = playerView.findViewById(R.id.exo_custom_error_message_v2);
+        Button ctrlRetryButton = playerView.findViewById(R.id.exo_custom_retry_button_v2);
+
+        if (loadingIndicator != null) loadingIndicator.setVisibility(View.GONE);
+
+        if (error != null) {
+            if (errorViewFromController != null) errorViewFromController.setVisibility(View.VISIBLE);
+            if (errorMessageTextView != null) errorMessageTextView.setText(error.getLocalizedMessage() != null ? error.getLocalizedMessage() : "An unknown error occurred.");
+            if (ctrlRetryButton != null) ctrlRetryButton.setEnabled(true);
+            playerView.hideController();
+        } else {
+            if (errorViewFromController != null) errorViewFromController.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateControllerUiOnEndedStateV2(boolean hasEnded) {
+        if (playerView == null) return;
+        View ctrlReplayButton = playerView.findViewById(R.id.exo_custom_replay_button_v2);
+        if (ctrlReplayButton != null) {
+            ctrlReplayButton.setVisibility(hasEnded ? View.VISIBLE : View.GONE);
+        }
+        if (hasEnded) {
+            playerView.showController();
+        }
+    }
+
+    private void updateControllerUiOnBufferingStateV2(boolean isBuffering) {
+        if (playerView == null) return;
+        View loadingIndicator = playerView.findViewById(R.id.exo_buffering);
+        View errorViewFromController = playerView.findViewById(R.id.exo_custom_error_view_v2);
+        View ctrlReplayButton = playerView.findViewById(R.id.exo_custom_replay_button_v2);
+
+        if (loadingIndicator != null) loadingIndicator.setVisibility(isBuffering ? View.VISIBLE : View.GONE);
+        if (isBuffering) {
+            if (errorViewFromController != null) errorViewFromController.setVisibility(View.GONE);
+            if (ctrlReplayButton != null) ctrlReplayButton.setVisibility(View.GONE);
+        }
+    }
+
+    private void updatePiPIfNeededV2(int playbackState, boolean isPlaying) {
+        if (getActivity() == null || !getActivity().isInPictureInPictureMode()) {
+            return;
+        }
+        // PiP actions for ExoPlayer v2 (same logic as before, just ensure it's called correctly)
+        if (playbackState == Player.STATE_ENDED) {
+            updatePictureInPictureActions(
+                    R.drawable.dkplayer_ic_action_replay, getString(R.string.pip_action_replay), CONTROL_TYPE_REPLAY, REQUEST_REPLAY);
+        } else if (isPlaying) {
+            updatePictureInPictureActions(
+                    R.drawable.dkplayer_ic_action_pause, getString(R.string.pip_action_pause), CONTROL_TYPE_PAUSE, REQUEST_PAUSE);
+        } else {
+            updatePictureInPictureActions(
+                    R.drawable.dkplayer_ic_action_play_arrow, getString(R.string.pip_action_play), CONTROL_TYPE_PLAY, REQUEST_PLAY);
+        }
+    }
+    // --- End ExoPlayer v2 Helper Methods ---
 }
 
 

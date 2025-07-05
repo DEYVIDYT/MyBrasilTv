@@ -4,20 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#80000000"> <!-- Semi-transparent background like default ExoPlayer controls -->
+    android:background="#80000000"> <!-- Semi-transparent background -->
 
-    <!-- Top Bar: Title -->
+    <!-- Top Bar: Title and Back Button -->
     <LinearLayout
-        android:id="@+id/top_bar_container"
+        android:id="@+id/top_bar_container_v2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
         android:orientation="horizontal"
         android:padding="8dp"
-        android:background="@drawable/dkplayer_shape_standard_controller_top_bg"> <!-- Reusing existing drawable -->
+        android:background="@drawable/dkplayer_shape_standard_controller_top_bg">
 
-        <ImageView
-            android:id="@+id/exo_back_button"
+        <ImageButton
+            android:id="@+id/exo_custom_back_button_v2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/dkplayer_ic_action_arrow_back"
@@ -27,7 +27,7 @@
             android:contentDescription="@string/dkplayer_back" />
 
         <TextView
-            android:id="@+id/exo_custom_title"
+            android:id="@+id/exo_custom_title_v2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -45,6 +45,9 @@
         android:orientation="horizontal"
         android:padding="16dp">
 
+        <!-- ExoPlayer v2 StyledPlayerControlView typically uses a single play/pause button -->
+        <!-- and manages its icon state. Or separate exo_play and exo_pause. -->
+        <!-- For simplicity, let's use separate ones to match VideoPlayerActivity's previous logic if needed -->
         <ImageButton
             android:id="@id/exo_play"
             style="@style/ExoMediaButton.Play"
@@ -68,7 +71,7 @@
             tools:visibility="visible"/>
 
         <ImageButton
-            android:id="@+id/exo_custom_replay_button"
+            android:id="@+id/exo_custom_replay_button_v2"
             style="@style/ExoMediaButton"
             android:layout_width="80dp"
             android:layout_height="80dp"
@@ -77,9 +80,7 @@
             android:background="@drawable/dkplayer_shape_play_bg"
             android:contentDescription="@string/dkplayer_replay"
             android:visibility="gone" />
-
     </LinearLayout>
-
 
     <!-- Loading Indicator -->
     <ProgressBar
@@ -93,7 +94,7 @@
 
     <!-- Error View -->
     <LinearLayout
-        android:id="@+id/exo_custom_error_view"
+        android:id="@+id/exo_custom_error_view_v2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
@@ -105,7 +106,7 @@
         tools:visibility="visible">
 
         <TextView
-            android:id="@+id/exo_custom_error_message"
+            android:id="@+id/exo_custom_error_message_v2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="?attr/colorError"
@@ -114,7 +115,7 @@
             android:layout_marginBottom="16dp"/>
 
         <Button
-            android:id="@+id/exo_custom_retry_button"
+            android:id="@+id/exo_custom_retry_button_v2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/dkplayer_retry"
@@ -122,10 +123,9 @@
             android:backgroundTint="?attr/colorError" />
     </LinearLayout>
 
-
     <!-- Bottom Controls -->
     <LinearLayout
-        android:id="@+id/bottom_bar_container"
+        android:id="@+id/bottom_bar_container_v2"
         android:layout_width="match_parent"
         android:layout_height="@dimen/dkplayer_controller_height"
         android:layout_gravity="bottom"
@@ -133,22 +133,17 @@
         android:gravity="center_vertical"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
-        android:background="@drawable/dkplayer_shape_stardard_controller_bottom_bg"> <!-- Reusing existing drawable -->
+        android:background="@drawable/dkplayer_shape_stardard_controller_bottom_bg">
 
-        <!-- Play/Pause button (small one for bottom bar) -->
-        <!-- Using standard exo_play and exo_pause will make PlayerView manage their visibility -->
-        <!-- We might need to remove the larger central ones if we use these, or ensure they are correctly hidden when controls are visible -->
         <ImageButton
-            android:id="@+id/exo_play_pause_bottom"
+            android:id="@+id/exo_play_pause_bottom_v2"
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/dkplayer_selector_play_button"
             app:tint="?attr/colorOnSurface"
-            android:visibility="gone" /> <!-- Visibility managed by code based on VOD/Live -->
+            android:visibility="gone" />
 
-
-        <!-- VOD Controls (Time and Seekbar) -->
         <TextView
             android:id="@id/exo_position"
             android:layout_width="wrap_content"
@@ -159,7 +154,7 @@
             android:paddingEnd="4dp"
             tools:text="00:00"/>
 
-        <androidx.media3.ui.DefaultTimeBar
+        <com.google.android.exoplayer2.ui.DefaultTimeBar
             android:id="@id/exo_progress"
             android:layout_width="0dp"
             android:layout_height="26dp"
@@ -181,9 +176,8 @@
             android:paddingEnd="4dp"
             tools:text="00:00"/>
 
-        <!-- Live Controls (Refresh, Channel Grid) - visibility toggled programmatically -->
         <ImageButton
-            android:id="@+id/exo_custom_refresh_button"
+            android:id="@+id/exo_custom_refresh_button_v2"
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:src="@drawable/dkplayer_ic_action_autorenew"
@@ -194,7 +188,7 @@
             android:visibility="gone" />
 
         <ImageButton
-            android:id="@+id/exo_custom_channel_grid_toggle_button"
+            android:id="@+id/exo_custom_channel_grid_toggle_button_v2"
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:src="@drawable/ic_menu"
@@ -204,9 +198,8 @@
             android:contentDescription="Toggle Channel Grid"
             android:visibility="gone" />
 
-        <!-- Common Controls (Proportion, Speed, Fullscreen) -->
         <ImageButton
-            android:id="@+id/exo_custom_proportion_button"
+            android:id="@+id/exo_custom_proportion_button_v2"
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:src="@drawable/dkplayer_ic_action_portion"
@@ -216,7 +209,7 @@
             android:contentDescription="Aspect Ratio"/>
 
         <ImageButton
-            android:id="@+id/exo_custom_speed_button"
+            android:id="@+id/exo_custom_speed_button_v2"
             android:layout_width="@dimen/dkplayer_controller_height"
             android:layout_height="@dimen/dkplayer_controller_height"
             android:src="@drawable/dkplayer_ic_action_speed"
@@ -232,11 +225,5 @@
             android:layout_height="@dimen/dkplayer_controller_height"
             android:padding="@dimen/dkplayer_controller_icon_padding"
             app:tint="?attr/colorOnSurface" />
-
     </LinearLayout>
-
-    <!-- Bottom ProgressBar (thin one, visible when controls are hidden) -->
-    <!-- ExoPlayer's DefaultTimeBar if used outside the main controls might serve this, or a simple ProgressBar -->
-    <!-- For now, relying on the main TimeBar. Can add a separate thin one if needed. -->
-
 </FrameLayout>
