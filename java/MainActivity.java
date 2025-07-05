@@ -86,25 +86,42 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // setContentView will be called in initializeApp or showLayoutChooserDialog
+        // setContentView will be called in initializeApp
 
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        boolean layoutChosen = prefs.getBoolean(KEY_LAYOUT_CHOSEN, false);
+        // DeviceTypeActivity é a entrada e já define o tipo de dispositivo para "mobile"
+        // em "device_type_prefs".
+        // MainActivity precisa respeitar isso e configurar suas próprias preferências
+        // ("AppPrefs") se for a primeira vez.
 
-        if (!layoutChosen) {
-            showLayoutChooserDialog();
-        } else {
-            // Layout já escolhido, prosseguir com a inicialização normal
-            initializeApp();
+        SharedPreferences appPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean mainActivityLayoutChosen = appPrefs.getBoolean(KEY_LAYOUT_CHOSEN, false);
+
+        if (!mainActivityLayoutChosen) {
+            // É a primeira vez que MainActivity está configurando o layout.
+            // Leia o tipo de dispositivo definido por DeviceTypeActivity (que é sempre "mobile" agora)
+            String deviceTypeFromInitialActivity = DeviceTypeActivity.getDeviceType(this); // Retorna "mobile"
+
+            // Converta para o formato que MainActivity espera ("Mobile" ou "TV")
+            String layoutToSet = DeviceTypeActivity.DEVICE_TYPE_MOBILE.equalsIgnoreCase(deviceTypeFromInitialActivity) ? LAYOUT_MOBILE : LAYOUT_TV;
+
+            saveLayoutPreference(layoutToSet); // Salva em "AppPrefs" e define KEY_LAYOUT_CHOSEN = true
+            Log.d("MainActivity", "Layout não escolhido anteriormente em AppPrefs. Definindo para: " + layoutToSet + " baseado na DeviceTypeActivity.");
         }
+
+        // Agora KEY_LAYOUT_CHOSEN em AppPrefs será true, e KEY_SELECTED_LAYOUT terá o valor correto.
+        initializeApp();
     }
 
+    // O método showLayoutChooserDialog() não é mais chamado, mas pode ser mantido se houver planos futuros de reintroduzi-lo.
+    // Por enquanto, para garantir que não seja usado, podemos comentá-lo ou remover.
+    // Vamos remover para limpeza, já que a tarefa é ocultá-lo permanentemente.
+    /*
     private void showLayoutChooserDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         LayoutInflater inflater = this.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_layout_chooser, null);
         builder.setView(dialogView);
-        builder.setCancelable(false); // Impede o usuário de fechar o diálogo sem escolher
+        builder.setCancelable(false);
 
         AlertDialog dialog = builder.create();
 
@@ -125,6 +142,7 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
     }
+    */
 
     private void saveLayoutPreference(String layoutType) {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);

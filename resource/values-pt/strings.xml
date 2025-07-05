@@ -11,7 +11,7 @@
     <string name="dkplayer_wifi_tip">Você está usando a rede móvel, continuar a reprodução consumirá dados</string>
 
     <!-- Strings da Aplicação -->
-    <string name="app_name">IPTV Player</string>
+    <string name="app_name">MyBrasilTv</string>
     <string name="title_vod">VOD</string>
     <string name="title_tv">TV Ao Vivo</string>
     <string name="title_profile">Perfil</string>
