@@ -7,4 +7,5 @@
     <string name="dkplayer_retry">  Retry  </string>
     <string name="dkplayer_continue_play">Continue playing</string>
     <string name="dkplayer_wifi_tip">You are currently using the mobile network, and continuing to play will consume traffic</string>
+    <string name="dkplayer_back">Back</string>
 </resources>

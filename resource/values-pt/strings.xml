@@ -103,4 +103,5 @@
     <string name="profile_update_list_error">Erro ao atualizar lista.</string>
     <string name="profile_updating_list">Atualizando lista...</string>
     <string name="profile_opening_repository">Abrindo repositório...</string>
+    <string name="dkplayer_back">Voltar</string>
 </resources>

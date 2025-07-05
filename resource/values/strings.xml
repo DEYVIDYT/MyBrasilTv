@@ -119,5 +119,6 @@
     <string name="profile_open_telegram_button">Abrir Grupo Telegram</string>
     <string name="profile_copy_iptv_list_button">Copiar Lista IPTV</string>
     <string name="profile_iptv_list_copied">URL da lista IPTV copiada!</string>
+    <string name="dkplayer_back">Back</string>
     
 </resources>
