@@ -70,6 +70,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.util.Base64; // Importar Base64
+import android.os.Handler; // Adicionado para retentativas
+import android.os.Looper; // Adicionado para retentativas
 
 public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClickListener, EpgAdapter.OnProgramClickListener, DataManager.DataManagerListener {
 
@@ -124,6 +126,14 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     private static final String TAG_PLAYER_STATE_TV = "TvFragment_PlayerState"; // Tag para logs de estado do player
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private BroadcastReceiver refreshDataReceiver;
+
+    // Variáveis para lógica de retentativa
+    private String mCurrentPlayingUrl;
+    private String mCurrentPlayingChannelName;
+    private Handler mRetryHandler;
+    private Runnable mRetryRunnable;
+    private boolean mIsRetrying = false;
+    private static final int RETRY_DELAY_MS = 5000; // 5 segundos de delay
 
 
     @Override
@@ -329,11 +339,27 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
                     case VideoView.STATE_ERROR:
                         showLoading(false); // Esconder loading em caso de erro
                         // ErrorView já deve estar sendo exibido pelo controller
+                        if (mVideoView != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
+                            Log.e(TV_TAG, "Error playing channel: " + mCurrentPlayingChannelName + ". Initiating retry mechanism.");
+                            mIsRetrying = true;
+                            // Usar showLoadingWithMessage para indicar a retentativa
+                            showLoadingWithMessage(getString(R.string.retrying_channel_message, mCurrentPlayingChannelName));
+                            mRetryHandler.postDelayed(mRetryRunnable, RETRY_DELAY_MS);
+                        }
                         break;
                 }
                 // Assegurar que o loading seja escondido se o vídeo estiver tocando ou pausado (após preparo/buffering)
-                if (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED) {
+                // e não estivermos no meio de uma retentativa por erro anterior.
+                if (!mIsRetrying && (playState == VideoView.STATE_PLAYING || playState == VideoView.STATE_PAUSED || playState == VideoView.STATE_PLAYBACK_COMPLETED)) {
                     showLoading(false);
+                }
+
+                // Se começou a tocar e estávamos em retentativa, cancelar o estado de retentativa.
+                if (playState == VideoView.STATE_PLAYING && mIsRetrying) {
+                    Log.d(TV_TAG, "Channel " + mCurrentPlayingChannelName + " started playing successfully after retry.");
+                    mIsRetrying = false;
+                    mRetryHandler.removeCallbacks(mRetryRunnable); // Cancelar quaisquer retentativas futuras agendadas
+                    showLoading(false); // Garante que o loading é escondido
                 }
             }
         });
@@ -358,6 +384,26 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
 
         // No need to call loadInitialData() here, it will be called via onDataLoaded()
         // or if data is already loaded, onResume() will handle it.
+
+        // Inicializar Handler para retentativas
+        mRetryHandler = new Handler(Looper.getMainLooper());
+        mRetryRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mIsRetrying && mVideoView != null && mCurrentPlayingUrl != null && !mCurrentPlayingUrl.isEmpty()) {
+                    Log.d(TV_TAG, "Retrying channel: " + mCurrentPlayingChannelName + " URL: " + mCurrentPlayingUrl);
+                    showLoadingWithMessage(getString(R.string.retrying_channel_message, mCurrentPlayingChannelName));
+                    mVideoView.release(); // Libera recursos do player anterior
+                    mVideoView.setUrl(mCurrentPlayingUrl);
+                    mVideoView.start();
+                    // O listener onPlayStateChanged lidará com o próximo estado (PREPARING, PLAYING ou ERROR novamente)
+                } else {
+                    Log.d(TV_TAG, "Retry condition not met or retry cancelled.");
+                    mIsRetrying = false; // Garante que o estado de retentativa seja resetado se não for mais necessário
+                    showLoading(false); // Esconde o loading se a retentativa foi cancelada ou não pôde prosseguir
+                }
+            }
+        };
         return root;
     }
 
@@ -538,39 +584,43 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             mIsSwitchingChannels = true; // Sinaliza o início da troca de canal
             showLoading(true); // Mostrar loading imediatamente ao clicar
 
+            // Cancelar retentativas anteriores
+            mRetryHandler.removeCallbacks(mRetryRunnable);
+            mIsRetrying = false;
+
+            // Atualizar informações do canal atual para retentativas
+            mCurrentPlayingUrl = channel.getStreamUrl();
+            mCurrentPlayingChannelName = channel.getName();
+
             // Extract stream ID from channel for EPG
             currentChannelStreamId = channel.getStreamId(); // Usar o streamId já disponível no objeto Channel
             Log.d(TV_TAG, "Current channel stream ID set to: " + currentChannelStreamId);
 
             // Parar e liberar o player anterior completamente para evitar problemas de estado.
-            // O release() limpa o player interno. Listeners no VideoView (Java object) devem permanecer.
             mVideoView.release();
 
             // Definir nova URL e iniciar.
-            // O controller já está definido no mVideoView desde o onCreateView.
-            // Se release() limpasse o controller do objeto VideoView, precisaríamos de mVideoView.setVideoController(mController);
-            mVideoView.setUrl(channel.getStreamUrl());
+            mVideoView.setUrl(mCurrentPlayingUrl);
             mVideoView.start();
 
             // Atualizar título no controller usando a referência mTitleViewComponent
             if (mTitleViewComponent != null) {
-                mTitleViewComponent.setTitle(channel.getName());
+                mTitleViewComponent.setTitle(mCurrentPlayingChannelName);
             } else {
-                // Fallback muito improvável: se mTitleViewComponent for nulo, logar erro.
-                // Isso não deveria acontecer se onCreateView foi chamado corretamente.
                 Log.e(TV_TAG, "mTitleViewComponent is null in onChannelClick. Title not updated.");
             }
 
             Toast.makeText(getContext(), getString(R.string.starting_channel_toast, channel.getName()), Toast.LENGTH_SHORT).show();
-            Log.d(TV_TAG, "Playback initiated for: " + channel.getName());
+            Log.d(TV_TAG, "Playback initiated for: " + mCurrentPlayingChannelName);
         } else {
             Log.e(TV_TAG, "Channel stream URL is null or empty for channel: " + channel.getName());
+            mCurrentPlayingUrl = null; // Limpar URL se inválida
+            mCurrentPlayingChannelName = null;
             showLoading(false); // Esconder loading se a URL for inválida
             Toast.makeText(getContext(), getString(R.string.invalid_channel_url_error), Toast.LENGTH_SHORT).show();
         }
     }
 
-    
 
     private void loadInitialData() {
         Log.d(TV_TAG, "loadInitialData called - using DataManager");
@@ -699,7 +749,23 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
             playerProgressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         }
         if (playerLoadingTextView != null) {
-            // playerLoadingTextView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            playerLoadingTextView.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            if (!isLoading) { // Limpar texto se não estiver carregando
+                playerLoadingTextView.setText("");
+            }
+        }
+    }
+
+    private void showLoadingWithMessage(String message) {
+        if (!isAdded() || getView() == null) return;
+
+        if (playerProgressBar != null) {
+            playerProgressBar.setVisibility(View.VISIBLE);
+        }
+        if (playerLoadingTextView != null) {
+            playerLoadingTextView.setVisibility(View.VISIBLE);
+            playerLoadingTextView.setText(message);
+            Log.d(TV_TAG, "showLoadingWithMessage: " + message);
         }
     }
 
@@ -755,6 +821,10 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     public void onDestroyView() {
         super.onDestroyView();
         Log.d(TV_TAG, "onDestroyView called");
+        if (mRetryHandler != null && mRetryRunnable != null) {
+            mRetryHandler.removeCallbacks(mRetryRunnable);
+        }
+        mIsRetrying = false;
         if (mVideoView != null) {
             mVideoView.release();
         }
@@ -1031,6 +1101,8 @@ public class TvFragment extends Fragment implements ChannelAdapter.OnChannelClic
     public void onPause() {
         super.onPause();
         Log.d(TV_TAG, "onPause called");
+        // Não cancelar retentativas aqui, pois o PiP pode estar ativo ou o usuário pode voltar logo.
+        // Apenas pausar o vídeo.
         if (mVideoView != null) {
             mVideoView.pause();
         }
