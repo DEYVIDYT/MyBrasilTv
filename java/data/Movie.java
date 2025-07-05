@@ -15,27 +15,35 @@ public class Movie implements Serializable {
     private String rating;
     private String duration;
     private String plot;
+    private String streamId; // Adicionado
+    private String cast; // Adicionado
+    private String director; // Adicionado
+    private String genre; // Adicionado
+    private java.util.List<String> backdropPaths; // Adicionado
 
     private long lastRefreshedTimestamp; // Added for caching logic
 
-    public Movie(String title, String posterUrl, String videoUrl, String category) {
+    // Construtor principal atualizado para incluir streamId
+    public Movie(String title, String posterUrl, String videoUrl, String category, String streamId) {
         this.title = title;
         this.name = title; // Para compatibilidade
         this.posterUrl = posterUrl;
         this.streamIcon = posterUrl; // Para compatibilidade
         this.videoUrl = videoUrl;
         this.category = category;
+        this.streamId = streamId; // Inicializa streamId
         this.lastRefreshedTimestamp = 0; // Initialize, will be set when fetched/cached
     }
 
-    // Constructor including timestamp for when restoring from cache
-    public Movie(String title, String posterUrl, String videoUrl, String category, long lastRefreshedTimestamp) {
+    // Construtor para restauração do cache atualizado
+    public Movie(String title, String posterUrl, String videoUrl, String category, String streamId, long lastRefreshedTimestamp) {
         this.title = title;
         this.name = title; // Para compatibilidade
         this.posterUrl = posterUrl;
         this.streamIcon = posterUrl; // Para compatibilidade
         this.videoUrl = videoUrl;
         this.category = category;
+        this.streamId = streamId; // Inicializa streamId
         this.lastRefreshedTimestamp = lastRefreshedTimestamp;
     }
 
@@ -117,6 +125,47 @@ public class Movie implements Serializable {
 
     public void setLastRefreshedTimestamp(long lastRefreshedTimestamp) {
         this.lastRefreshedTimestamp = lastRefreshedTimestamp;
+    }
+
+    // Getters e Setters para os novos campos
+    public String getStreamId() {
+        return streamId;
+    }
+
+    public void setStreamId(String streamId) {
+        this.streamId = streamId;
+    }
+
+    public String getCast() {
+        return cast;
+    }
+
+    public void setCast(String cast) {
+        this.cast = cast;
+    }
+
+    public String getDirector() {
+        return director;
+    }
+
+    public void setDirector(String director) {
+        this.director = director;
+    }
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+
+    public java.util.List<String> getBackdropPaths() {
+        return backdropPaths;
+    }
+
+    public void setBackdropPaths(java.util.List<String> backdropPaths) {
+        this.backdropPaths = backdropPaths;
     }
 }
 

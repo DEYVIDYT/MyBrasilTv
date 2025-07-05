@@ -431,14 +431,126 @@ public class DataManager {
 
     // Método para limpar todos os dados e redefinir o sinalizador de carregado (por exemplo, ao fazer logout)
     public void clearAllData() {
+        if (cacheManager != null) { // Adicionada verificação de nulo para cacheManager
+            cacheManager.clearCache();
+        }
         liveCategories = null;
         liveStreams = null;
         vodCategories = null;
         vodStreams = null;
         epgPrograms = null;
         isDataFullyLoaded = false;
-        cacheManager.clearCache();
+        // cacheManager.clearCache(); // Movido para o início do método com verificação de nulo
         Log.d(TAG, "Todos os dados limpos e cache redefinido.");
+    }
+
+    // Callback para detalhes de filmes
+    public interface MovieDetailsCallback {
+        void onDetailsFetched(Movie movieWithDetails);
+        void onError(String errorMessage);
+    }
+
+    public void fetchMovieDetails(String vodId, MovieDetailsCallback callback) {
+        if (vodId == null || vodId.isEmpty()) {
+            if (callback != null) {
+                mainHandler.post(() -> callback.onError("VOD ID inválido."));
+            }
+            return;
+        }
+
+        // 1. Verificar se o filme já está em memória e se os detalhes já foram buscados
+        if (vodStreams != null) {
+            for (Movie movie : vodStreams) {
+                if (movie.getStreamId() != null && movie.getStreamId().equals(vodId)) {
+                    // Considerar "detalhes buscados" se, por exemplo, o plot não for nulo.
+                    // Isso é uma heurística e pode precisar de ajuste.
+                    if (movie.getPlot() != null && !movie.getPlot().isEmpty()) {
+                        Log.d(TAG, "fetchMovieDetails - Detalhes para VOD ID: " + vodId + " já em memória.");
+                        final Movie movieFromMemory = movie;
+                        if (callback != null) {
+                            mainHandler.post(() -> callback.onDetailsFetched(movieFromMemory));
+                        }
+                        return;
+                    }
+                    break; // Achou o filme, mas sem detalhes, prosseguir para buscar da API
+                }
+            }
+        }
+
+        // 2. (Opcional Avançado) Verificar cache em disco para este filme específico se tivéssemos cache por item.
+        // Por ora, o CacheManager atual lida com listas, então a verificação em memória acima é o principal.
+
+        // 3. Se não, buscar da API
+        Log.d(TAG, "fetchMovieDetails - Buscando detalhes da API para VOD ID: " + vodId);
+        if (xtreamApiService == null) {
+            // Isso pode acontecer se as credenciais ainda não foram carregadas.
+            // DataManager.startDataLoading() deve ter sido chamado primeiro.
+            Log.e(TAG, "fetchMovieDetails - XtreamApiService não inicializado.");
+            if (callback != null) {
+                mainHandler.post(() -> callback.onError("Serviço API não inicializado. Tente novamente mais tarde."));
+            }
+            return;
+        }
+
+        xtreamApiService.fetchVodInfo(vodId, new XtreamApiService.VodInfoCallback() {
+            @Override
+            public void onSuccess(Movie fetchedDetails) {
+                boolean updatedInMemory = false;
+                if (vodStreams != null) {
+                    for (int i = 0; i < vodStreams.size(); i++) {
+                        Movie existingMovie = vodStreams.get(i);
+                        if (existingMovie.getStreamId() != null && existingMovie.getStreamId().equals(vodId)) {
+                            // Atualizar o objeto existente com os novos detalhes
+                            existingMovie.setPlot(fetchedDetails.getPlot());
+                            existingMovie.setCast(fetchedDetails.getCast());
+                            existingMovie.setDirector(fetchedDetails.getDirector());
+                            existingMovie.setGenre(fetchedDetails.getGenre());
+                            existingMovie.setReleaseDate(fetchedDetails.getReleaseDate());
+                            existingMovie.setRating(fetchedDetails.getRating());
+                            existingMovie.setDuration(fetchedDetails.getDuration());
+                            existingMovie.setBackdropPaths(fetchedDetails.getBackdropPaths());
+                            // Atualizar outros campos se necessário
+                            existingMovie.setLastRefreshedTimestamp(System.currentTimeMillis()); // Marcar como atualizado
+
+                            vodStreams.set(i, existingMovie); // Atualiza na lista em memória
+                            updatedInMemory = true;
+                            Log.d(TAG, "fetchMovieDetails - Detalhes atualizados em memória para VOD ID: " + vodId);
+
+                            // Notificar o callback com o filme atualizado
+                            final Movie finalMovie = existingMovie;
+                            if (callback != null) {
+                                mainHandler.post(() -> callback.onDetailsFetched(finalMovie));
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (!updatedInMemory) {
+                    // Filme não encontrado na lista vodStreams, o que é estranho se estamos vendo seus detalhes.
+                    // Mas, por segurança, podemos adicionar os detalhes como um novo filme ou apenas logar.
+                    // Ou, o callback pode receber os detalhes buscados diretamente.
+                    Log.w(TAG, "fetchMovieDetails - VOD ID: " + vodId + " não encontrado na lista em memória após buscar detalhes. Retornando detalhes brutos.");
+                     if (callback != null) {
+                        mainHandler.post(() -> callback.onDetailsFetched(fetchedDetails)); // Retorna o que foi buscado
+                    }
+                }
+
+                // 4. Atualizar o cache (salvando a lista inteira de vodStreams)
+                if (cacheManager != null && vodStreams != null) {
+                    cacheManager.saveMovies(vodStreams);
+                    Log.d(TAG, "fetchMovieDetails - Cache de filmes atualizado após buscar detalhes para VOD ID: " + vodId);
+                }
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Log.e(TAG, "fetchMovieDetails - Falha ao buscar detalhes para VOD ID: " + vodId + " - Erro: " + error);
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onError(error));
+                }
+            }
+        });
     }
 }
 

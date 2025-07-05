@@ -33,8 +33,16 @@ public class MovieDetailsActivity extends AppCompatActivity {
     private ImageButton backButton;
     private TabLayout contentTabs;
     private ViewPager2 contentViewPager;
+    private android.widget.ProgressBar detailsProgressBar;
+
+    // Novos TextViews para detalhes adicionais
+    private TextView movieGenreDetail;
+    private TextView movieDirectorDetail;
+    private TextView movieCastDetail;
+    private View additionalDetailsLayout; // LinearLayout para controlar visibilidade do grupo
     
     private Movie movie;
+    private DataManager dataManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +56,21 @@ public class MovieDetailsActivity extends AppCompatActivity {
             return;
         }
 
+        dataManager = MyApplication.getDataManager(this); // Inicializa DataManager
+
         initViews();
-        setupViews();
+
+        // Mostrar ProgressBar e buscar detalhes
+        if (movie.getStreamId() != null && !movie.getStreamId().isEmpty()) {
+            detailsProgressBar.setVisibility(View.VISIBLE);
+            fetchMovieDetails(movie.getStreamId());
+        } else {
+            // Se não há streamId, apenas configurar com os dados existentes
+            // e esconder o ProgressBar (caso estivesse visível por algum motivo)
+            detailsProgressBar.setVisibility(View.GONE);
+            setupViews(); // Configura a UI com os dados básicos disponíveis
+        }
+
         setupListeners();
     }
 
@@ -65,6 +86,31 @@ public class MovieDetailsActivity extends AppCompatActivity {
         backButton = findViewById(R.id.back_button);
         contentTabs = findViewById(R.id.content_tabs);
         contentViewPager = findViewById(R.id.content_viewpager);
+        detailsProgressBar = findViewById(R.id.details_progress_bar);
+
+        // Referenciar novos TextViews e Layout
+        movieGenreDetail = findViewById(R.id.movie_genre_detail);
+        movieDirectorDetail = findViewById(R.id.movie_director_detail);
+        movieCastDetail = findViewById(R.id.movie_cast_detail);
+        additionalDetailsLayout = findViewById(R.id.additional_details_layout);
+    }
+
+    private void fetchMovieDetails(String streamId) {
+        dataManager.fetchMovieDetails(streamId, new DataManager.MovieDetailsCallback() {
+            @Override
+            public void onDetailsFetched(Movie movieWithDetails) {
+                detailsProgressBar.setVisibility(View.GONE);
+                MovieDetailsActivity.this.movie = movieWithDetails; // Atualiza o filme da atividade
+                setupViews(); // Reconfigura as views com os dados completos
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                detailsProgressBar.setVisibility(View.GONE);
+                android.widget.Toast.makeText(MovieDetailsActivity.this, "Erro ao buscar detalhes: " + errorMessage, android.widget.Toast.LENGTH_LONG).show();
+                setupViews(); // Configura com os dados básicos que já tinha
+            }
+        });
     }
 
     private void setupViews() {
@@ -113,6 +159,36 @@ public class MovieDetailsActivity extends AppCompatActivity {
         } else {
             movieDescription.setText("Descrição não disponível.");
         }
+
+        // Configurar detalhes adicionais (Gênero, Diretor, Elenco)
+        boolean hasAdditionalDetails = false;
+        if (movie.getGenre() != null && !movie.getGenre().isEmpty()) {
+            movieGenreDetail.setText(movie.getGenre());
+            movieGenreDetail.getParent().requestLayout(); // Força o pai a se ajustar
+            ((View) movieGenreDetail.getParent()).setVisibility(View.VISIBLE);
+            hasAdditionalDetails = true;
+        } else {
+            ((View) movieGenreDetail.getParent()).setVisibility(View.GONE);
+        }
+
+        if (movie.getDirector() != null && !movie.getDirector().isEmpty()) {
+            movieDirectorDetail.setText(movie.getDirector());
+            ((View) movieDirectorDetail.getParent()).setVisibility(View.VISIBLE);
+            hasAdditionalDetails = true;
+        } else {
+            ((View) movieDirectorDetail.getParent()).setVisibility(View.GONE);
+        }
+
+        if (movie.getCast() != null && !movie.getCast().isEmpty()) {
+            movieCastDetail.setText(movie.getCast());
+            ((View) movieCastDetail.getParent()).setVisibility(View.VISIBLE);
+            hasAdditionalDetails = true;
+        } else {
+            ((View) movieCastDetail.getParent()).setVisibility(View.GONE);
+        }
+
+        additionalDetailsLayout.setVisibility(hasAdditionalDetails ? View.VISIBLE : View.GONE);
+
 
         // Configurar o adaptador para o ViewPager2 ANTES de configurar as tabs
         ContentViewPagerAdapter adapter = new ContentViewPagerAdapter(this);
