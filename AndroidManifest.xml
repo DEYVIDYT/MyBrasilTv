@@ -52,7 +52,7 @@
 		<activity
 			android:name=".DeviceTypeActivity"
 			android:exported="true"
-			android:theme="@style/Theme.IPTVPlayer.NoActionBar"> <!-- Pode querer um tema sem ActionBar para esta tela inicial -->
+			android:theme="@style/Theme.IPTVPlayer"> <!-- Corrigido para Theme.IPTVPlayer -->
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
@@ -70,11 +70,12 @@
 			android:exported="false"> <!-- Não é mais LAUNCHER -->
 			<!-- windowSoftInputMode="adjustPan" é frequentemente útil com tela cheia e teclado -->
 			<!-- Intent filter de LAUNCHER removido -->
+			<!-- MainActivity usará o tema padrão da aplicação definido em <application> ou seu próprio se especificado -->
 		</activity>
 		<activity
 			android:name=".MainTvActivity"
 			android:exported="false"
-			android:theme="@style/Theme.IPTVPlayer.NoActionBar"
+			android:theme="@style/Theme.IPTVPlayer"   благоприятно<!-- Corrigido para Theme.IPTVPlayer -->
 			android:screenOrientation="landscape">
 			<!-- Adicionar configuração para MainTvActivity, garantindo que não seja LAUNCHER e tenha tema e orientação apropriados -->
 		</activity>
@@ -83,7 +84,7 @@
 		<activity android:name=".SearchActivity" />
 		<activity android:name=".DownloadProgressActivity"
             android:exported="false"
-            android:theme="@style/Theme.IPTVPlayer.NoActionBar" />
+            android:theme="@style/Theme.IPTVPlayer" /> <!-- Corrigido para Theme.IPTVPlayer -->
 
 
 		<service

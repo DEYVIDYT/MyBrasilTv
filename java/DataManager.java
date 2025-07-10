@@ -137,56 +137,42 @@ public class DataManager {
 
     private void fetchXtreamCredentials() {
         notifyProgress(LoadState.FETCHING_CREDENTIALS, 5, "Fetching server credentials...");
-        executorService.execute(() -> {
-            try {
-                URL url = new URL("http://mybrasiltv.x10.mx/GetLoguin.php"); // Considerar tornar isso configurável
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(15000); // 15 segundos
-                conn.setReadTimeout(15000);    // 15 segundos
 
-                int responseCode = conn.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    String inputLine;
-                    StringBuilder response = new StringBuilder();
-                    while ((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-                    in.close();
+        XtreamLoginService loginService = new XtreamLoginService();
+        loginService.getLoginData(new XtreamLoginService.LoginCallback() {
+            @Override
+            public void onSuccess(XtreamLoginService.XtreamAccount account) {
+                DataManager.this.baseUrl = account.server;
+                DataManager.this.username = account.username;
+                DataManager.this.password = account.password;
 
-                    JSONObject jsonObject = new JSONObject(response.toString());
-                    this.baseUrl = jsonObject.getString("server");
-                    this.username = jsonObject.getString("username");
-                    this.password = jsonObject.getString("password");
-
-                    if (!this.baseUrl.toLowerCase().startsWith("http://") && !this.baseUrl.toLowerCase().startsWith("https://")) {
-                        this.baseUrl = "http://" + this.baseUrl;
-                    }
-
-                    Log.i(TAG, "Credenciais recebidas: Servidor=" + this.baseUrl + ", Usuário=" + this.username);
-                    notifyProgress(LoadState.FETCHING_CREDENTIALS, 10, "Credenciais obtidas.");
-
-                    // Inicializar serviços aqui, pois temos as credenciais
-                    this.xtreamApiService = new XtreamApiService(this.baseUrl, this.username, this.password);
-                    this.xtreamApiService.setCacheManager(this.cacheManager); // Definir gerenciador de cache existente
-
-                    this.epgService = new EpgService(this.baseUrl, this.username, this.password);
-                    this.epgService.setCacheManager(this.cacheManager); // Definir gerenciador de cache existente
-
-                    // Inicializar XmltvEpgService aqui
-                    this.xmltvEpgService = new XmltvEpgService(this.baseUrl, this.username, this.password);
-                    this.xmltvEpgService.setCacheManager(this.cacheManager);
-
-                    // Prosseguir para a próxima etapa
-                    fetchLiveCategories();
-                } else {
-                    Log.e(TAG, "fetchXtreamCredentials - Erro HTTP: " + responseCode);
-                    notifyError("Falha ao buscar credenciais. Erro do servidor: " + responseCode);
+                if (DataManager.this.baseUrl != null &&
+                    !DataManager.this.baseUrl.toLowerCase().startsWith("http://") &&
+                    !DataManager.this.baseUrl.toLowerCase().startsWith("https://")) {
+                    DataManager.this.baseUrl = "http://" + DataManager.this.baseUrl;
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "fetchXtreamCredentials - Erro: ", e);
-                notifyError("Falha ao buscar credenciais: " + e.getMessage());
+
+                Log.i(TAG, "Credenciais recebidas do XtreamLoginService: Servidor=" + DataManager.this.baseUrl + ", Usuário=" + DataManager.this.username);
+                notifyProgress(LoadState.FETCHING_CREDENTIALS, 10, "Credenciais obtidas.");
+
+                // Inicializar serviços aqui, pois temos as credenciais
+                DataManager.this.xtreamApiService = new XtreamApiService(DataManager.this.baseUrl, DataManager.this.username, DataManager.this.password);
+                DataManager.this.xtreamApiService.setCacheManager(DataManager.this.cacheManager);
+
+                DataManager.this.epgService = new EpgService(DataManager.this.baseUrl, DataManager.this.username, DataManager.this.password);
+                DataManager.this.epgService.setCacheManager(DataManager.this.cacheManager);
+
+                DataManager.this.xmltvEpgService = new XmltvEpgService(DataManager.this.baseUrl, DataManager.this.username, DataManager.this.password);
+                DataManager.this.xmltvEpgService.setCacheManager(DataManager.this.cacheManager);
+
+                // Prosseguir para a próxima etapa
+                fetchLiveCategories();
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Log.e(TAG, "fetchXtreamCredentials - Erro do XtreamLoginService: " + error);
+                notifyError("Falha ao buscar credenciais: " + error);
             }
         });
     }
