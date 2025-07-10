@@ -39,29 +39,18 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     private DataManager dataManager;
 
-    // Views do layout original fragment_tv_tv.xml
-    private RecyclerView recyclerViewCategoriesTv;
-    private RecyclerView recyclerViewChannelsTv;
-    private RecyclerView recyclerViewEpgTv;
+    // Views do layout fragment_tv_tv.xml (agora focado no player)
     private FrameLayout playerContainerTv;
     private ProgressBar playerProgressBarTv; // ProgressBar para o player
-    // private ProgressBar channelsProgressBar; // Removido, usando playerProgressBarTv para o player
 
     // Componentes do Player Embutido
     private VideoView videoViewTv;
-    private StandardVideoController videoControllerTv;
-    private TitleView mTitleViewComponent;
-    private ChannelGridView mChannelGridView;
+    private StandardVideoController videoControllerTv; // Controller principal
+    private TitleView mTitleViewComponent; // Componente de título para o controller
+    private ChannelGridView mChannelGridView; // Componente da grade de canais para o controller
 
-    // Adapters
-    private ChannelCategoryAdapterTv categoryAdapterTv;
-    private ChannelAdapterTv channelAdapterTv;
-    private EpgAdapterTv epgAdapterTv; // Reintroduzido
-
-    // Listas de dados (se necessário manter no fragmento)
-    // private List<Channel> currentChannels = new ArrayList<>();
-    // private List<EpgProgram> currentEpgPrograms = new ArrayList<>();
-
+    // Adapters e RecyclerViews laterais foram removidos.
+    // A navegação de canais agora é feita pela ChannelGridView.
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -70,7 +59,6 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         dataManager = MyApplication.getDataManager(context);
         if (dataManager == null) {
             Log.e(TV_TV_TAG, "DataManager is null in onAttach!");
-            // Handle this error appropriately, e.g., show a toast or finish activity
             return;
         }
         dataManager.setListener(this);
@@ -79,54 +67,22 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        Log.d(TV_TV_TAG, "onCreateView called - Restoring Original TV Layout");
-        // 1a. Inflar o layout original da TV
+        Log.d(TV_TV_TAG, "onCreateView called - Inflating fullscreen player layout");
         View root = inflater.inflate(R.layout.fragment_tv_tv, container, false);
 
-        // 1b & 1c. Encontrar views do layout original
         playerContainerTv = root.findViewById(R.id.tv_player_container_tv);
-        playerProgressBarTv = root.findViewById(R.id.tv_player_progress_bar_tv); // ProgressBar do Player
+        playerProgressBarTv = root.findViewById(R.id.tv_player_progress_bar_tv);
 
-        recyclerViewCategoriesTv = root.findViewById(R.id.recycler_view_tv_categories_tv);
-        recyclerViewChannelsTv = root.findViewById(R.id.recycler_view_tv_channels_tv);
-        recyclerViewEpgTv = root.findViewById(R.id.recycler_view_tv_epg_tv); // EPG RecyclerView
+        // RecyclerViews laterais e seus setups foram removidos.
+        // setupRecyclerViews(); // Removido
 
-        Log.d(TV_TV_TAG, "Calling setupRecyclerViews() for original layout");
-        setupRecyclerViews(); // Ajustar para os IDs corretos e reintroduzir EPG
+        initializePlayerView(); // Configura o VideoView e o listener de estado
 
-        // 1f. Inicializar a base do player (VideoView e seu listener de estado)
-        initializePlayerView();
-
-        Log.d(TV_TV_TAG, "Views initialized for original TV layout.");
+        Log.d(TV_TV_TAG, "Views initialized for fullscreen player layout.");
         return root;
     }
 
-    private void setupRecyclerViews() {
-        Log.d(TV_TV_TAG, "setupRecyclerViews called for original layout");
-        if (getContext() == null) {
-            Log.e(TV_TV_TAG, "Context is null in setupRecyclerViews!");
-            return;
-        }
-        // Configurar RecyclerView de Categorias
-        recyclerViewCategoriesTv.setLayoutManager(new LinearLayoutManager(getContext()));
-        categoryAdapterTv = new ChannelCategoryAdapterTv(getContext(), new ArrayList<>(), this::onCategorySelected);
-        recyclerViewCategoriesTv.setAdapter(categoryAdapterTv);
-        recyclerViewCategoriesTv.setFocusable(true);
-
-        // Configurar RecyclerView de Canais
-        recyclerViewChannelsTv.setLayoutManager(new LinearLayoutManager(getContext()));
-        channelAdapterTv = new ChannelAdapterTv(getContext(), new ArrayList<>(), this::onChannelSelected);
-        recyclerViewChannelsTv.setAdapter(channelAdapterTv);
-        recyclerViewChannelsTv.setFocusable(true);
-        
-        // Configurar RecyclerView de EPG (1c)
-        recyclerViewEpgTv.setLayoutManager(new LinearLayoutManager(getContext()));
-        epgAdapterTv = new EpgAdapterTv(getContext(), new ArrayList<>(), this::onEpgProgramSelected);
-        recyclerViewEpgTv.setAdapter(epgAdapterTv);
-        recyclerViewEpgTv.setFocusable(true);
-
-        Log.d(TV_TV_TAG, "RecyclerViews setup complete for original layout.");
-    }
+    // setupRecyclerViews() foi removido.
 
     private void initializePlayerView() {
         Log.d(TV_TV_TAG, "initializePlayerView called");

@@ -80,26 +80,63 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         mRecyclerChannels.setLayoutManager(new LinearLayoutManager(getContext()));
         
         // Setup click listener for overlay to close grid
-        // O listener de clique no overlay (o FrameLayout raiz) é para fechar a grade
-        if (mChannelGridOverlay != null) { // mChannelGridOverlay é o FrameLayout raiz
+        if (mChannelGridOverlay != null) {
             mChannelGridOverlay.setOnClickListener(this);
         }
         
         View contentAreaView = findViewById(R.id.channel_grid_content_area);
         if (contentAreaView != null) {
-            // Impedir que cliques na área de conteúdo (onde estão os RecyclerViews)
-            // propaguem para o mChannelGridOverlay e fechem a grade.
-            // Isso permite que os RecyclerViews dentro da contentAreaView gerenciem seus próprios eventos de toque.
             contentAreaView.setOnClickListener(v -> {
-                Log.d(TAG, "Click on contentAreaView consumed, not closing grid.");
-                // Apenas consome o clique, não faz nada.
+                // Consome o clique na área de conteúdo para não fechar a grade
             });
-            // Para garantir que a rolagem dentro dos RecyclerViews funcione e não feche a grade,
-            // não é necessário um setOnTouchListener aqui que retorne true, pois isso bloquearia
-            // a rolagem. Os RecyclerViews devem lidar com a interceptação de toque para rolagem.
-            // O problema ocorre se um "clique" não for interpretado como rolagem e vazar.
-            // O setOnClickListener acima já ajuda com cliques diretos.
         }
+
+        // Adicionar listeners de tecla para navegação D-Pad entre as listas
+        setupDpadNavigation();
+    }
+
+    private void setupDpadNavigation() {
+        mRecyclerCategories.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    Log.d(TAG, "DPAD_RIGHT on Categories. Requesting focus for Channels.");
+                    if (mRecyclerChannels.getChildCount() > 0) {
+                        mRecyclerChannels.requestFocus();
+                        // Tenta focar no primeiro item visível dos canais
+                        // Se o adapter estiver vazio, o requestFocus() acima pode não fazer nada visualmente
+                        // O ideal é que o RecyclerView ou seu LayoutManager lide com o foco no primeiro item.
+                        // Se mChannelAdapter.getItemCount() > 0, o foco deve ir para lá.
+                        return true; // Evento consumido
+                    }
+                }
+            }
+            return false; // Evento não consumido
+        });
+
+        mRecyclerChannels.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                    // Verifica se o item focado é o primeiro da lista (ou se a rolagem horizontal não é possível)
+                    // Esta é uma verificação simples. Uma mais robusta verificaria se o LayoutManager
+                    // pode rolar para a esquerda.
+                    LinearLayoutManager lm = (LinearLayoutManager) mRecyclerChannels.getLayoutManager();
+                    if (lm != null) {
+                        int firstVisibleItemPosition = lm.findFirstCompletelyVisibleItemPosition();
+                        View focusedChild = lm.getFocusedChild();
+                        int focusedItemPosition = (focusedChild != null) ? lm.getPosition(focusedChild) : -1;
+
+                        // Se o item focado é o primeiro, ou não há item focado (foco no próprio RecyclerView)
+                        // ou se o item focado está na primeira "coluna" visual (para Grid Layouts, mas aqui é LinearLayout)
+                        // Basicamente, se não há mais para onde ir para a esquerda DENTRO desta lista.
+                        // Para LinearLayoutManager vertical, qualquer DPAD_LEFT deve mudar de coluna.
+                        Log.d(TAG, "DPAD_LEFT on Channels. Requesting focus for Categories.");
+                        mRecyclerCategories.requestFocus();
+                        return true; // Evento consumido
+                    }
+                }
+            }
+            return false; // Evento não consumido
+        });
     }
 
     @Override
@@ -256,7 +293,13 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
             
             // Hide other controls
             if (mControlWrapper != null) {
-                mControlWrapper.hide();
+                mControlWrapper.hide(); // Esconde outros componentes do player (barra de progresso, etc.)
+            }
+
+            // Solicitar foco para a lista de categorias ao mostrar a grade
+            if (mRecyclerCategories != null) {
+                Log.d(TAG, "Requesting focus for categories RecyclerView.");
+                mRecyclerCategories.requestFocus();
             }
         }
     }

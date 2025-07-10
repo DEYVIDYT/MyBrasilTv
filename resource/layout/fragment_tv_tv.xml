@@ -1,118 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:background="@color/app_background"
+    android:background="@color/black"
     tools:context=".TvFragmentTv">
 
-    <!-- Coluna Esquerda: Navegação de Canais -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="0.35"
-        android:orientation="vertical"
-        android:background="@color/md_theme_dark_surface"
-        android:padding="8dp">
-
-        <!-- TODO: Adicionar busca de canais se necessário -->
-        <!-- <EditText
-            android:id="@+id/tv_channel_search_tv"
-            android:layout_width="match_parent"
+    <!-- Container do Player Principal - Ocupa toda a tela -->
+    <FrameLayout
+        android:id="@+id/tv_player_container_tv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <!-- VideoView será adicionado programaticamente aqui pelo TvFragmentTv -->
+        <!-- A ProgressBar para o player será gerenciada pelo TvFragmentTv ou pelo VideoController -->
+        <ProgressBar
+            android:id="@+id/tv_player_progress_bar_tv"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:hint="Buscar canal..."
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"/> -->
+            android:layout_gravity="center"
+            android:visibility="gone"
+            tools:visibility="visible"
+            android:indeterminateTint="@color/selection_focus"/>
+    </FrameLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Categorias"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:padding="8dp"/>
+    <!-- A ChannelGridView (dkplayer_layout_channel_grid.xml) será inflada e gerenciada
+         pelo StandardVideoController/ChannelGridView.java e adicionada sobre este FrameLayout
+         quando o usuário pressionar "OK". Não precisa estar definida estaticamente aqui. -->
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view_tv_categories_tv"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:focusable="true"
-            android:descendantFocusability="afterDescendants"
-            tools:listitem="@layout/item_channel_category_tv"/> <!-- Novo item para categoria de TV -->
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Canais"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:padding="8dp"
-            android:layout_marginTop="8dp"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view_tv_channels_tv"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="2"
-            android:clipToPadding="false"
-            android:focusable="true"
-            android:descendantFocusability="afterDescendants"
-            tools:listitem="@layout/item_channel_tv"/> <!-- Novo item para canal de TV -->
-    </LinearLayout>
-
-    <!-- Divisor Vertical -->
-    <View
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:background="@color/text_tertiary" />
-
-    <!-- Coluna Direita: Player e EPG -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="0.65"
-        android:orientation="vertical">
-
-        <FrameLayout
-            android:id="@+id/tv_player_container_tv"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.6"
-            android:background="@color/black">
-            <!-- VideoView será adicionado programaticamente ou via <include> se for um componente reutilizável -->
-            <ProgressBar
-                android:id="@+id/tv_player_progress_bar_tv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                android:indeterminateTint="@color/selection_focus"/>
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/tv_epg_title_tv"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Guia de Programação (EPG)"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:padding="12dp"
-            android:background="@color/md_theme_dark_surface"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view_tv_epg_tv"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.4"
-            android:padding="8dp"
-            android:clipToPadding="false"
-            android:focusable="true"
-            android:descendantFocusability="afterDescendants"
-            tools:listitem="@layout/item_epg_program_tv"/> <!-- Novo item para EPG de TV -->
-    </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>
