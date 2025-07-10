@@ -267,9 +267,24 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
                 // Se o player ainda não estiver tocando ou se nenhum canal foi selecionado ainda
                 if (videoViewTv != null && videoViewTv.getCurrentPlayState() == VideoView.STATE_IDLE) {
                      Log.d(TV_TV_TAG, "Data loaded. Auto-selecting first channel: " + liveStreams.get(0).getName());
-                    onChannelSelected(liveStreams.get(0)); // Inicia a reprodução do primeiro canal
+                    onChannelSelected(liveStreams.get(0));
+                    // Após iniciar o primeiro canal, garantir que o fragmento (ou seu player) tenha foco
+                    // se a Sidenav não estiver visível.
+                    if (getView() != null) {
+                        if (sideNavToggleListener == null || !sideNavToggleListener.isSideNavVisible()) {
+                            Log.i(TV_TV_TAG, "Requesting focus for fragment's root view in updateUi after starting first channel (Sidenav hidden or null).");
+                            getView().requestFocus();
+                        } else {
+                            Log.d(TV_TV_TAG, "Sidenav is visible, not forcing focus in updateUi after starting channel.");
+                        }
+                    }
                 } else {
                     Log.d(TV_TV_TAG, "Player already active or no VideoView, skipping auto-selection of first channel.");
+                     // Mesmo se não for auto-selecionar, garantir foco se a sidenav estiver escondida.
+                    if (getView() != null && (sideNavToggleListener == null || !sideNavToggleListener.isSideNavVisible())) {
+                        Log.d(TV_TV_TAG, "Requesting focus for fragment's root view in updateUi (player active, Sidenav hidden or null).");
+                        getView().requestFocus();
+                    }
                 }
             } else {
                 Log.w(TV_TV_TAG, "Live streams are null or empty after data load.");
@@ -365,8 +380,70 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     // O método loadEpgForChannel(String streamId) foi removido.
     // O método onEpgProgramSelected(EpgProgram program) foi removido.
 
-    public void setSideNavToggleListener(SideNavToggleListener listener) { // Tipo de parâmetro atualizado
+    public void setSideNavToggleListener(SideNavToggleListener listener) {
         this.sideNavToggleListener = listener;
+        Log.d(TV_TV_TAG, "setSideNavToggleListener called. Listener is " + (listener == null ? "null" : "not null"));
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TV_TV_TAG, "onResume called");
+        if (videoViewTv != null) {
+            videoViewTv.resume();
+        }
+        // Garantir que a view raiz do fragmento seja focável e tente obter foco
+        if (getView() != null) {
+            getView().setFocusable(true);
+            getView().setFocusableInTouchMode(true);
+            // Não chamar requestFocus() aqui diretamente sempre, pois pode roubar foco da Sidenav
+            // se ela estiver visível e o usuário estiver interagindo com ela.
+            // O foco será gerenciado mais ativamente em updateUi ou quando a Sidenav for escondida.
+            Log.d(TV_TV_TAG, "View focusability set in onResume.");
+        }
+
+        // Se os dados já estão carregados e o player está ocioso, updateUi pode iniciar um canal
+        // e então tentar pegar o foco.
+        if (dataManager != null && dataManager.isDataFullyLoaded() &&
+            (videoViewTv == null || videoViewTv.getCurrentPlayState() == VideoView.STATE_IDLE)) {
+             Log.d(TV_TV_TAG, "Calling updateUi() from onResume as data is loaded and player is idle.");
+             updateUi();
+        } else if (dataManager != null && !dataManager.isDataFullyLoaded() && !dataManager.isLoading()) {
+            // Se os dados não estão carregados e o DataManager não está carregando, inicie.
+            Log.d(TV_TV_TAG, "Data not loaded and not loading, calling updateUi to trigger load in onResume.");
+            updateUi();
+        }
+        // Se o fragmento se torna visível e a Sidenav NÃO está, ele deve tentar pegar o foco.
+        // Esta lógica pode ser mais bem colocada quando a Sidenav é escondida pela Activity.
+         if (sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible() && getView() != null) {
+            Log.d(TV_TV_TAG, "Sidenav is hidden, fragment requesting focus in onResume.");
+            getView().requestFocus();
+        }
+    }
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        Log.d(TV_TV_TAG, "onCreateView called - Inflating fullscreen player layout");
+        View root = inflater.inflate(R.layout.fragment_tv_tv, container, false);
+
+        playerContainerTv = root.findViewById(R.id.tv_player_container_tv);
+        playerProgressBarTv = root.findViewById(R.id.tv_player_progress_bar_tv);
+
+        initializePlayerView();
+
+        // Listener de Foco para o container principal do fragmento
+        root.setOnFocusChangeListener((v, hasFocus) -> {
+            Log.d(TV_TV_TAG, "Root view focus changed: " + hasFocus);
+        });
+        if (playerContainerTv != null) {
+            playerContainerTv.setOnFocusChangeListener((v, hasFocus) -> {
+                Log.d(TV_TV_TAG, "playerContainerTv focus changed: " + hasFocus);
+            });
+        }
+
+
+        Log.d(TV_TV_TAG, "Views initialized for fullscreen player layout.");
+        return root;
     }
 
     // onTvKeyDown e onTvKeyUp são mantidos para interação com ChannelGridView
@@ -374,15 +451,24 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     // isso seria feito de forma diferente, geralmente pelo foco do sistema.
     @Override
     public boolean onTvKeyDown(int keyCode, KeyEvent event) {
-        Log.d(TV_TV_TAG, "onTvKeyDown: keyCode=" + keyCode + ", event: " + event);
+        Log.i(TV_TV_TAG, "onTvKeyDown: keyCode=" + KeyEvent.keyCodeToString(keyCode) + ", event: " + event);
+        View focusedView = getActivity() != null ? getActivity().getCurrentFocus() : null;
+        Log.d(TV_TV_TAG, "Current focused view: " + (focusedView != null ? focusedView.getClass().getSimpleName() : "null"));
+
 
         // Interação com a Sidenav da Activity ao pressionar D-Pad Direita (se a grade de canais não estiver visível)
         if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            Log.d(TV_TV_TAG, "DPAD_RIGHT pressed.");
+            Log.d(TV_TV_TAG, "mChannelGridView is " + (mChannelGridView == null ? "null" : (mChannelGridView.isChannelGridVisible() ? "visible" : "hidden")));
             if (mChannelGridView == null || !mChannelGridView.isChannelGridVisible()) {
-                if (sideNavToggleListener != null && sideNavToggleListener.isSideNavVisible()) {
-                    Log.d(TV_TV_TAG, "DPAD_RIGHT: Requesting hide Sidenav from Activity.");
-                    sideNavToggleListener.requestHideSideNav();
-                    return true; // Evento consumido
+                Log.d(TV_TV_TAG, "SideNavToggleListener is " + (sideNavToggleListener == null ? "null" : "not null"));
+                if (sideNavToggleListener != null) {
+                    Log.d(TV_TV_TAG, "Sidenav is currently " + (sideNavToggleListener.isSideNavVisible() ? "visible" : "hidden"));
+                    if (sideNavToggleListener.isSideNavVisible()) {
+                        Log.i(TV_TV_TAG, "DPAD_RIGHT: Requesting hide Sidenav from Activity.");
+                        sideNavToggleListener.requestHideSideNav();
+                        return true; // Evento consumido
+                    }
                 }
             }
         }
@@ -391,26 +477,29 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
         // Interação com a ChannelGridView (grade de canais do player) ao pressionar D-Pad Center/OK
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_BUTTON_SELECT) {
+            Log.d(TV_TV_TAG, "DPAD_CENTER or BUTTON_SELECT pressed.");
+            Log.d(TV_TV_TAG, "mChannelGridView is " + (mChannelGridView == null ? "null" : "not null") + ", videoViewTv is " + (videoViewTv == null ? "null" : "not null"));
             if (mChannelGridView != null && videoViewTv != null) {
-                // Não checar videoViewTv.isPlaying() para permitir abrir a grade mesmo se pausado/erro
                 if (mChannelGridView.isChannelGridVisible()) {
-                    Log.d(TV_TV_TAG, "Hiding ChannelGridView via DPAD_CENTER");
+                    Log.i(TV_TV_TAG, "Hiding ChannelGridView via DPAD_CENTER");
                     mChannelGridView.hideChannelGrid();
                 } else {
-                    Log.d(TV_TV_TAG, "Showing ChannelGridView via DPAD_CENTER");
+                    Log.i(TV_TV_TAG, "Showing ChannelGridView via DPAD_CENTER");
                     if (dataManager != null && dataManager.getLiveStreams() != null && dataManager.getLiveCategoriesMap() != null) {
+                        Log.d(TV_TV_TAG, "Populating ChannelGridView with data.");
                         mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
                     } else {
-                        Log.w(TV_TV_TAG, "Data for ChannelGridView is not ready. Grid might be empty.");
+                        Log.w(TV_TV_TAG, "Data for ChannelGridView is not ready. Grid might be empty or show old data.");
                         mChannelGridView.setChannelsData(new ArrayList<>(), new java.util.HashMap<>());
                     }
-                    mChannelGridView.showChannelGrid(); // showChannelGrid agora também solicita foco
+                    mChannelGridView.showChannelGrid();
                 }
                 return true;
             } else {
                 Log.w(TV_TV_TAG, "ChannelGridView or VideoView is null. Cannot toggle grid.");
             }
         }
+        Log.d(TV_TV_TAG, "onTvKeyDown: Event not consumed by TvFragmentTv for keyCode " + KeyEvent.keyCodeToString(keyCode));
         return false;
     }
 

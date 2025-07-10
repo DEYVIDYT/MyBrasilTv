@@ -46,8 +46,8 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     private String mCurrentCategoryId = "0";
     
     private OnChannelSelectedListener mChannelSelectedListener;
-    private SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity - Tipo atualizado
-    private static final String TAG = "ChannelGridView_Debug"; // Tag for logging
+    private SideNavToggleListener sideNavToggleListener;
+    private static final String TAG = "ChannelGridView_Debug";
 
     public interface OnChannelSelectedListener {
         void onChannelSelected(Channel channel);
@@ -55,20 +55,24 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
 
     public ChannelGridView(@NonNull Context context) {
         super(context);
+        Log.d(TAG, "Constructor ChannelGridView(Context) called");
         init();
     }
 
     public ChannelGridView(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        Log.d(TAG, "Constructor ChannelGridView(Context, Attrs) called");
         init();
     }
 
     public ChannelGridView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        Log.d(TAG, "Constructor ChannelGridView(Context, Attrs, DefStyle) called");
         init();
     }
 
     private void init() {
+        Log.d(TAG, "init() called");
         setVisibility(GONE);
         LayoutInflater.from(getContext()).inflate(R.layout.dkplayer_layout_channel_grid, this, true);
         
@@ -98,22 +102,26 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     }
 
     private void setupDpadNavigation() {
+        Log.d(TAG, "setupDpadNavigation() called");
         mRecyclerCategories.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                Log.d(TAG, "mRecyclerCategories onKey: keyCode=" + android.view.KeyEvent.keyCodeToString(keyCode));
                 if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    Log.d(TAG, "DPAD_RIGHT on Categories. Requesting focus for Channels.");
+                    Log.d(TAG, "DPAD_RIGHT on Categories. ChildCount Channels: " + mRecyclerChannels.getChildCount());
                     if (mRecyclerChannels.getChildCount() > 0) {
+                        Log.i(TAG, "Requesting focus for Channels RecyclerView.");
                         mRecyclerChannels.requestFocus();
                         return true;
                     }
                 } else if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
-                    // Se pressionar Esquerda na lista de categorias, tentar mostrar a Sidenav da Activity
-                    if (sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible()) {
-                        // Adicionar verificação se o foco está no primeiro item ou se não pode rolar mais para esquerda (opcional, mas bom)
-                        // Por simplicidade, vamos assumir que qualquer DPAD_LEFT aqui pode tentar mostrar a Sidenav
-                        Log.d(TAG, "DPAD_LEFT on Categories: Requesting show Sidenav from Activity.");
-                        sideNavToggleListener.requestShowSideNav();
-                        return true; // Evento consumido
+                    Log.d(TAG, "DPAD_LEFT on Categories. sideNavToggleListener is " + (sideNavToggleListener == null ? "null" : "not null"));
+                    if (sideNavToggleListener != null) {
+                        Log.d(TAG, "Sidenav is currently " + (sideNavToggleListener.isSideNavVisible() ? "visible" : "hidden"));
+                        if (!sideNavToggleListener.isSideNavVisible()) {
+                            Log.i(TAG, "DPAD_LEFT on Categories: Requesting show Sidenav from Activity.");
+                            sideNavToggleListener.requestShowSideNav();
+                            return true;
+                        }
                     }
                 }
             }
@@ -122,27 +130,18 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
 
         mRecyclerChannels.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                Log.d(TAG, "mRecyclerChannels onKey: keyCode=" + android.view.KeyEvent.keyCodeToString(keyCode));
                 if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
-                    // Verifica se o item focado é o primeiro da lista (ou se a rolagem horizontal não é possível)
-                    // Esta é uma verificação simples. Uma mais robusta verificaria se o LayoutManager
-                    // pode rolar para a esquerda.
                     LinearLayoutManager lm = (LinearLayoutManager) mRecyclerChannels.getLayoutManager();
                     if (lm != null) {
-                        int firstVisibleItemPosition = lm.findFirstCompletelyVisibleItemPosition();
-                        View focusedChild = lm.getFocusedChild();
-                        int focusedItemPosition = (focusedChild != null) ? lm.getPosition(focusedChild) : -1;
-
-                        // Se o item focado é o primeiro, ou não há item focado (foco no próprio RecyclerView)
-                        // ou se o item focado está na primeira "coluna" visual (para Grid Layouts, mas aqui é LinearLayout)
-                        // Basicamente, se não há mais para onde ir para a esquerda DENTRO desta lista.
-                        // Para LinearLayoutManager vertical, qualquer DPAD_LEFT deve mudar de coluna.
-                        Log.d(TAG, "DPAD_LEFT on Channels. Requesting focus for Categories.");
+                        // Simplificando: qualquer D-PAD Esquerda nos canais tenta mover para categorias
+                        Log.i(TAG, "DPAD_LEFT on Channels. Requesting focus for Categories RecyclerView.");
                         mRecyclerCategories.requestFocus();
-                        return true; // Evento consumido
+                        return true;
                     }
                 }
             }
-            return false; // Evento não consumido
+            return false;
         });
     }
 
@@ -210,30 +209,37 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     }
     public void setChannelSelectedListener(OnChannelSelectedListener listener) {
         mChannelSelectedListener = listener;
+        Log.d(TAG, "setChannelSelectedListener " + (listener == null ? "cleared" : "set"));
     }
 
     public void setSideNavToggleListener(SideNavToggleListener listener) {
         this.sideNavToggleListener = listener;
+        Log.d(TAG, "setSideNavToggleListener " + (listener == null ? "cleared" : "set"));
     }
 
     public void setChannelsData(List<Channel> channels, Map<String, String> categoryMap) {
+        Log.d(TAG, "setChannelsData called. Channels: " + (channels != null ? channels.size() : "null") + ", Categories: " + (categoryMap != null ? categoryMap.size() : "null"));
         mAllChannels.clear();
-        mAllChannels.addAll(channels);
+        if (channels != null) {
+            mAllChannels.addAll(channels);
+        }
         mCategoryMap = categoryMap;
         
         setupAdapters();
     }
 
     private void setupAdapters() {
+        Log.d(TAG, "setupAdapters() called");
         // Setup category adapter
         List<CategoryItem> categoryItems = new ArrayList<>();
-        categoryItems.add(new CategoryItem("0", "TODOS"));
+        categoryItems.add(new CategoryItem("0", "TODOS")); // "Todos" category
         
         if (mCategoryMap != null) {
             for (Map.Entry<String, String> entry : mCategoryMap.entrySet()) {
                 categoryItems.add(new CategoryItem(entry.getKey(), entry.getValue().toUpperCase()));
             }
         }
+        Log.d(TAG, "Category items count: " + categoryItems.size());
         
         mCategoryAdapter = new ChannelGridCategoryAdapter(getContext(), categoryItems, this::onCategorySelected);
         mRecyclerCategories.setAdapter(mCategoryAdapter);
@@ -243,33 +249,40 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
         mRecyclerChannels.setAdapter(mChannelAdapter);
         
         updateCategoryTitle();
+        Log.d(TAG, "Adapters setup complete.");
     }
 
     private void onCategorySelected(String categoryId) {
+        Log.i(TAG, "onCategorySelected: categoryId=" + categoryId);
         mCurrentCategoryId = categoryId;
         List<Channel> filteredChannels = getChannelsForCategory(categoryId);
+        Log.d(TAG, "Filtered channels count: " + filteredChannels.size());
 
         if (mChannelAdapter != null) {
             mChannelAdapter.updateChannels(filteredChannels);
+        } else {
+            Log.e(TAG, "mChannelAdapter is null in onCategorySelected!");
         }
 
         updateCategoryTitle();
 
-        // Update category selection
         if (mCategoryAdapter != null) {
             mCategoryAdapter.setSelectedCategory(categoryId);
+        } else {
+            Log.e(TAG, "mCategoryAdapter is null in onCategorySelected (for setSelectedCategory)!");
         }
-        // hideChannelGrid(); // REMOVIDO: Não fechar a grade ao selecionar uma categoria.
     }
 
     private void onChannelSelected(Channel channel) {
-        hideChannelGrid();
+        Log.i(TAG, "onChannelSelected: channel=" + channel.getName());
+        hideChannelGrid(); // Esconde a grade ao selecionar um canal
         if (mChannelSelectedListener != null) {
             mChannelSelectedListener.onChannelSelected(channel);
         }
     }
 
     private List<Channel> getChannelsForCategory(String categoryId) {
+        Log.d(TAG, "getChannelsForCategory: categoryId=" + categoryId);
         List<Channel> filteredChannels = new ArrayList<>();
         
         if ("0".equals(categoryId)) {
@@ -298,30 +311,37 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     }
 
     public void showChannelGrid() {
+        Log.i(TAG, "showChannelGrid() called. Current visibility: " + getVisibility());
         if (mControlWrapper != null && mControlWrapper.isFullScreen()) {
             setVisibility(VISIBLE);
             mChannelGridOverlay.setVisibility(VISIBLE);
+            Log.d(TAG, "ChannelGridView and Overlay set to VISIBLE.");
             
-            // Hide other controls
             if (mControlWrapper != null) {
-                mControlWrapper.hide(); // Esconde outros componentes do player (barra de progresso, etc.)
+                mControlWrapper.hide();
             }
 
-            // Solicitar foco para a lista de categorias ao mostrar a grade
             if (mRecyclerCategories != null) {
-                Log.d(TAG, "Requesting focus for categories RecyclerView.");
+                Log.i(TAG, "Requesting focus for categories RecyclerView.");
                 mRecyclerCategories.requestFocus();
             }
+        } else {
+            Log.w(TAG, "showChannelGrid: Conditions not met (mControlWrapper=" + mControlWrapper +
+                       (mControlWrapper != null ? ", isFullScreen=" + mControlWrapper.isFullScreen() : "") + ")");
         }
     }
 
     public void hideChannelGrid() {
+        Log.i(TAG, "hideChannelGrid() called. Current visibility: " + getVisibility());
         setVisibility(GONE);
         mChannelGridOverlay.setVisibility(GONE);
+        Log.d(TAG, "ChannelGridView and Overlay set to GONE.");
     }
 
     public boolean isChannelGridVisible() {
-        return getVisibility() == VISIBLE && mChannelGridOverlay.getVisibility() == VISIBLE;
+        boolean isVisible = getVisibility() == VISIBLE && mChannelGridOverlay.getVisibility() == VISIBLE;
+        Log.d(TAG, "isChannelGridVisible() called, returning: " + isVisible);
+        return isVisible;
     }
 
     // Helper class for category items

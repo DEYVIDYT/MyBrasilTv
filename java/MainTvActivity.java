@@ -323,12 +323,111 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     @Override
     public void onAttachFragment(@NonNull Fragment fragment) {
         super.onAttachFragment(fragment);
+        Log.d(TAG, "onAttachFragment: fragment=" + fragment.getClass().getSimpleName());
         if (fragment instanceof TvFragmentTv) {
             TvFragmentTv tvFragment = (TvFragmentTv) fragment;
             tvFragment.setSideNavToggleListener(this);
-            Log.d(TAG, "SideNavToggleListener set for TvFragmentTv");
+            Log.i(TAG, "SideNavToggleListener set for TvFragmentTv");
         }
-        // Você pode adicionar verificações para outros fragmentos aqui se eles também precisarem do listener
+    }
+
+    // Implementação da interface SideNavToggleListener
+    @Override
+    public void requestHideSideNav() {
+        Log.i(TAG, "requestHideSideNav called. isSideNavCurrentlyVisible=" + isSideNavCurrentlyVisible);
+        if (isSideNavCurrentlyVisible && sideNavRecyclerView != null) {
+            Log.d(TAG, "Animating Sidenav to hide. Current translationX: " + sideNavRecyclerView.getTranslationX());
+            ObjectAnimator animator = ObjectAnimator.ofFloat(sideNavRecyclerView, "translationX", 0f, -sideNavRecyclerView.getWidth());
+            animator.setDuration(SIDENAV_ANIMATION_DURATION);
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    Log.d(TAG, "Hide Sidenav Animation START");
+                }
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    sideNavRecyclerView.setVisibility(View.GONE);
+                    isSideNavCurrentlyVisible = false;
+                    Log.d(TAG, "Hide Sidenav Animation END. Sidenav GONE, isSideNavCurrentlyVisible=false");
+                    if (tvFragmentContainer != null) {
+                        Log.i(TAG, "Requesting focus for tvFragmentContainer.");
+                        tvFragmentContainer.requestFocus();
+                    }
+                }
+            });
+            animator.start();
+        } else {
+            Log.w(TAG, "requestHideSideNav: Sidenav already hidden, null, or animation conditions not met.");
+        }
+    }
+
+    @Override
+    public void requestShowSideNav() {
+        Log.i(TAG, "requestShowSideNav called. isSideNavCurrentlyVisible=" + isSideNavCurrentlyVisible);
+        if (!isSideNavCurrentlyVisible && sideNavRecyclerView != null) {
+            Log.d(TAG, "Animating Sidenav to show. Current translationX: " + sideNavRecyclerView.getTranslationX());
+            sideNavRecyclerView.setVisibility(View.VISIBLE);
+            ObjectAnimator animator = ObjectAnimator.ofFloat(sideNavRecyclerView, "translationX", -sideNavRecyclerView.getWidth(), 0f);
+            animator.setDuration(SIDENAV_ANIMATION_DURATION);
+            animator.addListener(new AnimatorListenerAdapter() {
+                 @Override
+                public void onAnimationStart(Animator animation) {
+                    Log.d(TAG, "Show Sidenav Animation START");
+                }
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    isSideNavCurrentlyVisible = true;
+                    Log.d(TAG, "Show Sidenav Animation END. Sidenav VISIBLE, isSideNavCurrentlyVisible=true");
+                    Log.i(TAG, "Requesting focus for sideNavRecyclerView.");
+                    sideNavRecyclerView.requestFocus();
+                }
+            });
+            animator.start();
+        } else {
+            Log.w(TAG, "requestShowSideNav: Sidenav already visible, null, or animation conditions not met.");
+        }
+    }
+
+    @Override
+    public boolean isSideNavVisible() {
+        Log.d(TAG, "isSideNavVisible called, returning: " + isSideNavCurrentlyVisible);
+        return isSideNavCurrentlyVisible;
+    }
+
+    private void setupFocusListeners() { // Novo método para logs de foco
+        if (sideNavRecyclerView != null) {
+            sideNavRecyclerView.setOnFocusChangeListener((v, hasFocus) -> {
+                Log.d(TAG, "sideNavRecyclerView focus changed: " + hasFocus);
+            });
+        }
+        if (tvFragmentContainer != null) {
+            tvFragmentContainer.setOnFocusChangeListener((v, hasFocus) -> {
+                Log.d(TAG, "tvFragmentContainer focus changed: " + hasFocus);
+                if (hasFocus) {
+                    // Tentar passar o foco para o fragmento atual se o container ganhar foco
+                    Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.tv_fragment_container);
+                    if (currentFragment != null && currentFragment.getView() != null) {
+                        Log.d(TAG, "tvFragmentContainer has focus, attempting to pass to current fragment's view: " + currentFragment.getClass().getSimpleName());
+                        currentFragment.getView().requestFocus();
+                    }
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate called");
+        setContentView(R.layout.activity_main_tv);
+
+        // ... (código existente do onCreate) ...
+
+        initializeViews(); // tvFragmentContainer é inicializado aqui
+        setupSideNavigation();
+        setupFocusListeners(); // Chamar novo método
+
+        // ... (código existente do onCreate) ...
     }
 }
 
