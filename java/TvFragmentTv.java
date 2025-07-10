@@ -294,59 +294,15 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         // if (progressBarGeral != null) {
         //     progressBarGeral.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         // }
-    }
-
-    private void loadLiveCategories() {
-        Log.d(TV_TV_TAG, "loadLiveCategories called");
-        List<XtreamApiService.CategoryInfo> categories = dataManager.getLiveCategories();
-        if (categories != null) {
-            Log.d(TV_TV_TAG, "Loading " + categories.size() + " live categories.");
-            if (categoryAdapterTv != null) {
-                categoryAdapterTv.updateData(categories);
-            } else {
-                Log.e(TV_TV_TAG, "categoryAdapterTv is null in loadLiveCategories!");
-            }
-            // Se o adapter não existir, instanciar aqui.
-            // Fazer a primeira categoria ser selecionada por padrão e carregar seus canais.
-            if (!categories.isEmpty()) {
-                 Log.d(TV_TV_TAG, "Selecting first category in loadLiveCategories: " + categories.get(0).name);
-                 onCategorySelected(categories.get(0));
-            }
-        } else {
-            Log.w(TV_TV_TAG, "No live categories found.");
+        // Ajuste: Fazer este método controlar o playerProgressBarTv para o carregamento inicial de dados
+        if (playerProgressBarTv != null) {
+            playerProgressBarTv.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         }
     }
 
-    private void onCategorySelected(XtreamApiService.CategoryInfo category) {
-        Log.d(TV_TV_TAG, "onCategorySelected: " + category.name);
-        // A ProgressBar geral (showLoading) pode ser usada aqui se a busca for longa
-        // showLoading(true);
+    // O método loadLiveCategories() foi removido.
+    // O método onCategorySelected(XtreamApiService.CategoryInfo category) foi removido.
 
-        List<Channel> channels = dataManager.getLiveStreamsByCategory(category.id);
-        // showLoading(false);
-
-        if (channels != null) {
-            Log.d(TV_TV_TAG, "Updating channelAdapterTv with " + channels.size() + " channels for category: " + category.name);
-            if (channelAdapterTv != null) {
-                channelAdapterTv.updateData(channels);
-                if (channels.isEmpty()) {
-                    if (getContext() != null) Toast.makeText(getContext(), "Nenhum canal nesta categoria.", Toast.LENGTH_SHORT).show();
-                } else {
-                    if (recyclerViewChannelsTv != null) recyclerViewChannelsTv.requestFocus();
-                }
-            } else {
-                Log.e(TV_TV_TAG, "channelAdapterTv is null in onCategorySelected!");
-            }
-        } else {
-            Log.w(TV_TV_TAG, "No channels found for category: " + category.name);
-            if (channelAdapterTv != null) {
-                channelAdapterTv.updateData(new ArrayList<>()); // Limpar lista
-            }
-            if (getContext() != null) Toast.makeText(getContext(), "Nenhum canal encontrado para: " + category.name, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    // 1d. Modificar onChannelSelected para player embutido (lógica completa no Passo 3)
     private void onChannelSelected(Channel channel) {
         Log.d(TV_TV_TAG, "onChannelSelected for embedded player: " + channel.getName() + ", URL: " + channel.getStreamUrl());
 
