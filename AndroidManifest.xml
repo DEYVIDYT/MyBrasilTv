@@ -50,6 +50,16 @@
 			android:required="false" />
 
 		<activity
+			android:name=".DeviceTypeActivity"
+			android:exported="true"
+			android:theme="@style/Theme.IPTVPlayer.NoActionBar"> <!-- Pode querer um tema sem ActionBar para esta tela inicial -->
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+
+		<activity
 			android:name=".MainActivity"
 			android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
 			android:hardwareAccelerated="true"
@@ -57,16 +67,24 @@
 			android:screenOrientation="portrait"
 			android:windowSoftInputMode="stateHidden"
 			android:resizeableActivity="true"
-			android:exported="true">
+			android:exported="false"> <!-- Não é mais LAUNCHER -->
 			<!-- windowSoftInputMode="adjustPan" é frequentemente útil com tela cheia e teclado -->
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
+			<!-- Intent filter de LAUNCHER removido -->
+		</activity>
+		<activity
+			android:name=".MainTvActivity"
+			android:exported="false"
+			android:theme="@style/Theme.IPTVPlayer.NoActionBar"
+			android:screenOrientation="landscape">
+			<!-- Adicionar configuração para MainTvActivity, garantindo que não seja LAUNCHER e tenha tema e orientação apropriados -->
 		</activity>
 		<activity android:name=".MovieDetailsActivity" />
 		<activity android:name=".VideoPlayerActivity" />
 		<activity android:name=".SearchActivity" />
+		<activity android:name=".DownloadProgressActivity"
+            android:exported="false"
+            android:theme="@style/Theme.IPTVPlayer.NoActionBar" />
+
 
 		<service
 			android:name=".DownloadService"

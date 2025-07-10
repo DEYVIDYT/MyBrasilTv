@@ -45,9 +45,17 @@ public class DownloadProgressActivity extends AppCompatActivity {
                     statusText.setText("Dados carregados com sucesso!");
                     progressBar.setProgress(100);
                     progressText.setText("Carregando... 100%");
-                    // Proceed to MainActivity
-                    Intent intent = new Intent(DownloadProgressActivity.this, MainActivity.class);
-                    // Pass a flag or some data to MainActivity to indicate data is ready
+
+                    // Determine which activity to start based on device type preference
+                    String deviceType = DeviceTypeActivity.getDeviceType(DownloadProgressActivity.this);
+                    Intent intent;
+
+                    if (DeviceTypeActivity.DEVICE_TYPE_TV.equals(deviceType)) {
+                        intent = new Intent(DownloadProgressActivity.this, MainTvActivity.class);
+                    } else { // Default to mobile if not specified or if explicitly mobile
+                        intent = new Intent(DownloadProgressActivity.this, MainActivity.class);
+                    }
+
                     intent.putExtra("DATA_LOADED_SUCCESSFULLY", true);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
