@@ -48,7 +48,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     private StandardVideoController videoControllerTv;
     private TitleView mTitleViewComponent;
     private ChannelGridView mChannelGridView;
-    private MainTvActivity.SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity
+    private SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity - Tipo atualizado
 
     // As seguintes variáveis foram removidas pois as RecyclerViews laterais e seus adaptadores não são mais usados:
     // private RecyclerView recyclerViewCategoriesTv;
@@ -365,7 +365,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     // O método loadEpgForChannel(String streamId) foi removido.
     // O método onEpgProgramSelected(EpgProgram program) foi removido.
 
-    public void setSideNavToggleListener(MainTvActivity.SideNavToggleListener listener) {
+    public void setSideNavToggleListener(SideNavToggleListener listener) { // Tipo de parâmetro atualizado
         this.sideNavToggleListener = listener;
     }
 

@@ -1,10 +1,15 @@
 package com.example.iptvplayer;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.TextView;
+import androidx.annotation.NonNull; // Adicionada para onAttachFragment
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -15,14 +20,15 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.TvKeyListener, MainTvActivity.SideNavToggleListener {
+// Interface SideNavToggleListener movida para ser top-level (ou no mesmo arquivo, mas não aninhada)
+interface SideNavToggleListener {
+    void requestHideSideNav();
+    void requestShowSideNav();
+    boolean isSideNavVisible();
+}
 
-    // Interface para comunicação com o fragmento sobre o estado da Sidenav
-    public interface SideNavToggleListener {
-        void requestHideSideNav();
-        void requestShowSideNav();
-        boolean isSideNavVisible();
-    }
+public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.TvKeyListener, SideNavToggleListener {
+    // A implementação da interface agora usa o nome simples "SideNavToggleListener"
 
     private static final String TAG = "MainTvActivity";
     

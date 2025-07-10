@@ -18,6 +18,7 @@ import com.example.iptvplayer.R;
 import com.example.iptvplayer.adapter.ChannelGridAdapter;
 import com.example.iptvplayer.adapter.ChannelGridCategoryAdapter;
 import com.example.iptvplayer.data.Channel;
+import com.example.iptvplayer.SideNavToggleListener; // Importar a interface refatorada
 import xyz.doikki.videoplayer.controller.IControlComponent;
 import xyz.doikki.videoplayer.controller.ControlWrapper;
 import xyz.doikki.videoplayer.player.VideoView;
@@ -45,7 +46,7 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     private String mCurrentCategoryId = "0";
     
     private OnChannelSelectedListener mChannelSelectedListener;
-    private MainTvActivity.SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity
+    private SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity - Tipo atualizado
     private static final String TAG = "ChannelGridView_Debug"; // Tag for logging
 
     public interface OnChannelSelectedListener {
@@ -209,6 +210,10 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     }
     public void setChannelSelectedListener(OnChannelSelectedListener listener) {
         mChannelSelectedListener = listener;
+    }
+
+    public void setSideNavToggleListener(SideNavToggleListener listener) {
+        this.sideNavToggleListener = listener;
     }
 
     public void setChannelsData(List<Channel> channels, Map<String, String> categoryMap) {
