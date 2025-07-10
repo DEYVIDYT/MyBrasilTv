@@ -44,34 +44,12 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     private TextView bannerInfo;
     private TextView bannerDescription;
     
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_tv);
-        
-        // Verificar se os dados foram carregados
-        boolean dataLoadedSuccessfully = getIntent().getBooleanExtra("DATA_LOADED_SUCCESSFULLY", false);
-        DataManager dataManager = MyApplication.getDataManager(getApplicationContext());
-        
-        if (!dataLoadedSuccessfully && (dataManager.getLiveStreams() == null || dataManager.getVodStreams() == null)) {
-            Log.d(TAG, "Data not loaded, redirecting to DownloadProgressActivity.");
-            Intent intent = new Intent(this, DownloadProgressActivity.class);
-            startActivity(intent);
-            finish();
-            return;
-        }
-        
-        Log.d(TAG, "Data loaded or already available. Proceeding with TV setup.");
-        
-        initializeViews();
-        setupSideNavigation();
-        loadFragment(vodFragment); // Carregar fragmento inicial
-        updateBannerContent("Guardians of the Galaxy", "150min • 2014 • IMDb 8.3 • Action | Adventure | Comedy", 
-                           "Set to the backdrop of 'Awesome Mixtape #1,' Marvel's Guardians of the Galaxy introduces an unlikely cast of cosmic misfits who must team up to save the universe from a fanatical warrior who seeks to purge the galaxy of all emotion.");
-    }
-    
+    // O primeiro método onCreate foi removido por ser uma duplicata.
+    // A versão correta de onCreate está mais abaixo e inclui a chamada para setupFocusListeners().
+
     private void initializeViews() {
         sideNavRecyclerView = findViewById(R.id.side_nav_recycler);
+        tvFragmentContainer = findViewById(R.id.tv_fragment_container); // Adicionado para garantir que está aqui
         bannerTitle = findViewById(R.id.banner_title);
         bannerInfo = findViewById(R.id.banner_info);
         bannerDescription = findViewById(R.id.banner_description);
@@ -271,54 +249,8 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     }
 
     // Implementação da interface SideNavToggleListener
-    @Override
-    public void requestHideSideNav() {
-        if (isSideNavCurrentlyVisible && sideNavRecyclerView != null) {
-            Log.d(TAG, "requestHideSideNav: Hiding sidenav");
-            ObjectAnimator animator = ObjectAnimator.ofFloat(sideNavRecyclerView, "translationX", 0f, -sideNavRecyclerView.getWidth());
-            animator.setDuration(SIDENAV_ANIMATION_DURATION);
-            animator.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    sideNavRecyclerView.setVisibility(View.GONE);
-                    isSideNavCurrentlyVisible = false;
-                    if (tvFragmentContainer != null) {
-                        tvFragmentContainer.requestFocus(); // Mover foco para o container do fragmento
-                    }
-                    Log.d(TAG, "Sidenav hidden and focus moved to fragment container.");
-                }
-            });
-            animator.start();
-        } else {
-            Log.d(TAG, "requestHideSideNav: Sidenav already hidden or null.");
-        }
-    }
-
-    @Override
-    public void requestShowSideNav() {
-        if (!isSideNavCurrentlyVisible && sideNavRecyclerView != null) {
-            Log.d(TAG, "requestShowSideNav: Showing sidenav");
-            sideNavRecyclerView.setVisibility(View.VISIBLE); // Torna visível antes de animar
-            ObjectAnimator animator = ObjectAnimator.ofFloat(sideNavRecyclerView, "translationX", -sideNavRecyclerView.getWidth(), 0f);
-            animator.setDuration(SIDENAV_ANIMATION_DURATION);
-            animator.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    isSideNavCurrentlyVisible = true;
-                    sideNavRecyclerView.requestFocus(); // Mover foco para a sidenav
-                    Log.d(TAG, "Sidenav shown and focus moved to sidenav.");
-                }
-            });
-            animator.start();
-        } else {
-            Log.d(TAG, "requestShowSideNav: Sidenav already visible or null.");
-        }
-    }
-
-    @Override
-    public boolean isSideNavVisible() {
-        return isSideNavCurrentlyVisible;
-    }
+    // A primeira ocorrência dos métodos requestHideSideNav, requestShowSideNav, isSideNavVisible foi removida.
+    // A versão correta, com logs mais detalhados, está mais abaixo.
 
     @Override
     public void onAttachFragment(@NonNull Fragment fragment) {

@@ -70,23 +70,8 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         dataManager.setListener(this);
     }
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        Log.d(TV_TV_TAG, "onCreateView called - Inflating fullscreen player layout");
-        View root = inflater.inflate(R.layout.fragment_tv_tv, container, false);
-
-        playerContainerTv = root.findViewById(R.id.tv_player_container_tv);
-        playerProgressBarTv = root.findViewById(R.id.tv_player_progress_bar_tv);
-
-        // RecyclerViews laterais e seus setups foram removidos.
-        // setupRecyclerViews(); // Removido
-
-        initializePlayerView(); // Configura o VideoView e o listener de estado
-
-        Log.d(TV_TV_TAG, "Views initialized for fullscreen player layout.");
-        return root;
-    }
+    // A primeira ocorrência de onCreateView foi removida.
+    // A versão correta, com listeners de foco, está mais abaixo.
 
     // setupRecyclerViews() foi removido.
     // loadLiveCategories() foi removido.
@@ -187,16 +172,8 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
 
     // 1e. Ajustar ciclo de vida para o player embutido
-    @Override
-    public void onResume() {
-        super.onResume();
-        Log.d(TV_TV_TAG, "onResume called - Original TV Layout");
-        if (videoViewTv != null) {
-            videoViewTv.resume();
-        }
-        Log.d(TV_TV_TAG, "Calling updateUi() from onResume");
-        updateUi();
-    }
+    // A primeira ocorrência de onResume foi removida.
+    // A versão correta, com lógica de foco, está mais abaixo.
 
     @Override
     public void onPause() {
