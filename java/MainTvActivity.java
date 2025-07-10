@@ -20,8 +20,8 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-// Interface SideNavToggleListener movida para ser top-level (ou no mesmo arquivo, mas não aninhada)
-interface SideNavToggleListener {
+// Interface SideNavToggleListener movida para ser top-level e tornada pública
+public interface SideNavToggleListener {
     void requestHideSideNav();
     void requestShowSideNav();
     boolean isSideNavVisible();
