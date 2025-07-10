@@ -20,12 +20,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-// Interface SideNavToggleListener movida para ser top-level e tornada pública
-public interface SideNavToggleListener {
-    void requestHideSideNav();
-    void requestShowSideNav();
-    boolean isSideNavVisible();
-}
+// A interface SideNavToggleListener foi movida para seu próprio arquivo: SideNavToggleListener.java
 
 public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.TvKeyListener, SideNavToggleListener {
     // A implementação da interface agora usa o nome simples "SideNavToggleListener"
