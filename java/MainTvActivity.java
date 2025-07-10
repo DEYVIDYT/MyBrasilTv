@@ -75,14 +75,25 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
         sideNavRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         sideNavRecyclerView.setAdapter(sideNavAdapter);
         
-        // Definir foco inicial
-        sideNavRecyclerView.post(new Runnable() {
-            @Override
-            public void run() {
-                View firstItem = sideNavRecyclerView.getChildAt(0);
-                if (firstItem != null) {
-                    firstItem.requestFocus();
+        // Definir foco inicial na Sidenav de forma mais robusta
+        sideNavRecyclerView.post(() -> {
+            if (sideNavRecyclerView.getChildCount() > 0) {
+                RecyclerView.ViewHolder firstViewHolder = sideNavRecyclerView.findViewHolderForAdapterPosition(0);
+                if (firstViewHolder != null && firstViewHolder.itemView != null) {
+                    Log.d(TAG, "setupSideNavigation: Requesting focus for the first item in sideNavRecyclerView.");
+                    firstViewHolder.itemView.requestFocus();
+                } else {
+                    // Fallback se o ViewHolder não for encontrado imediatamente (menos provável com post)
+                    View firstItemView = sideNavRecyclerView.getChildAt(0);
+                    if (firstItemView != null) {
+                        Log.d(TAG, "setupSideNavigation: Requesting focus for the first child view of sideNavRecyclerView (fallback).");
+                        firstItemView.requestFocus();
+                    } else {
+                        Log.w(TAG, "setupSideNavigation: No child views in sideNavRecyclerView to focus on.");
+                    }
                 }
+            } else {
+                Log.w(TAG, "setupSideNavigation: sideNavRecyclerView has no children, cannot set initial focus.");
             }
         });
     }
@@ -133,7 +144,20 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.tv_fragment_container, fragment);
-        fragmentTransaction.commit();
+        fragmentTransaction.commit(); // Considerar commitNow() ou executePendingTransactions() se o foco imediato for crítico
+
+        if (fragment instanceof TvFragmentTv && tvFragmentContainer != null) {
+            tvFragmentContainer.post(() -> {
+                Log.d(TAG, "loadFragment: Requesting focus for tvFragmentContainer after loading TvFragmentTv.");
+                tvFragmentContainer.requestFocus();
+                // Adicionalmente, pode-se tentar focar diretamente a view do fragmento se disponível
+                // e se a Sidenav estiver oculta, mas isso pode ser melhor tratado no onResume do fragmento.
+                if (fragment.getView() != null && sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible()) {
+                     Log.d(TAG, "loadFragment: Sidenav is hidden, attempting to focus TvFragmentTv's view directly.");
+                     fragment.getView().requestFocus(); // Tenta focar a view raiz do fragmento
+                }
+            });
+        }
     }
     
     private void updateBannerContent(String title, String info, String description) {

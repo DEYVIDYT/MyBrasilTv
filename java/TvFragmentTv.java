@@ -369,33 +369,32 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         if (videoViewTv != null) {
             videoViewTv.resume();
         }
-        // Garantir que a view raiz do fragmento seja focável e tente obter foco
-        if (getView() != null) {
-            getView().setFocusable(true);
-            getView().setFocusableInTouchMode(true);
-            // Não chamar requestFocus() aqui diretamente sempre, pois pode roubar foco da Sidenav
-            // se ela estiver visível e o usuário estiver interagindo com ela.
-            // O foco será gerenciado mais ativamente em updateUi ou quando a Sidenav for escondida.
+
+        View fragmentView = getView();
+        if (fragmentView != null) {
+            fragmentView.setFocusable(true);
+            fragmentView.setFocusableInTouchMode(true);
             Log.d(TV_TV_TAG, "View focusability set in onResume.");
+
+            // Se a Sidenav não estiver visível, o fragmento deve tentar obter o foco.
+            if (sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible()) {
+                Log.i(TV_TV_TAG, "Sidenav is hidden. TvFragmentTv requesting focus in onResume.");
+                fragmentView.requestFocus();
+            } else if (sideNavToggleListener == null) {
+                 Log.w(TV_TV_TAG, "sideNavToggleListener is null in onResume. Requesting focus as a fallback.");
+                 fragmentView.requestFocus(); // Tenta pegar foco se o listener não estiver pronto, como fallback
+            } else {
+                 Log.d(TV_TV_TAG, "Sidenav is visible. TvFragmentTv not aggressively requesting focus in onResume.");
+                 // O foco deve vir da navegação do usuário a partir da Sidenav ou ser gerenciado pela Activity.
+            }
+        } else {
+            Log.w(TV_TV_TAG, "getView() is null in onResume. Cannot set focusability or request focus.");
         }
 
-        // Se os dados já estão carregados e o player está ocioso, updateUi pode iniciar um canal
-        // e então tentar pegar o foco.
-        if (dataManager != null && dataManager.isDataFullyLoaded() &&
-            (videoViewTv == null || videoViewTv.getCurrentPlayState() == VideoView.STATE_IDLE)) {
-             Log.d(TV_TV_TAG, "Calling updateUi() from onResume as data is loaded and player is idle.");
-             updateUi();
-        } else if (dataManager != null && !dataManager.isDataFullyLoaded() && !dataManager.isLoading()) {
-            // Se os dados não estão carregados e o DataManager não está carregando, inicie.
-            Log.d(TV_TV_TAG, "Data not loaded and not loading, calling updateUi to trigger load in onResume.");
-            updateUi();
-        }
-        // Se o fragmento se torna visível e a Sidenav NÃO está, ele deve tentar pegar o foco.
-        // Esta lógica pode ser mais bem colocada quando a Sidenav é escondida pela Activity.
-         if (sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible() && getView() != null) {
-            Log.d(TV_TV_TAG, "Sidenav is hidden, fragment requesting focus in onResume.");
-            getView().requestFocus();
-        }
+        // Chamar updateUi para carregar dados ou iniciar o player se necessário.
+        // A lógica de foco após iniciar o canal está em updateUi.
+        Log.d(TV_TV_TAG, "Calling updateUi() from onResume to check/load data or start player.");
+        updateUi();
     }
 
     @Override
@@ -455,25 +454,58 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         // Interação com a ChannelGridView (grade de canais do player) ao pressionar D-Pad Center/OK
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_BUTTON_SELECT) {
             Log.d(TV_TV_TAG, "DPAD_CENTER or BUTTON_SELECT pressed.");
-            Log.d(TV_TV_TAG, "mChannelGridView is " + (mChannelGridView == null ? "null" : "not null") + ", videoViewTv is " + (videoViewTv == null ? "null" : "not null"));
-            if (mChannelGridView != null && videoViewTv != null) {
-                if (mChannelGridView.isChannelGridVisible()) {
-                    Log.i(TV_TV_TAG, "Hiding ChannelGridView via DPAD_CENTER");
-                    mChannelGridView.hideChannelGrid();
-                } else {
-                    Log.i(TV_TV_TAG, "Showing ChannelGridView via DPAD_CENTER");
-                    if (dataManager != null && dataManager.getLiveStreams() != null && dataManager.getLiveCategoriesMap() != null) {
-                        Log.d(TV_TV_TAG, "Populating ChannelGridView with data.");
-                        mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
+            if (videoViewTv != null) { // videoViewTv é essencial para ter uma grade de canais sobre ele
+                // Lógica de salvaguarda para inicializar mChannelGridView se for nula
+                if (mChannelGridView == null) {
+                    Log.w(TV_TV_TAG, "mChannelGridView is null on OK press. Attempting to initialize.");
+                    if (dataManager != null && dataManager.getLiveStreams() != null && !dataManager.getLiveStreams().isEmpty()) {
+                        // Tenta usar o canal atual do player, se houver, ou o primeiro da lista
+                        Channel channelForSetup = null;
+                        // Obter o canal atual do videoViewTv pode ser complexo se só tivermos a URL.
+                        // Por simplicidade, se o player já estiver tocando, o controller já deve ter sido configurado.
+                        // Se o player está IDLE, podemos usar o primeiro canal.
+                        if (videoViewTv.getCurrentPlayState() == VideoView.STATE_IDLE ||
+                            videoViewTv.getCurrentPlayState() == VideoView.STATE_ERROR ||
+                            videoViewTv.getCurrentPlayState() == VideoView.STATE_PLAYBACK_COMPLETED) {
+                            channelForSetup = dataManager.getLiveStreams().get(0);
+                            Log.d(TV_TV_TAG, "Player is idle/error/completed, setting up ChannelGridView with the first channel: " + channelForSetup.getName());
+                        } else {
+                            // Se o player está tocando/pausado, mChannelGridView já deveria existir.
+                            // Se não existe, é um estado inesperado. Usar o primeiro canal como fallback.
+                            Log.w(TV_TV_TAG, "Player is active but mChannelGridView is null. Unexpected state. Using first channel for grid setup.");
+                            channelForSetup = dataManager.getLiveStreams().get(0);
+                        }
+                        if (channelForSetup != null) {
+                             setupControllerAndComponents(channelForSetup); // Isso criará mChannelGridView
+                        }
                     } else {
-                        Log.w(TV_TV_TAG, "Data for ChannelGridView is not ready. Grid might be empty or show old data.");
-                        mChannelGridView.setChannelsData(new ArrayList<>(), new java.util.HashMap<>());
+                        Log.e(TV_TV_TAG, "Cannot initialize mChannelGridView: DataManager or live streams not available.");
                     }
-                    mChannelGridView.showChannelGrid();
                 }
-                return true;
+
+                // Agora, mChannelGridView deve existir se a inicialização de salvaguarda funcionou
+                if (mChannelGridView != null) {
+                    if (mChannelGridView.isChannelGridVisible()) {
+                        Log.i(TV_TV_TAG, "Hiding ChannelGridView via DPAD_CENTER");
+                        mChannelGridView.hideChannelGrid();
+                    } else {
+                        Log.i(TV_TV_TAG, "Showing ChannelGridView via DPAD_CENTER");
+                        // Garantir que os dados da grade estejam atualizados
+                        if (dataManager != null && dataManager.getLiveStreams() != null && dataManager.getLiveCategoriesMap() != null) {
+                            Log.d(TV_TV_TAG, "Populating/Repopulating ChannelGridView with data.");
+                            mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
+                        } else {
+                            Log.w(TV_TV_TAG, "Data for ChannelGridView is not ready. Grid might be empty or show old data.");
+                            mChannelGridView.setChannelsData(new ArrayList<>(), new java.util.HashMap<>());
+                        }
+                        mChannelGridView.showChannelGrid();
+                    }
+                    return true;
+                } else {
+                     Log.e(TV_TV_TAG, "mChannelGridView is still null after attempted setup. Cannot toggle grid.");
+                }
             } else {
-                Log.w(TV_TV_TAG, "ChannelGridView or VideoView is null. Cannot toggle grid.");
+                Log.w(TV_TV_TAG, "videoViewTv is null. Cannot toggle ChannelGridView.");
             }
         }
         Log.d(TV_TV_TAG, "onTvKeyDown: Event not consumed by TvFragmentTv for keyCode " + KeyEvent.keyCodeToString(keyCode));
