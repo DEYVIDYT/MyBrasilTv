@@ -152,7 +152,8 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
                 tvFragmentContainer.requestFocus();
                 // Adicionalmente, pode-se tentar focar diretamente a view do fragmento se disponível
                 // e se a Sidenav estiver oculta, mas isso pode ser melhor tratado no onResume do fragmento.
-                if (fragment.getView() != null && sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible()) {
+                // Corrigido: usar this.isSideNavVisible() ou apenas isSideNavVisible()
+                if (fragment.getView() != null && !this.isSideNavVisible()) {
                      Log.d(TAG, "loadFragment: Sidenav is hidden, attempting to focus TvFragmentTv's view directly.");
                      fragment.getView().requestFocus(); // Tenta focar a view raiz do fragmento
                 }
