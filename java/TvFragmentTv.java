@@ -39,18 +39,23 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
     private DataManager dataManager;
 
-    // Views do layout fragment_tv_tv.xml (agora focado no player)
+    // Views do layout fragment_tv_tv.xml (focado no player)
     private FrameLayout playerContainerTv;
-    private ProgressBar playerProgressBarTv; // ProgressBar para o player
+    private ProgressBar playerProgressBarTv;
 
     // Componentes do Player Embutido
     private VideoView videoViewTv;
-    private StandardVideoController videoControllerTv; // Controller principal
-    private TitleView mTitleViewComponent; // Componente de título para o controller
-    private ChannelGridView mChannelGridView; // Componente da grade de canais para o controller
+    private StandardVideoController videoControllerTv;
+    private TitleView mTitleViewComponent;
+    private ChannelGridView mChannelGridView;
 
-    // Adapters e RecyclerViews laterais foram removidos.
-    // A navegação de canais agora é feita pela ChannelGridView.
+    // As seguintes variáveis foram removidas pois as RecyclerViews laterais e seus adaptadores não são mais usados:
+    // private RecyclerView recyclerViewCategoriesTv;
+    // private RecyclerView recyclerViewChannelsTv;
+    // private RecyclerView recyclerViewEpgTv;
+    // private ChannelCategoryAdapterTv categoryAdapterTv;
+    // private ChannelAdapterTv channelAdapterTv;
+    // private EpgAdapterTv epgAdapterTv;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -83,6 +88,10 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     }
 
     // setupRecyclerViews() foi removido.
+    // loadLiveCategories() foi removido.
+    // onCategorySelected(XtreamApiService.CategoryInfo category) foi removido.
+    // loadEpgForChannel(String streamId) foi removido.
+    // onEpgProgramSelected(EpgProgram program) foi removido.
 
     private void initializePlayerView() {
         Log.d(TV_TV_TAG, "initializePlayerView called");
@@ -238,24 +247,34 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         Log.d(TV_TV_TAG, "updateUi called");
         if (dataManager == null) {
             Log.e(TV_TV_TAG, "DataManager is null in updateUi!");
+            showLoading(false); // Esconder loading se o DataManager for nulo por algum motivo
             return;
         }
+
         if (dataManager.isDataFullyLoaded()) {
             Log.d(TV_TV_TAG, "Data is fully loaded for Live TV.");
-            showLoading(false);
-            Log.d(TV_TV_TAG, "Calling loadLiveCategories()");
-            loadLiveCategories();
-            // Carregar canais da primeira categoria ou todos os canais por padrão
-            if (categoryAdapterTv != null && dataManager.getLiveCategories() != null && !dataManager.getLiveCategories().isEmpty()) {
-                Log.d(TV_TV_TAG, "Selecting first category: " + dataManager.getLiveCategories().get(0).name);
-                onCategorySelected(dataManager.getLiveCategories().get(0));
+            showLoading(false); // Esconder o ProgressBar geral do fragmento
+
+            List<Channel> liveStreams = dataManager.getLiveStreams();
+            if (liveStreams != null && !liveStreams.isEmpty()) {
+                // Se o player ainda não estiver tocando ou se nenhum canal foi selecionado ainda
+                if (videoViewTv != null && videoViewTv.getCurrentPlayState() == VideoView.STATE_IDLE) {
+                     Log.d(TV_TV_TAG, "Data loaded. Auto-selecting first channel: " + liveStreams.get(0).getName());
+                    onChannelSelected(liveStreams.get(0)); // Inicia a reprodução do primeiro canal
+                } else {
+                    Log.d(TV_TV_TAG, "Player already active or no VideoView, skipping auto-selection of first channel.");
+                }
             } else {
-                Log.w(TV_TV_TAG, "categoryAdapterTv is null or live categories are empty. Cannot select first category.");
+                Log.w(TV_TV_TAG, "Live streams are null or empty after data load.");
+                // Mostrar alguma mensagem para o usuário, se apropriado
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "Nenhum canal ao vivo disponível.", Toast.LENGTH_LONG).show();
+                }
             }
         } else {
             Log.d(TV_TV_TAG, "Data not loaded for Live TV. Displaying loading indicator.");
-            showLoading(true);
-            if (!dataManager.isLoading()) { // Agora usa o método isLoading()
+            showLoading(true); // Mostrar o ProgressBar geral do fragmento
+            if (!dataManager.isLoading()) {
                 Log.d(TV_TV_TAG, "DataManager not loading, starting data load.");
                 dataManager.startDataLoading();
             } else {
@@ -375,74 +394,15 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
 
         Log.d(TV_TV_TAG, "Playback started for: " + channel.getName());
 
-        // 3f. (Opcional por enquanto) Chamar loadEpgForChannel.
-        // Vamos reativar isso pois a UI do EPG foi restaurada.
-        loadEpgForChannel(channel.getStreamId());
+        // A chamada para loadEpgForChannel(channel.getStreamId()) foi removida
+        // pois a lógica de EPG lateral foi removida.
+        // Se o EPG for exibido, será como parte da ChannelGridView ou um componente similar.
     }
 
-    // 1c. Reintroduzir lógica de EPG
-    private void loadEpgForChannel(String streamId) {
-        Log.d(TV_TV_TAG, "loadEpgForChannel called for streamId: " + streamId);
-        if (dataManager == null || dataManager.getXmltvEpgService() == null) {
-            Log.e(TV_TV_TAG, "DataManager or XmltvEpgService is null in loadEpgForChannel!");
-            return;
-        }
-        // Mostrar um indicador de carregamento para o EPG se houver um específico
-        dataManager.getXmltvEpgService().fetchChannelEpg(streamId, new EpgService.EpgCallback() {
-            @Override
-            public void onSuccess(List<EpgProgram> programs) {
-                if (getActivity() != null && isAdded()) {
-                    getActivity().runOnUiThread(() -> {
-                        if (!isAdded() || getContext() == null) {
-                            Log.w(TV_TV_TAG, "loadEpgForChannel.onSuccess: Fragment not added or context null in UI thread.");
-                            return;
-                        }
-                        Log.d(TV_TV_TAG, "XMLTV EPG loaded successfully: " + programs.size() + " programs for streamId " + streamId);
-                        if (epgAdapterTv != null) {
-                            epgAdapterTv.updateData(programs);
-                        } else {
-                            Log.e(TV_TV_TAG, "epgAdapterTv is null in loadEpgForChannel.onSuccess!");
-                        }
-                    });
-                } else {
-                    Log.w(TV_TV_TAG, "loadEpgForChannel.onSuccess: Fragment not attached or activity is null.");
-                }
-            }
+    // O método loadEpgForChannel(String streamId) foi removido.
+    // O método onEpgProgramSelected(EpgProgram program) foi removido.
 
-            @Override
-            public void onFailure(String error) {
-                if (getActivity() != null && isAdded()) {
-                    getActivity().runOnUiThread(() -> {
-                        if (!isAdded() || getContext() == null) {
-                            Log.w(TV_TV_TAG, "loadEpgForChannel.onFailure: Fragment not added or context null in UI thread.");
-                            return;
-                        }
-                        Log.e(TV_TV_TAG, "Failed to load XMLTV EPG: " + error);
-                        if (getContext() != null) Toast.makeText(getContext(), "Erro ao carregar EPG XMLTV: " + error, Toast.LENGTH_LONG).show();
-                        if (epgAdapterTv != null) {
-                            epgAdapterTv.updateData(new ArrayList<>());
-                        } else {
-                            Log.e(TV_TV_TAG, "epgAdapterTv is null in loadEpgForChannel.onFailure!");
-                        }
-                    });
-                } else {
-                    Log.w(TV_TV_TAG, "loadEpgForChannel.onFailure: Fragment not attached or activity is null.");
-                }
-            }
-        });
-    }
-
-    public void onEpgProgramSelected(EpgProgram program) {
-        Log.d(TV_TV_TAG, "onEpgProgramSelected: " + program.getTitle());
-        // Implementar o que acontece quando um programa EPG é clicado.
-        // Ex: Mostrar detalhes do programa em um Toast ou Dialog.
-        if (getContext() != null) {
-            String details = "Programa: " + program.getTitle() + "\nDescrição: " + program.getDescription();
-            Toast.makeText(getContext(), details, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    // onTvKeyDown e onTvKeyUp serão restaurados no Passo 4.
+    // onTvKeyDown e onTvKeyUp são mantidos para interação com ChannelGridView
     // Se a navegação por D-Pad precisar de tratamento especial para os RecyclerViews,
     // isso seria feito de forma diferente, geralmente pelo foco do sistema.
     @Override
