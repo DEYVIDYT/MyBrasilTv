@@ -45,6 +45,7 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
     private String mCurrentCategoryId = "0";
     
     private OnChannelSelectedListener mChannelSelectedListener;
+    private MainTvActivity.SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity
     private static final String TAG = "ChannelGridView_Debug"; // Tag for logging
 
     public interface OnChannelSelectedListener {
@@ -102,15 +103,20 @@ public class ChannelGridView extends FrameLayout implements IControlComponent, V
                     Log.d(TAG, "DPAD_RIGHT on Categories. Requesting focus for Channels.");
                     if (mRecyclerChannels.getChildCount() > 0) {
                         mRecyclerChannels.requestFocus();
-                        // Tenta focar no primeiro item visível dos canais
-                        // Se o adapter estiver vazio, o requestFocus() acima pode não fazer nada visualmente
-                        // O ideal é que o RecyclerView ou seu LayoutManager lide com o foco no primeiro item.
-                        // Se mChannelAdapter.getItemCount() > 0, o foco deve ir para lá.
+                        return true;
+                    }
+                } else if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                    // Se pressionar Esquerda na lista de categorias, tentar mostrar a Sidenav da Activity
+                    if (sideNavToggleListener != null && !sideNavToggleListener.isSideNavVisible()) {
+                        // Adicionar verificação se o foco está no primeiro item ou se não pode rolar mais para esquerda (opcional, mas bom)
+                        // Por simplicidade, vamos assumir que qualquer DPAD_LEFT aqui pode tentar mostrar a Sidenav
+                        Log.d(TAG, "DPAD_LEFT on Categories: Requesting show Sidenav from Activity.");
+                        sideNavToggleListener.requestShowSideNav();
                         return true; // Evento consumido
                     }
                 }
             }
-            return false; // Evento não consumido
+            return false;
         });
 
         mRecyclerChannels.setOnKeyListener((v, keyCode, event) -> {

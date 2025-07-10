@@ -15,7 +15,14 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.TvKeyListener {
+public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.TvKeyListener, MainTvActivity.SideNavToggleListener {
+
+    // Interface para comunicação com o fragmento sobre o estado da Sidenav
+    public interface SideNavToggleListener {
+        void requestHideSideNav();
+        void requestShowSideNav();
+        boolean isSideNavVisible();
+    }
 
     private static final String TAG = "MainTvActivity";
     
@@ -23,12 +30,15 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
     private TvSideNavAdapter sideNavAdapter;
     private View currentFocusedView;
     private int currentSideNavPosition = 0;
+    private boolean isSideNavCurrentlyVisible = true; // Default: Sidenav está visível
+    private static final long SIDENAV_ANIMATION_DURATION = 250; // Duração da animação em ms
     
     private final VodFragment vodFragment = new VodFragment();
     // private final TvFragment tvFragment = new TvFragment(); // Mobile version, not needed here
     private final ProfileFragment profileFragment = new ProfileFragment();
     private final TvFragmentTv tvFragmentTv = new TvFragmentTv(); // TV version for live channels
     
+    private FrameLayout tvFragmentContainer; // Adicionado para referência ao container do fragmento
     private TextView bannerTitle;
     private TextView bannerInfo;
     private TextView bannerDescription;
@@ -257,6 +267,67 @@ public class MainTvActivity extends AppCompatActivity implements TvKeyHandler.Tv
 
         Log.d(TAG, "onBackPressed: no fragment handled it, calling super.onBackPressed()");
         super.onBackPressed();
+    }
+
+    // Implementação da interface SideNavToggleListener
+    @Override
+    public void requestHideSideNav() {
+        if (isSideNavCurrentlyVisible && sideNavRecyclerView != null) {
+            Log.d(TAG, "requestHideSideNav: Hiding sidenav");
+            ObjectAnimator animator = ObjectAnimator.ofFloat(sideNavRecyclerView, "translationX", 0f, -sideNavRecyclerView.getWidth());
+            animator.setDuration(SIDENAV_ANIMATION_DURATION);
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    sideNavRecyclerView.setVisibility(View.GONE);
+                    isSideNavCurrentlyVisible = false;
+                    if (tvFragmentContainer != null) {
+                        tvFragmentContainer.requestFocus(); // Mover foco para o container do fragmento
+                    }
+                    Log.d(TAG, "Sidenav hidden and focus moved to fragment container.");
+                }
+            });
+            animator.start();
+        } else {
+            Log.d(TAG, "requestHideSideNav: Sidenav already hidden or null.");
+        }
+    }
+
+    @Override
+    public void requestShowSideNav() {
+        if (!isSideNavCurrentlyVisible && sideNavRecyclerView != null) {
+            Log.d(TAG, "requestShowSideNav: Showing sidenav");
+            sideNavRecyclerView.setVisibility(View.VISIBLE); // Torna visível antes de animar
+            ObjectAnimator animator = ObjectAnimator.ofFloat(sideNavRecyclerView, "translationX", -sideNavRecyclerView.getWidth(), 0f);
+            animator.setDuration(SIDENAV_ANIMATION_DURATION);
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    isSideNavCurrentlyVisible = true;
+                    sideNavRecyclerView.requestFocus(); // Mover foco para a sidenav
+                    Log.d(TAG, "Sidenav shown and focus moved to sidenav.");
+                }
+            });
+            animator.start();
+        } else {
+            Log.d(TAG, "requestShowSideNav: Sidenav already visible or null.");
+        }
+    }
+
+    @Override
+    public boolean isSideNavVisible() {
+        return isSideNavCurrentlyVisible;
+    }
+
+    @Override
+    public void onAttachFragment(@NonNull Fragment fragment) {
+        super.onAttachFragment(fragment);
+        if (fragment instanceof TvFragmentTv) {
+            TvFragmentTv tvFragment = (TvFragmentTv) fragment;
+            tvFragment.setSideNavToggleListener(this);
+            Log.d(TAG, "SideNavToggleListener set for TvFragmentTv");
+        }
+        // Você pode adicionar verificações para outros fragmentos aqui se eles também precisarem do listener
     }
 }
 

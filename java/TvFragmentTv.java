@@ -48,6 +48,7 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     private StandardVideoController videoControllerTv;
     private TitleView mTitleViewComponent;
     private ChannelGridView mChannelGridView;
+    private MainTvActivity.SideNavToggleListener sideNavToggleListener; // Listener para interagir com a Sidenav da Activity
 
     // As seguintes variáveis foram removidas pois as RecyclerViews laterais e seus adaptadores não são mais usados:
     // private RecyclerView recyclerViewCategoriesTv;
@@ -142,6 +143,12 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
         // 2.b.iii. Criar novas instâncias de TitleView e ChannelGridView.
         mTitleViewComponent = new TitleView(requireContext());
         mChannelGridView = new ChannelGridView(requireContext());
+        if (sideNavToggleListener != null) { // Passar o listener da Activity para a ChannelGridView
+            mChannelGridView.setSideNavToggleListener(sideNavToggleListener);
+            Log.d(TV_TV_TAG, "SideNavToggleListener passed to ChannelGridView.");
+        } else {
+            Log.w(TV_TV_TAG, "SideNavToggleListener is null in TvFragmentTv, cannot pass to ChannelGridView.");
+        }
 
         // 2.b.iv. Adicionar o novo TitleView e o novo ChannelGridView ao novo videoControllerTv.
         videoControllerTv.addControlComponent(mTitleViewComponent);
@@ -358,32 +365,53 @@ public class TvFragmentTv extends Fragment implements DataManager.DataManagerLis
     // O método loadEpgForChannel(String streamId) foi removido.
     // O método onEpgProgramSelected(EpgProgram program) foi removido.
 
+    public void setSideNavToggleListener(MainTvActivity.SideNavToggleListener listener) {
+        this.sideNavToggleListener = listener;
+    }
+
     // onTvKeyDown e onTvKeyUp são mantidos para interação com ChannelGridView
     // Se a navegação por D-Pad precisar de tratamento especial para os RecyclerViews,
     // isso seria feito de forma diferente, geralmente pelo foco do sistema.
     @Override
     public boolean onTvKeyDown(int keyCode, KeyEvent event) {
-        Log.d(TV_TV_TAG, "onTvKeyDown: keyCode=" + keyCode);
-        // 4a. Restaurar lógica para mostrar/esconder mChannelGridView
+        Log.d(TV_TV_TAG, "onTvKeyDown: keyCode=" + keyCode + ", event: " + event);
+
+        // Interação com a Sidenav da Activity ao pressionar D-Pad Direita (se a grade de canais não estiver visível)
+        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (mChannelGridView == null || !mChannelGridView.isChannelGridVisible()) {
+                if (sideNavToggleListener != null && sideNavToggleListener.isSideNavVisible()) {
+                    Log.d(TV_TV_TAG, "DPAD_RIGHT: Requesting hide Sidenav from Activity.");
+                    sideNavToggleListener.requestHideSideNav();
+                    return true; // Evento consumido
+                }
+            }
+        }
+        // A lógica para KEYCODE_DPAD_LEFT (para mostrar a Sidenav a partir da ChannelGridView)
+        // será implementada no Passo 5, dentro da ChannelGridView.java
+
+        // Interação com a ChannelGridView (grade de canais do player) ao pressionar D-Pad Center/OK
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_BUTTON_SELECT) {
-            if (mChannelGridView != null && videoViewTv != null && videoViewTv.isPlaying()) { // Só mostrar se o player estiver ativo
-                if (mChannelGridView.isShown()) {
+            if (mChannelGridView != null && videoViewTv != null) {
+                // Não checar videoViewTv.isPlaying() para permitir abrir a grade mesmo se pausado/erro
+                if (mChannelGridView.isChannelGridVisible()) {
                     Log.d(TV_TV_TAG, "Hiding ChannelGridView via DPAD_CENTER");
                     mChannelGridView.hideChannelGrid();
                 } else {
                     Log.d(TV_TV_TAG, "Showing ChannelGridView via DPAD_CENTER");
-                    // Popular dados antes de mostrar, caso DataManager tenha sido atualizado
                     if (dataManager != null && dataManager.getLiveStreams() != null && dataManager.getLiveCategoriesMap() != null) {
-                         mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
+                        mChannelGridView.setChannelsData(dataManager.getLiveStreams(), dataManager.getLiveCategoriesMap());
+                    } else {
+                        Log.w(TV_TV_TAG, "Data for ChannelGridView is not ready. Grid might be empty.");
+                        mChannelGridView.setChannelsData(new ArrayList<>(), new java.util.HashMap<>());
                     }
-                    mChannelGridView.showChannelGrid();
+                    mChannelGridView.showChannelGrid(); // showChannelGrid agora também solicita foco
                 }
-                return true; // Evento consumido
+                return true;
+            } else {
+                Log.w(TV_TV_TAG, "ChannelGridView or VideoView is null. Cannot toggle grid.");
             }
         }
-        // Considerar adicionar navegação para cima/baixo na lista de canais se o foco estiver no player
-        // ou outras interações de D-Pad específicas do player.
-        return false; // Deixar o sistema tratar outros eventos de D-Pad
+        return false;
     }
 
     @Override
